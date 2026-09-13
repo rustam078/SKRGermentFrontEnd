@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import PurchaseItemsTable from './PurchaseItemsTable';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -72,7 +73,7 @@ const PurchaseInvoiceCard = ({ invoice }) => {
             Grand Total
           </div>
           <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A' }}>
-            ₹{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {getCurrencySymbol()}{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
@@ -106,7 +107,7 @@ const PurchaseInvoiceCard = ({ invoice }) => {
             <Space size="large" align="center">
               <Text style={{ color: '#2563EB', fontWeight: 700 }}>Total</Text>
               <Text style={{ color: '#2563EB', fontWeight: 800, fontSize: '1.1rem' }}>
-                ₹{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {getCurrencySymbol()}{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
             </Space>
           </div>

@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { IMonthlyEarningsTrend } from '../../types/employee-details.types';
+import { getCurrencySymbol } from '../../utils/currency';
 
 interface EmployeeEarningsChartProps {
   data: IMonthlyEarningsTrend[];
@@ -52,7 +53,7 @@ export const EmployeeEarningsChart: React.FC<EmployeeEarningsChartProps> = ({ da
     <>
       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12, fontWeight: 500 }} />
-      <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val}`} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }} width={50} />
+      <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${getCurrencySymbol()}${val}`} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }} width={50} />
       <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
     </>
   );

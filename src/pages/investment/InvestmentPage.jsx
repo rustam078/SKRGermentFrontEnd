@@ -23,6 +23,9 @@ import {
   Tooltip,
   Empty,
   Skeleton,
+  Popover,
+  Badge,
+  Checkbox,
 } from 'antd';
 import {
   PlusOutlined,
@@ -33,8 +36,10 @@ import {
   WalletOutlined,
   ShoppingOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   SearchOutlined,
   ReloadOutlined,
+  FilterOutlined,
   BankOutlined,
   UserOutlined,
   TeamOutlined,
@@ -46,6 +51,8 @@ import { Box, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import { investmentService, vendorService } from '../../services/investmentService';
 import { productService } from '../../services/productService';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { formatMoney, getCurrencySymbol } from '../../utils/currency';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -232,8 +239,10 @@ const InvestmentPage = () => {
     search: '',
   });
   const [appliedFilters, setAppliedFilters] = useState({});
+  const [filterOpen, setFilterOpen] = useState(false);
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [investmentForm] = Form.useForm();
   const [selectedType, setSelectedType] = useState(undefined);
@@ -241,8 +250,21 @@ const InvestmentPage = () => {
   const [overheadRows, setOverheadRows] = useState([makeEmptyOverheadRow(1)]);
   const [subtotal, setSubtotal] = useState(0);
   const [gst, setGst] = useState(0);
+  const [gstManual, setGstManual] = useState(false); // true once the user edits GST by hand
   const [discount, setDiscount] = useState(0);
   const [otherCharges, setOtherCharges] = useState(0);
+
+  // Default GST % from system settings; auto-applied to new PURCHASE invoices.
+  const { gstPercent } = useAppSettings();
+
+  // Auto-calc GST from the default % whenever the subtotal changes, unless the user
+  // has manually overridden it. Snapshotted into the invoice on save.
+  useEffect(() => {
+    if (selectedType === 'OVERHEAD') return;
+    if (gstManual) return;
+    const auto = Math.round((subtotal * (gstPercent || 0) / 100) * 100) / 100;
+    setGst(auto);
+  }, [subtotal, gstPercent, gstManual, selectedType]);
 
   // ── Vendor states ──────────────────────
   const [vendorModalVisible, setVendorModalVisible] = useState(false);
@@ -291,6 +313,60 @@ const InvestmentPage = () => {
     enabled: !!selectedInvestment?.id && viewDrawerVisible,
   });
   const investmentDetail = investmentDetailData?.data || selectedInvestment;
+
+  // ── Payment form state + mutations ─────
+  const [payDate, setPayDate] = useState(null);
+  const [payMode, setPayMode] = useState('CASH');
+  const [payAmount, setPayAmount] = useState(null);
+
+  // Create-time payment fields
+  const [createFullPayment, setCreateFullPayment] = useState(false);
+  const [createPayAmount, setCreatePayAmount] = useState(null);
+  const [createPayMode, setCreatePayMode] = useState('CASH');
+
+  const addPaymentMutation = useMutation({
+    mutationFn: ({ id, data }) => investmentService.addPayment(id, data),
+    onSuccess: () => {
+      notification.success({ message: 'Payment Recorded', placement: 'topRight', duration: 3 });
+      queryClient.invalidateQueries({ queryKey: ['investment', selectedInvestment?.id] });
+      queryClient.invalidateQueries({ queryKey: ['investments'] });
+      if (selectedInvestment?.vendorId) {
+        queryClient.invalidateQueries({ queryKey: ['vendor', selectedInvestment.vendorId] });
+      }
+      setPayAmount(null);
+      setPayDate(null);
+      setPayMode('CASH');
+    },
+    onError: (err) => {
+      notification.error({
+        message: 'Payment Failed',
+        description: err.response?.data?.message || err.message,
+        placement: 'topRight',
+        duration: 5,
+      });
+    },
+  });
+
+  const handleAddPayment = () => {
+    if (!payAmount || Number(payAmount) <= 0) {
+      notification.warning({ message: 'Enter a valid payment amount', placement: 'topRight' });
+      return;
+    }
+    addPaymentMutation.mutate({
+      id: selectedInvestment.id,
+      data: {
+        paymentDate: (payDate || dayjs()).format('YYYY-MM-DD'),
+        mode: payMode,
+        amount: Number(payAmount),
+      },
+    });
+  };
+
+  const PAYMENT_STATUS_META = {
+    PAID: { color: 'success', label: 'Paid' },
+    PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
+    PENDING: { color: 'default', label: 'Unpaid' },
+  };
 
   // ── Summary computations ───────────────
   const totalInvestment = useMemo(
@@ -465,16 +541,37 @@ const InvestmentPage = () => {
     if (investmentFilters.type) params.type = investmentFilters.type;
     if (investmentFilters.search) params.search = investmentFilters.search;
     setAppliedFilters(params);
+    setFilterOpen(false);
   };
 
   const handleResetFilters = () => {
     setInvestmentFilters({ fromDate: null, toDate: null, vendorId: undefined, type: undefined, search: '' });
     setAppliedFilters({});
+    setFilterOpen(false);
   };
+
+  const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length;
 
   const handleViewInvestment = (record) => {
     setSelectedInvestment(record);
     setViewDrawerVisible(true);
+  };
+
+  const handleDownloadInvoice = async () => {
+    const inv = investmentDetail;
+    if (!inv?.id) return;
+    try {
+      setDownloadingInvoice(true);
+      await investmentService.downloadInvoicePdf(inv.id, inv.invoiceNumber);
+    } catch (e) {
+      notification.error({
+        message: 'Invoice download failed',
+        description: e.response?.data?.message || e.message || 'Could not generate the invoice PDF.',
+        placement: 'topRight',
+      });
+    } finally {
+      setDownloadingInvoice(false);
+    }
   };
 
   const handleCloseAddModal = () => {
@@ -485,8 +582,12 @@ const InvestmentPage = () => {
     setOverheadRows([makeEmptyOverheadRow(1)]);
     setSubtotal(0);
     setGst(0);
+    setGstManual(false);
     setDiscount(0);
     setOtherCharges(0);
+    setCreateFullPayment(false);
+    setCreatePayAmount(null);
+    setCreatePayMode('CASH');
     if (queryAdd === 'true' && queryVendorId) {
       navigate(`/vendors/${queryVendorId}`, { replace: true });
     }
@@ -497,6 +598,7 @@ const InvestmentPage = () => {
     setItemRows([makeEmptyRow(1)]);
     setOverheadRows([makeEmptyOverheadRow(1)]);
     setSubtotal(0);
+    setGstManual(false);
     if (val === 'OVERHEAD') {
       setGst(0);
       setDiscount(0);
@@ -617,6 +719,11 @@ const InvestmentPage = () => {
           otherCharge: otherCharges,
         } : {}),
         grandTotal: computedGrandTotal,
+        // Optional payment captured at creation
+        fullPayment: createFullPayment,
+        paymentAmount: createFullPayment ? undefined : (createPayAmount ? Number(createPayAmount) : undefined),
+        paymentMode: createPayMode,
+        // No payment date at creation — backend defaults it to the purchase date.
       };
 
       createInvestmentMutation.mutate(payload);
@@ -738,36 +845,80 @@ const InvestmentPage = () => {
       key: 'grandTotal',
       render: (val) => (
         <span style={{ fontWeight: 800, color: '#059669', fontSize: '0.95rem' }}>
-          ₹{Number(val || 0).toLocaleString('en-IN')}
+          {getCurrencySymbol()}{Number(val || 0).toLocaleString('en-IN')}
         </span>
       ),
       sorter: (a, b) => (a.grandTotal || 0) - (b.grandTotal || 0),
     },
     {
+      title: 'Payment',
+      key: 'paymentStatus',
+      align: 'center',
+      render: (_, record) => {
+        const meta = PAYMENT_STATUS_META[record.paymentStatus] || PAYMENT_STATUS_META.PENDING;
+        const paid = Number(record.amountPaid || 0);
+        const total = Number(record.grandTotal || 0);
+        return (
+          <Tooltip title={`Paid ${getCurrencySymbol()}${paid.toLocaleString('en-IN')} of ${getCurrencySymbol()}${total.toLocaleString('en-IN')}`}>
+            <Tag color={meta.color} style={{ fontWeight: 700, borderRadius: 6 }}>{meta.label}</Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: 'Actions',
       key: 'actions',
-      width: 80,
-      align: 'center',
+      width: 96,
+      align: 'left',
       render: (_, record) => (
-        <Tooltip title="View Details" placement="top">
-          <Button
-            type="text"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewInvestment(record)}
-            style={{
-              color: '#2563EB',
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #BFDBFE',
-              borderRadius: 6,
-              width: 30,
-              height: 30,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          />
-        </Tooltip>
+        <Space size={6}>
+          <Tooltip title="View Details" placement="top">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleViewInvestment(record)}
+              style={{
+                color: '#2563EB',
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: 6,
+                width: 30,
+                height: 30,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            />
+          </Tooltip>
+          {record.investmentType !== 'OVERHEAD' && (
+            <Tooltip title="Download Invoice PDF" placement="top">
+              <Button
+                type="text"
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={() => investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((e) =>
+                  notification.error({
+                    message: 'Invoice download failed',
+                    description: e.response?.data?.message || e.message || 'Could not generate the invoice PDF.',
+                    placement: 'topRight',
+                  })
+                )}
+                style={{
+                  color: '#0F766E',
+                  backgroundColor: '#F0FDFA',
+                  border: '1px solid #99F6E4',
+                  borderRadius: 6,
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              />
+            </Tooltip>
+          )}
+        </Space>
       ),
     },
   ];
@@ -995,7 +1146,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Rate (₹)',
+      title: `Rate (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
         <InputNumber
@@ -1009,7 +1160,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Amount (₹)',
+      title: `Amount (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
         <span style={{ fontWeight: 700, color: '#059669', fontSize: '0.85rem' }}>
@@ -1055,7 +1206,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Amount (₹)',
+      title: `Amount (${getCurrencySymbol()})`,
       width: 150,
       render: (_, record) => (
         <InputNumber
@@ -1112,7 +1263,7 @@ const InvestmentPage = () => {
       key: "rate",
       width: 90,
       render: (v) =>
-        v != null ? `₹${Number(v).toLocaleString("en-IN")}` : "—",
+        v != null ? `${getCurrencySymbol()}${Number(v).toLocaleString("en-IN")}` : "—",
     },
     {
       title: "Amount",
@@ -1121,7 +1272,7 @@ const InvestmentPage = () => {
       width: 110,
       render: (v) => (
         <span style={{ fontWeight: 700, color: "#059669" }}>
-          ₹{Number(v || 0).toLocaleString("en-IN")}
+          {getCurrencySymbol()}{Number(v || 0).toLocaleString("en-IN")}
         </span>
       ),
     },
@@ -1147,7 +1298,7 @@ const InvestmentPage = () => {
       key: 'grandTotal',
       render: (v) => (
         <span style={{ fontWeight: 700, color: '#059669' }}>
-          ₹{Number(v || 0).toLocaleString('en-IN')}
+          {getCurrencySymbol()}{Number(v || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -1251,20 +1402,96 @@ const InvestmentPage = () => {
                     <HeadingInfo text="Manage raw material purchases, purchased products and business expenses." />
                   </div>
                 </div>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setAddModalVisible(true)}
-                  style={{
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    height: 38,
-                    paddingInline: 18,
-                    boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-                  }}
-                >
-                  Add Investment
-                </Button>
+                <Space size={10}>
+                  <Popover
+                    trigger="click"
+                    placement="bottomRight"
+                    open={filterOpen}
+                    onOpenChange={setFilterOpen}
+                    content={
+                      <div style={{ width: 260 }}>
+                        <span style={labelStyle}>Date From</span>
+                        <DatePicker
+                          value={investmentFilters.fromDate}
+                          onChange={(d) => setInvestmentFilters((p) => ({ ...p, fromDate: d }))}
+                          format="DD-MM-YYYY"
+                          style={{ ...inlineInputStyle, width: '100%', marginBottom: 12 }}
+                          placeholder="dd-mm-yyyy"
+                        />
+                        <span style={labelStyle}>Date To</span>
+                        <DatePicker
+                          value={investmentFilters.toDate}
+                          onChange={(d) => setInvestmentFilters((p) => ({ ...p, toDate: d }))}
+                          format="DD-MM-YYYY"
+                          style={{ ...inlineInputStyle, width: '100%', marginBottom: 12 }}
+                          placeholder="dd-mm-yyyy"
+                        />
+                        <span style={labelStyle}>Vendor</span>
+                        <Select
+                          value={investmentFilters.vendorId}
+                          onChange={(v) => setInvestmentFilters((p) => ({ ...p, vendorId: v }))}
+                          placeholder="All Vendors"
+                          allowClear
+                          style={{ width: '100%', marginBottom: 12 }}
+                        >
+                          {vendors.map((v) => (
+                            <Option key={v.id} value={v.id}>{v.name}</Option>
+                          ))}
+                        </Select>
+                        <span style={labelStyle}>Investment Type</span>
+                        <Select
+                          value={investmentFilters.type}
+                          onChange={(v) => setInvestmentFilters((p) => ({ ...p, type: v }))}
+                          placeholder="All Types"
+                          allowClear
+                          style={{ width: '100%', marginBottom: 12 }}
+                        >
+                          {INVESTMENT_TYPES.map((t) => (
+                            <Option key={t.value} value={t.value}>{t.label}</Option>
+                          ))}
+                        </Select>
+                        <span style={labelStyle}>Search</span>
+                        <Input
+                          value={investmentFilters.search}
+                          onChange={(e) => setInvestmentFilters((p) => ({ ...p, search: e.target.value }))}
+                          placeholder="Reference, vendor…"
+                          prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
+                          style={{ ...inlineInputStyle, width: '100%', marginBottom: 16 }}
+                          allowClear
+                          onPressEnter={handleApplyFilters}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                          <Button onClick={handleResetFilters} icon={<ReloadOutlined />} style={{ borderRadius: 8 }}>
+                            Reset
+                          </Button>
+                          <Button type="primary" onClick={handleApplyFilters} icon={<SearchOutlined />} style={{ borderRadius: 8 }}>
+                            Search
+                          </Button>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Badge count={activeFilterCount} size="small">
+                      <Button icon={<FilterOutlined />} style={{ borderRadius: 8, fontWeight: 600, height: 38 }}>
+                        Filters
+                      </Button>
+                    </Badge>
+                  </Popover>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setAddModalVisible(true)}
+                    style={{
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      height: 38,
+                      paddingInline: 18,
+                      boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                    }}
+                  >
+                    Add Investment
+                  </Button>
+                </Space>
               </div>
 
               {/* Summary Row */}
@@ -1282,7 +1509,7 @@ const InvestmentPage = () => {
               >
                 <span>
                   <span style={{ color: '#0C4A6E' }}>Current Month:</span>
-                  <span style={{ marginLeft: 6, color: '#164E63' }}>₹{currentMonthInvestment.toLocaleString('en-IN')}</span>
+                  <span style={{ marginLeft: 6, color: '#164E63' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
                   <span
                     style={{
                       marginLeft: 10,
@@ -1303,109 +1530,19 @@ const InvestmentPage = () => {
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
                   <span style={{ color: '#1D4ED8' }}>Total Investment:</span>
-                  <span style={{ marginLeft: 6, color: '#1E40AF' }}>₹{totalInvestment.toLocaleString('en-IN')}</span>
+                  <span style={{ marginLeft: 6, color: '#1E40AF' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
                   <span style={{ color: '#047857' }}>Purchase:</span>
-                  <span style={{ marginLeft: 6, color: '#065F46' }}>₹{purchaseTotal.toLocaleString('en-IN')}</span>
+                  <span style={{ marginLeft: 6, color: '#065F46' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
                   <span style={{ color: '#B45309' }}>Overhead:</span>
-                  <span style={{ marginLeft: 6, color: '#92400E' }}>₹{overheadTotal.toLocaleString('en-IN')}</span>
+                  <span style={{ marginLeft: 6, color: '#92400E' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
                 </span>
               </div>
-
-              {/* Filters Bar */}
-              <Card
-                style={{ ...cardStyle, marginBottom: 16 }}
-                bodyStyle={{ padding: '16px 20px' }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 12,
-                    alignItems: 'flex-end',
-                  }}
-                >
-                  <div>
-                    <span style={labelStyle}>Date From</span>
-                    <DatePicker
-                      value={investmentFilters.fromDate}
-                      onChange={(d) => setInvestmentFilters((p) => ({ ...p, fromDate: d }))}
-                      format="DD-MM-YYYY"
-                      style={{ ...inlineInputStyle, width: 148 }}
-                      placeholder="dd-mm-yyyy"
-                    />
-                  </div>
-                  <div>
-                    <span style={labelStyle}>Date To</span>
-                    <DatePicker
-                      value={investmentFilters.toDate}
-                      onChange={(d) => setInvestmentFilters((p) => ({ ...p, toDate: d }))}
-                      format="DD-MM-YYYY"
-                      style={{ ...inlineInputStyle, width: 148 }}
-                      placeholder="dd-mm-yyyy"
-                    />
-                  </div>
-                  <div>
-                    <span style={labelStyle}>Vendor</span>
-                    <Select
-                      value={investmentFilters.vendorId}
-                      onChange={(v) => setInvestmentFilters((p) => ({ ...p, vendorId: v }))}
-                      placeholder="All Vendors"
-                      allowClear
-                      style={{ width: 180, height: 36 }}
-                    >
-                      {vendors.map((v) => (
-                        <Option key={v.id} value={v.id}>{v.name}</Option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <span style={labelStyle}>Investment Type</span>
-                    <Select
-                      value={investmentFilters.type}
-                      onChange={(v) => setInvestmentFilters((p) => ({ ...p, type: v }))}
-                      placeholder="All Types"
-                      allowClear
-                      style={{ width: 180, height: 36 }}
-                    >
-                      {INVESTMENT_TYPES.map((t) => (
-                        <Option key={t.value} value={t.value}>{t.label}</Option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <span style={labelStyle}>Search</span>
-                    <Input
-                      value={investmentFilters.search}
-                      onChange={(e) => setInvestmentFilters((p) => ({ ...p, search: e.target.value }))}
-                      placeholder="Reference, vendor…"
-                      prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
-                      style={{ ...inlineInputStyle, width: 200 }}
-                      allowClear
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Button
-                      type="primary"
-                      onClick={handleApplyFilters}
-                      style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
-                    >
-                      Search
-                    </Button>
-                    <Button
-                      onClick={handleResetFilters}
-                      style={{ borderRadius: 8, fontWeight: 600, height: 36 }}
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </div>
-              </Card>
 
               {/* Investments Table */}
               <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
@@ -1454,13 +1591,13 @@ const InvestmentPage = () => {
           {activeTab === 'vendors' && (
             <div style={{ padding: '24px' }}>
 
-              {/* Header Row */}
+              {/* Compact Header Row: title + inline counts + search + add */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: 24,
+                  marginBottom: 16,
                   flexWrap: 'wrap',
                   gap: 12,
                 }}
@@ -1470,71 +1607,39 @@ const InvestmentPage = () => {
                     Vendor Management
                     <HeadingInfo text="Manage suppliers and vendor information." />
                   </div>
+                  <div style={{ marginTop: 4, fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span><span style={{ color: '#2563EB' }}>Total:</span> {totalVendors}</span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span><span style={{ color: '#16A34A' }}>Active:</span> {activeVendors}</span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span><span style={{ color: '#DC2626' }}>Inactive:</span> {inactiveVendors}</span>
+                  </div>
                 </div>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleOpenAddVendor}
-                  style={{
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    height: 38,
-                    paddingInline: 18,
-                    boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
-                  }}
-                >
-                  Add Vendor
-                </Button>
-              </div>
-
-              {/* Vendor Summary Cards */}
-              <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                <Col xs={24} sm={8}>
-                  <SummaryCard
-                    title="Total Vendors"
-                    value={totalVendors}
-                    icon={<TeamOutlined style={{ color: '#2563EB', fontSize: '1.2rem' }} />}
-                    iconBg="#EFF6FF"
-                    valueColor="#2563EB"
-                    loading={vendorsLoading}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <SummaryCard
-                    title="Active Vendors"
-                    value={activeVendors}
-                    icon={<CheckCircleOutlined style={{ color: '#16A34A', fontSize: '1.2rem' }} />}
-                    iconBg="#DCFCE7"
-                    valueColor="#16A34A"
-                    loading={vendorsLoading}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <SummaryCard
-                    title="Inactive Vendors"
-                    value={inactiveVendors}
-                    icon={<StopOutlined style={{ color: '#DC2626', fontSize: '1.2rem' }} />}
-                    iconBg="#FEF2F2"
-                    valueColor="#DC2626"
-                    loading={vendorsLoading}
-                  />
-                </Col>
-              </Row>
-
-              {/* Search bar */}
-              <Card style={{ ...cardStyle, marginBottom: 16 }} bodyStyle={{ padding: '14px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Space size={10} wrap>
                   <Input
                     placeholder="Search by name, GST, phone, email…"
                     prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
                     value={vendorSearch}
                     onChange={(e) => setVendorSearch(e.target.value)}
                     allowClear
-                    style={{ maxWidth: 380, borderRadius: 8 }}
-                    size="large"
+                    style={{ width: 300, borderRadius: 8, height: 38 }}
                   />
-                </div>
-              </Card>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleOpenAddVendor}
+                    style={{
+                      borderRadius: 8,
+                      fontWeight: 700,
+                      height: 38,
+                      paddingInline: 18,
+                      boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
+                    }}
+                  >
+                    Add Vendor
+                  </Button>
+                </Space>
+              </div>
 
               {/* Vendors Table */}
               <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
@@ -1615,6 +1720,18 @@ const InvestmentPage = () => {
         onClose={() => { setViewDrawerVisible(false); setSelectedInvestment(null); }}
         open={viewDrawerVisible}
         bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
+        extra={
+          investmentDetail && investmentDetail.investmentType !== 'OVERHEAD' ? (
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              loading={downloadingInvoice}
+              onClick={handleDownloadInvoice}
+            >
+              Invoice PDF
+            </Button>
+          ) : null
+        }
       >
         {invDetailLoading ? (
           <Skeleton active paragraph={{ rows: 8 }} />
@@ -1694,7 +1811,7 @@ const InvestmentPage = () => {
                 >
                   <span style={{ color: '#64748B', fontWeight: 500 }}>{label}</span>
                   <span style={{ color, fontWeight: 600 }}>
-                    {prefix || ''}₹{Number(value || 0).toLocaleString('en-IN')}
+                    {prefix || ''}{getCurrencySymbol()}{Number(value || 0).toLocaleString('en-IN')}
                   </span>
                 </div>
               ))}
@@ -1702,9 +1819,90 @@ const InvestmentPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Grand Total</span>
                 <span style={{ fontWeight: 900, fontSize: '1.3rem', color: '#059669' }}>
-                  ₹{Number(investmentDetail.grandTotal || 0).toLocaleString('en-IN')}
+                  {getCurrencySymbol()}{Number(investmentDetail.grandTotal || 0).toLocaleString('en-IN')}
                 </span>
               </div>
+            </Card>
+
+            <Divider style={{ margin: '4px 0', borderColor: '#E2E8F0' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>Payments</span>
+            </Divider>
+
+            {/* Payment summary + add form + history */}
+            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '16px 20px' }}>
+              {/* Summary row */}
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div style={{ flex: '1 1 120px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>Paid</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{ flex: '1 1 120px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{Number(investmentDetail.amountDue ?? ((investmentDetail.grandTotal || 0) - (investmentDetail.amountPaid || 0))).toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{ flex: '1 1 120px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '8px 12px' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 700 }}>Status</div>
+                  <Tag color={(PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).color} style={{ marginTop: 4, fontWeight: 700 }}>
+                    {(PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).label}
+                  </Tag>
+                </div>
+              </div>
+
+              {/* Add payment form (hidden once fully paid) */}
+              {investmentDetail.paymentStatus !== 'PAID' && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottom: '1px dashed #E2E8F0' }}>
+                  <DatePicker
+                    value={payDate}
+                    onChange={setPayDate}
+                    format="DD-MMM-YYYY"
+                    placeholder="Payment date"
+                    style={{ width: 150 }}
+                    disabledDate={(d) =>
+                      d && (
+                        d.isAfter(dayjs(), 'day') ||
+                        (investmentDetail.purchaseDate && d.isBefore(dayjs(investmentDetail.purchaseDate), 'day'))
+                      )
+                    }
+                  />
+                  <Select value={payMode} onChange={setPayMode} style={{ width: 130 }}>
+                    <Option value="CASH">Cash</Option>
+                    <Option value="UPI">UPI</Option>
+                    <Option value="CREDIT_CARD">Credit Card</Option>
+                    <Option value="DEBIT_CARD">Debit Card</Option>
+                    <Option value="NET_BANKING">Net Banking</Option>
+                    <Option value="WALLET">Wallet</Option>
+                  </Select>
+                  <InputNumber
+                    value={payAmount}
+                    onChange={setPayAmount}
+                    min={0}
+                    placeholder="Amount"
+                    prefix={getCurrencySymbol()}
+                    style={{ width: 130 }}
+                  />
+                  <Button type="primary" icon={<PlusOutlined />} loading={addPaymentMutation.isPending} onClick={handleAddPayment} style={{ borderRadius: 8 }}>
+                    Add
+                  </Button>
+                </div>
+              )}
+
+              {/* Payment history */}
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Payment History</div>
+              {(investmentDetail.payments && investmentDetail.payments.length > 0) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {investmentDetail.payments.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
+                        <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
+                      </div>
+                      <span style={{ fontWeight: 800, color: '#059669' }}>{getCurrencySymbol()}{Number(p.amount).toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: '#94A3B8', fontSize: '0.83rem', padding: '8px 0' }}>No payments recorded yet.</div>
+              )}
             </Card>
           </div>
         ) : (
@@ -1814,13 +2012,16 @@ const InvestmentPage = () => {
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
                       name="gstAmount"
-                      label={<span style={{ fontWeight: 700, color: '#374151' }}>GST Amount (₹)</span>}
+                      label={<span style={{ fontWeight: 700, color: '#374151' }}>
+                        GST Amount ({getCurrencySymbol()})
+                        {gstPercent ? <span style={{ fontWeight: 500, color: '#6B7280' }}> · {gstPercent}% default</span> : null}
+                      </span>}
                     >
                       <InputNumber
                         min={0}
                         precision={2}
                         value={gst}
-                        onChange={(v) => setGst(v || 0)}
+                        onChange={(v) => { setGst(v || 0); setGstManual(true); }}
                         style={{ width: '100%', borderRadius: 8 }}
                         size="middle"
                         placeholder="0.00"
@@ -1830,7 +2031,7 @@ const InvestmentPage = () => {
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
                       name="discountAmount"
-                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Discount Amount (₹)</span>}
+                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Discount Amount ({getCurrencySymbol()})</span>}
                     >
                       <InputNumber
                         min={0}
@@ -1846,7 +2047,7 @@ const InvestmentPage = () => {
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
                       name="otherCharge"
-                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Other Charge (₹)</span>}
+                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Other Charge ({getCurrencySymbol()})</span>}
                     >
                       <InputNumber
                         min={0}
@@ -1917,9 +2118,9 @@ const InvestmentPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
               <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
                 <div>
-                  <div style={labelStyle}>Subtotal (₹)</div>
+                  <div style={labelStyle}>Subtotal ({getCurrencySymbol()})</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
-                    ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    {getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
                 {selectedType === 'PURCHASE' && (
@@ -1927,19 +2128,19 @@ const InvestmentPage = () => {
                     <div>
                       <div style={labelStyle}>GST</div>
                       <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569' }}>
-                        + ₹{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        + {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div>
                       <div style={labelStyle}>Discount</div>
                       <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#DC2626' }}>
-                        − ₹{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        − {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                     <div>
                       <div style={labelStyle}>Other Charges</div>
                       <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569' }}>
-                        + ₹{otherCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        + {getCurrencySymbol()}{otherCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                   </>
@@ -1948,9 +2149,43 @@ const InvestmentPage = () => {
               <div style={{ textAlign: 'right' }}>
                 <div style={labelStyle}>Grand Total</div>
                 <div style={{ fontWeight: 900, fontSize: '1.6rem', color: '#059669' }}>
-                  ₹{(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
               </div>
+            </div>
+          </Card>
+
+          {/* Payment (optional) captured at creation */}
+          <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginTop: 12 }} bodyStyle={{ padding: '12px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 700, color: '#374151' }}>Payment</span>
+              <Checkbox
+                checked={createFullPayment}
+                onChange={(e) => { setCreateFullPayment(e.target.checked); if (e.target.checked) setCreatePayAmount(null); }}
+              >
+                Fully paid
+              </Checkbox>
+              {!createFullPayment && (
+                <InputNumber
+                  value={createPayAmount}
+                  onChange={setCreatePayAmount}
+                  min={0}
+                  prefix={getCurrencySymbol()}
+                  placeholder="Amount paid (optional)"
+                  style={{ width: 200 }}
+                />
+              )}
+              <Select value={createPayMode} onChange={setCreatePayMode} style={{ width: 140 }}>
+                <Option value="CASH">Cash</Option>
+                <Option value="UPI">UPI</Option>
+                <Option value="CREDIT_CARD">Credit Card</Option>
+                <Option value="DEBIT_CARD">Debit Card</Option>
+                <Option value="NET_BANKING">Net Banking</Option>
+                <Option value="WALLET">Wallet</Option>
+              </Select>
+              <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                Uses the invoice date. Leave amount blank for no payment (Unpaid); add the balance later on the details page.
+              </span>
             </div>
           </Card>
 

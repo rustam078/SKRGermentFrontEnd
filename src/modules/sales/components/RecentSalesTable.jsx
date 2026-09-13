@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCurrencySymbol } from '../../../utils/currency';
 import {
   Box,
   Button,
@@ -65,7 +66,7 @@ const RecentSalesTable = ({ rows, loading, error }) => {
                     <TableRow key={sale.invoiceNo || sale.id} hover>
                       <TableCell>{sale.invoice || sale.invoiceNo || '-'}</TableCell>
                       <TableCell>{sale.customerName || sale.customer || '-'}</TableCell>
-                      <TableCell>{sale.grandTotal != null ? `₹${sale.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-'}</TableCell>
+                      <TableCell>{sale.grandTotal != null ? `${getCurrencySymbol()}${sale.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '-'}</TableCell>
                       <TableCell>{sale.paymentMode || sale.paymentStatus || '-'}</TableCell>
                       <TableCell>{sale.saleDate || sale.date || '-'}</TableCell>
                       <TableCell>

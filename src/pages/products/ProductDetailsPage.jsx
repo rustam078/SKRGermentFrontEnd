@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import { getCurrencySymbol } from '../../utils/currency';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MaterialCostModal from './MaterialCostModal';
@@ -117,7 +118,7 @@ const PieceCodePreview = ({ code, rate, description }) => (
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#64748B', marginBottom: 2 }}>Fixed Rate</div>
         <div style={{ fontWeight: 600, fontSize: '1.5rem', color: '#059669' }}>
-          {rate ? `₹${Number(rate).toLocaleString('en-IN')}` : <span style={{ color: '#94A3B8', fontSize: '1rem' }}>₹ —</span>}
+          {rate ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : <span style={{ color: '#94A3B8', fontSize: '1rem' }}>{getCurrencySymbol()} —</span>}
         </div>
       </div>
     </div>
@@ -256,7 +257,7 @@ const ProductDetailsPage = () => {
         id: `mc-${mc.id}`,
         type: 'material_cost',
         title: 'Pricing updated',
-        subtitle: `Cost ₹${Number(mc.cost).toFixed(2)}${(mc.salePrice || mc.salePrice === 0) ? ` · Sale ₹${Number(mc.salePrice).toFixed(2)}` : ''}\nEffective From: ${dayjs(mc.effectiveFrom).format('DD MMM YYYY')}`,
+        subtitle: `Cost ${getCurrencySymbol()}${Number(mc.cost).toFixed(2)}${(mc.salePrice || mc.salePrice === 0) ? ` · Sale ${getCurrencySymbol()}${Number(mc.salePrice).toFixed(2)}` : ''}\nEffective From: ${dayjs(mc.effectiveFrom).format('DD MMM YYYY')}`,
         date: dayjs(mc.createdAt).format('DD MMM YYYY hh:mm A'),
         dateBy: `by ${mc.createdBy || 'Admin'}`,
         sortDate: new Date(mc.createdAt),
@@ -269,7 +270,7 @@ const ProductDetailsPage = () => {
         id: `pc-${pc.id}`,
         type: 'piece_code',
         title: 'Piece code created',
-        subtitle: `Piece Code ${pc.code} (${pc.pieceType || pc.code})\ncreated with rate ₹${Number(pc.rate).toFixed(2)}`,
+        subtitle: `Piece Code ${pc.code} (${pc.pieceType || pc.code})\ncreated with rate ${getCurrencySymbol()}${Number(pc.rate).toFixed(2)}`,
         date: dayjs(pc.createdAt).format('DD MMM YYYY hh:mm A'),
         dateBy: `by ${pc.createdBy || 'Admin'}`,
         sortDate: new Date(pc.createdAt),
@@ -454,7 +455,7 @@ const ProductDetailsPage = () => {
       title: 'Fixed Rate',
       dataIndex: 'rate',
       key: 'rate',
-      render: (rate) => <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#059669' }}>₹{Number(rate).toLocaleString('en-IN')}</span>,
+      render: (rate) => <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#059669' }}>{getCurrencySymbol()}{Number(rate).toLocaleString('en-IN')}</span>,
       sorter: (a, b) => (a.rate || 0) - (b.rate || 0),
     },
     {
@@ -584,18 +585,16 @@ const ProductDetailsPage = () => {
     }
     const positive = profit.amount >= 0;
     const color = positive ? '#047857' : '#B91C1C';
-    const bg = positive ? '#ECFDF5' : '#FEF2F2';
-    const border = positive ? '#A7F3D0' : '#FECACA';
+    // Plain text (no pill/badge) — just the arrow, %, amount and colour.
     return (
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        backgroundColor: bg, color, border: `1px solid ${border}`,
-        borderRadius: 20, padding: '2px 9px', fontSize: '0.78rem', fontWeight: 700,
+        color, fontSize: '0.82rem', fontWeight: 700,
       }}>
-        {positive ? <RiseOutlined style={{ fontSize: '0.7rem' }} /> : <FallOutlined style={{ fontSize: '0.7rem' }} />}
+        {positive ? <RiseOutlined style={{ fontSize: '0.72rem' }} /> : <FallOutlined style={{ fontSize: '0.72rem' }} />}
         {profit.pct != null ? `${positive ? '+' : ''}${profit.pct.toFixed(1)}%` : '—'}
         <span style={{ fontWeight: 500, opacity: 0.8 }}>
-          ({positive ? '+' : '−'}₹{Math.abs(profit.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })})
+          ({positive ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profit.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })})
         </span>
       </span>
     );
@@ -618,23 +617,23 @@ const ProductDetailsPage = () => {
       ),
     },
     {
-      title: 'Cost (₹)',
+      title: `Cost (${getCurrencySymbol()})`,
       dataIndex: 'cost',
       align: 'right',
       render: (value) => (
         <span style={{ fontWeight: 600, color: '#D97706' }}>
-          ₹{Number(value).toFixed(2)}
+          {getCurrencySymbol()}{Number(value).toFixed(2)}
         </span>
       ),
     },
     {
-      title: 'Sale Price (₹)',
+      title: `Sale Price (${getCurrencySymbol()})`,
       dataIndex: 'salePrice',
       align: 'right',
       render: (value) => (
         value || value === 0 ? (
           <span style={{ fontWeight: 700, color: '#059669' }}>
-            ₹{Number(value).toFixed(2)}
+            {getCurrencySymbol()}{Number(value).toFixed(2)}
           </span>
         ) : <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Not set</span>
       ),
@@ -880,7 +879,7 @@ const ProductDetailsPage = () => {
                   <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Inventory Generated</div>
                   {productionLoading ? <Skeleton.Input active size="small" style={{ width: 100 }} /> : (
                     <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
-                      ₹{totalInventoryAmount.toLocaleString('en-IN')}
+                      {getCurrencySymbol()}{totalInventoryAmount.toLocaleString('en-IN')}
                     </div>
                   )}
                   <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Value</div>
@@ -929,14 +928,14 @@ const ProductDetailsPage = () => {
                   {materialCostLoading ? <Skeleton.Input active size="small" style={{ width: 80 }} /> : (
                     <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
                       {currentMaterialCost && (currentMaterialCost.salePrice || currentMaterialCost.salePrice === 0)
-                        ? `₹${Number(currentMaterialCost.salePrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        ? `${getCurrencySymbol()}${Number(currentMaterialCost.salePrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         : '—'}
                     </div>
                   )}
                   <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {currentMaterialCost ? (
                       <>
-                        <span>Cost ₹{Number(currentMaterialCost.cost).toLocaleString('en-IN')}</span>
+                        <span>Cost {getCurrencySymbol()}{Number(currentMaterialCost.cost).toLocaleString('en-IN')}</span>
                         <ProfitBadge cost={currentMaterialCost.cost} salePrice={currentMaterialCost.salePrice} />
                       </>
                     ) : <span>No pricing set</span>}
@@ -1287,9 +1286,9 @@ const ProductDetailsPage = () => {
                   <Input placeholder="e.g. SHIRT-001" size="large" style={{ borderRadius: 8, fontFamily: 'monospace', fontWeight: 700 }}
                     onChange={(e) => { form.setFieldValue('code', e.target.value.toUpperCase()); setPreviewCode(e.target.value.toUpperCase()); }} />
                 </Form.Item>
-                <Form.Item name="rate" label={<span style={{ fontWeight: 700, color: '#374151' }}>Fixed Rate (₹) *</span>}
-                  rules={[{ required: true, message: 'Rate is required.' }, { validator: (_, v) => (!v && v !== 0) || Number(v) > 0 ? Promise.resolve() : Promise.reject('Rate must be > ₹0.') }]}>
-                  <InputNumber placeholder="e.g. 10" size="large" min={0.01} precision={2} prefix="₹" style={{ width: '100%', borderRadius: 8 }} onChange={(val) => setPreviewRate(val)} />
+                <Form.Item name="rate" label={<span style={{ fontWeight: 700, color: '#374151' }}>Fixed Rate ({getCurrencySymbol()}) *</span>}
+                  rules={[{ required: true, message: 'Rate is required.' }, { validator: (_, v) => (!v && v !== 0) || Number(v) > 0 ? Promise.resolve() : Promise.reject(`Rate must be > ${getCurrencySymbol()}0.`) }]}>
+                  <InputNumber placeholder="e.g. 10" size="large" min={0.01} precision={2} prefix={getCurrencySymbol()} style={{ width: '100%', borderRadius: 8 }} onChange={(val) => setPreviewRate(val)} />
                 </Form.Item>
               </Form>
             </Card>
@@ -1361,18 +1360,18 @@ const ProductDetailsPage = () => {
                 render: (quantity) => quantity?.toLocaleString('en-IN') ?? '-',
               },
               {
-                title: 'Rate (₹)',
+                title: `Rate (${getCurrencySymbol()})`,
                 dataIndex: 'rate',
                 key: 'rate',
                 align: 'right',
-                render: (rate) => rate != null ? `₹${Number(rate).toLocaleString('en-IN')}` : '-',
+                render: (rate) => rate != null ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : '-',
               },
               {
-                title: 'Amount (₹)',
+                title: `Amount (${getCurrencySymbol()})`,
                 dataIndex: 'amount',
                 key: 'amount',
                 align: 'right',
-                render: (amount) => amount != null ? `₹${Number(amount).toLocaleString('en-IN')}` : '-',
+                render: (amount) => amount != null ? `${getCurrencySymbol()}${Number(amount).toLocaleString('en-IN')}` : '-',
               },
             ]}
             dataSource={filteredProductionItems}

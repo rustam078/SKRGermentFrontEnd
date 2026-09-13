@@ -22,6 +22,8 @@ import {
   Drawer,
   Tag,
   Dropdown,
+  Popover,
+  Badge,
 } from 'antd';
 import {
   PlusOutlined,
@@ -31,6 +33,7 @@ import {
   ExclamationCircleOutlined,
   SearchOutlined,
   ReloadOutlined,
+  FilterOutlined,
   InfoCircleOutlined,
   BarcodeOutlined,
   AppstoreOutlined,
@@ -47,6 +50,7 @@ import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import { getCurrencySymbol } from '../../utils/currency';
 
 const ProductionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -71,6 +75,8 @@ const ProductionPage: React.FC = () => {
 
   // Drawer visibility state
   const [drawerVisible, setDrawerVisible] = useState(false);
+  // Filter popover visibility
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // "View items" modal — lists all products in a production entry
   const [itemsModal, setItemsModal] = useState<{ open: boolean; record: IProductionEntry | null }>({
@@ -346,12 +352,17 @@ const ProductionPage: React.FC = () => {
       employeeId: values.employeeId,
       productId: values.productId,
     });
+    setFilterOpen(false);
   };
 
   const handleResetHistoryFilters = () => {
     filterForm.resetFields();
     setHistoryFilters({});
+    setFilterOpen(false);
   };
+
+  // Count of active filters (for the badge on the Filter button)
+  const activeFilterCount = Object.values(historyFilters).filter(Boolean).length;
 
   const handleQuickFilterChange = (val: string) => {
     if (val && val !== 'Custom Range') {
@@ -438,6 +449,7 @@ const ProductionPage: React.FC = () => {
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         a.productionDate.localeCompare(b.productionDate),
+      defaultSortOrder: 'descend' as const,
     },
     {
       title: 'Employee',
@@ -573,25 +585,125 @@ const ProductionPage: React.FC = () => {
               <HeadingInfo text="Manage daily production entries with piece code based pricing." />
             </Typography>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            onClick={handleOpenDrawer}
-            style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
-          >
-            Create Production Entry
-          </Button>
+          <Space size={10}>
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              open={filterOpen}
+              onOpenChange={setFilterOpen}
+              content={
+                <div style={{ width: 300 }}>
+                  <Form
+                    form={filterForm}
+                    onFinish={handleSearchHistory}
+                    layout="vertical"
+                    initialValues={{ quickFilter: 'Custom Range' }}
+                  >
+                    <Form.Item
+                      name="quickFilter"
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Quick Filter</span>}
+                      style={{ marginBottom: 12 }}
+                    >
+                      <Select placeholder="Quick Filter" onChange={handleQuickFilterChange}>
+                        <Select.Option value="Today">Today</Select.Option>
+                        <Select.Option value="Yesterday">Yesterday</Select.Option>
+                        <Select.Option value="This Week">This Week</Select.Option>
+                        <Select.Option value="This Month">This Month</Select.Option>
+                        <Select.Option value="This Quarter">This Quarter</Select.Option>
+                        <Select.Option value="This Year">This Year</Select.Option>
+                        <Select.Option value="Custom Range">Custom Range</Select.Option>
+                      </Select>
+                    </Form.Item>
+
+                    <Row gutter={8}>
+                      <Col span={12}>
+                        <Form.Item
+                          name="fromDate"
+                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>From</span>}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="toDate"
+                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>To</span>}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Form.Item
+                      name="employeeId"
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Employee</span>}
+                      style={{ marginBottom: 12 }}
+                    >
+                      <Select placeholder="Employee" allowClear showSearch optionFilterProp="children">
+                        {employees.map((emp: any) => (
+                          <Select.Option key={emp.id} value={emp.id}>
+                            {emp.fullName}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                      name="productId"
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Product</span>}
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Select placeholder="Product" allowClear showSearch optionFilterProp="children">
+                        {products.filter((p: any) => p.active && p.source != 'PURCHASED')
+                          .map((p: any) => (
+                            <Select.Option key={p.id} value={p.id}>
+                              {getProductIconAndLabel(p.iconName, p.name)}
+                            </Select.Option>
+                          ))}
+                      </Select>
+                    </Form.Item>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                      <Button onClick={handleResetHistoryFilters} icon={<ReloadOutlined />} style={{ borderRadius: 6 }}>
+                        Reset
+                      </Button>
+                      <Button type="primary" htmlType="submit" icon={<SearchOutlined />} style={{ borderRadius: 6 }}>
+                        Apply
+                      </Button>
+                    </div>
+                  </Form>
+                </div>
+              }
+            >
+              <Badge count={activeFilterCount} size="small">
+                <Button icon={<FilterOutlined />} size="large" style={{ borderRadius: 6, fontWeight: 600, height: 44 }}>
+                  Filters
+                </Button>
+              </Badge>
+            </Popover>
+
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
+              onClick={handleOpenDrawer}
+              style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
+            >
+              Create Production Entry
+            </Button>
+          </Space>
         </div>
 
         {/* ── Summary Cards ── */}
         <Row gutter={[16, 16]}>
           {[
-            { label: 'Total Entries', value: statsTotalEntries, icon: <FileAddOutlined style={{ color: '#2563EB', marginRight: 8 }} />, color: '#0F172A' },
             { label: "Today's Production", value: statsTodayQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: '#10B981', marginRight: 8 }} />, color: '#10B981' },
             { label: "Today's Amount", value: statsTodayAmount, formatter: (v: any) => formatCurrency(Number(v)), color: '#059669' },
             { label: 'Total Quantity', value: statsTotalQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: '#F59E0B', marginRight: 8 }} />, color: '#F59E0B' },
             { label: 'Total Amount', value: statsTotalAmount, formatter: (v: any) => formatCurrency(Number(v)), color: '#059669' },
+            { label: 'Total Entries', value: statsTotalEntries, icon: <FileAddOutlined style={{ color: '#2563EB', marginRight: 8 }} />, color: '#0F172A' },
           ].map((stat, i) => (
             <Col key={i} xs={24} sm={12} lg={4} style={{ flex: '1 1 180px', maxWidth: '100%' }}>
               <Card style={cardStyle} bodyStyle={{ padding: 20 }}>
@@ -607,90 +719,6 @@ const ProductionPage: React.FC = () => {
             </Col>
           ))}
         </Row>
-
-        {/* ── Filter Card ── */}
-        <Card style={cardStyle} bodyStyle={{ padding: 16 }}>
-          <Form
-            form={filterForm}
-            onFinish={handleSearchHistory}
-            layout="vertical"
-            initialValues={{ quickFilter: 'Custom Range' }}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 12px', alignItems: 'flex-end', width: '100%' }}>
-              <Form.Item
-                name="quickFilter"
-                label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Quick Filter</span>}
-                style={{ margin: 0, flex: '1 1 140px', minWidth: 120 }}
-              >
-                <Select placeholder="Quick Filter" onChange={handleQuickFilterChange}>
-                  <Select.Option value="Today">Today</Select.Option>
-                  <Select.Option value="Yesterday">Yesterday</Select.Option>
-                  <Select.Option value="This Week">This Week</Select.Option>
-                  <Select.Option value="This Month">This Month</Select.Option>
-                  <Select.Option value="This Quarter">This Quarter</Select.Option>
-                  <Select.Option value="This Year">This Year</Select.Option>
-                  <Select.Option value="Custom Range">Custom Range</Select.Option>
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="fromDate"
-                label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>From Date</span>}
-                style={{ margin: 0, flex: '1 1 130px', minWidth: 120 }}
-              >
-                <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
-              </Form.Item>
-
-              <Form.Item
-                name="toDate"
-                label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>To Date</span>}
-                style={{ margin: 0, flex: '1 1 130px', minWidth: 120 }}
-              >
-                <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
-              </Form.Item>
-
-              <Form.Item
-                name="employeeId"
-                label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Employee</span>}
-                style={{ margin: 0, flex: '1 1 160px', minWidth: 140 }}
-              >
-                <Select placeholder="Employee" allowClear showSearch optionFilterProp="children">
-                  {employees.map((emp: any) => (
-                    <Select.Option key={emp.id} value={emp.id}>
-                      {emp.fullName}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item
-                name="productId"
-                label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Product</span>}
-                style={{ margin: 0, flex: '1 1 160px', minWidth: 140 }}
-              >
-                <Select placeholder="Product" allowClear showSearch optionFilterProp="children">
-                               {products.filter((p: any) => p.active && p.source != 'PURCHASED')
-                                  .map((p: any) => (
-                                    <Select.Option key={p.id} value={p.id}>
-                                      {getProductIconAndLabel(p.iconName, p.name)}
-                                    </Select.Option>
-                                  ))}
-                </Select>
-              </Form.Item>
-
-              <Form.Item style={{ margin: 0, flex: '0 0 auto' }}>
-                <Space size={8}>
-                  <Button type="primary" htmlType="submit" icon={<SearchOutlined />} style={{ borderRadius: 6 }}>
-                    Search
-                  </Button>
-                  <Button onClick={handleResetHistoryFilters} icon={<ReloadOutlined />} style={{ borderRadius: 6 }}>
-                    Reset
-                  </Button>
-                </Space>
-              </Form.Item>
-            </div>
-          </Form>
-        </Card>
 
         {/* ── Production Table ── */}
         <Card style={cardStyle} bodyStyle={{ padding: '0px 16px' }}>
@@ -923,10 +951,10 @@ const ProductionPage: React.FC = () => {
                                 }
                               >
                                 {rowPieceCodes.map((pc: any) => (
-                                  <Select.Option key={pc.id} value={pc.id} label={`${pc.code} ₹${pc.rate}`}>
+                                  <Select.Option key={pc.id} value={pc.id} label={`${pc.code} ${getCurrencySymbol()}${pc.rate}`}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                       <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{pc.code}</span>
-                                      <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>₹{Number(pc.rate).toLocaleString('en-IN')}</span>
+                                      <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>{getCurrencySymbol()}{Number(pc.rate).toLocaleString('en-IN')}</span>
                                     </div>
                                   </Select.Option>
                                 ))}
@@ -961,7 +989,7 @@ const ProductionPage: React.FC = () => {
                               style={{ margin: 0 }}
                             >
                               <InputNumber
-                                formatter={(val) => `₹${val}`}
+                                formatter={(val) => `${getCurrencySymbol()}${val}`}
                                 readOnly
                                 disabled
                                 style={{

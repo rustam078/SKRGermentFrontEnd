@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Button, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
-  const formatAmount = (value) => (value != null ? `₹${Number(value).toLocaleString('en-IN')}` : '-');
+  const formatAmount = (value) => (value != null ? `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN')}` : '-');
   const invoiceDate = invoice?.createdAt?.split('T')[0] || invoice?.date || '-';
 
   return (

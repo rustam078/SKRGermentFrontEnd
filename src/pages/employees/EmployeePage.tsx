@@ -329,11 +329,31 @@ const EmployeePage: React.FC = () => {
       }}
     >
       <Box>
-        {/* Title Header */}
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 4, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-          Employee Management
-          <HeadingInfo text="Manage garment production workers and employee records." />
-        </Typography>
+        {/* Title Header + search/actions in one row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
+            Employee Management
+            <HeadingInfo text="Manage garment production workers and employee records." />
+          </Typography>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Input
+              placeholder="Search by name, code or mobile number"
+              prefix={<SearchOutlined style={{ color: '#94A3B8', marginRight: 4 }} />}
+              style={{ width: 320, borderRadius: 6, height: 40 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6, height: 40 }}
+              onClick={handleOpenAdd}
+            >
+              Add Employee
+            </Button>
+          </div>
+        </div>
 
         {/* Statistics Row */}
         <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
@@ -420,30 +440,6 @@ const EmployeePage: React.FC = () => {
             </Col>
           ))}
         </Row>
-
-        {/* Action Header Card */}
-        <Card style={{ ...cardStyle, marginBottom: 24 }} bodyStyle={{ padding: '16px 24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <Input
-              placeholder="Search by name, code or mobile number"
-              prefix={<SearchOutlined style={{ color: '#94A3B8', marginRight: 4 }} />}
-              style={{ width: 350, borderRadius: 6 }}
-              size="large"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6 }}
-              onClick={handleOpenAdd}
-            >
-              Add Employee
-            </Button>
-          </div>
-        </Card>
 
         {/* Employee Table */}
         <Card style={cardStyle} bodyStyle={{ padding: 0 }}>

@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
 import { notification, ConfigProvider, theme as antdTheme } from 'antd';
 import { AuthProvider } from './contexts/AuthContext';
+import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import AppRoutes from './routes';
 import theme from './theme/theme';
 
@@ -50,9 +51,11 @@ function App() {
         <CssBaseline />
         <ConfigProvider theme={antdConfig}>
           <AuthProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <AppSettingsProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AppSettingsProvider>
           </AuthProvider>
         </ConfigProvider>
       </ThemeProvider>

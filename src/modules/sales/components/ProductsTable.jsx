@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Paper } from '@mui/material';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const ProductsTable = ({ items }) => {
   return (
@@ -32,9 +33,9 @@ const ProductsTable = ({ items }) => {
                     <TableCell>{index + 1}</TableCell>
                     <TableCell>{item.productName || item.product || '-'}</TableCell>
                     <TableCell>{item.quantity ?? 0}</TableCell>
-                    <TableCell>{item.sellingPrice != null ? `₹${Number(item.sellingPrice).toLocaleString('en-IN')}` : '-'}</TableCell>
-                    <TableCell>{item.discount != null ? `₹${Number(item.discount).toLocaleString('en-IN')}` : '-'}</TableCell>
-                    <TableCell>{item.lineTotal != null ? `₹${Number(item.lineTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
+                    <TableCell>{item.sellingPrice != null ? `${getCurrencySymbol()}${Number(item.sellingPrice).toLocaleString('en-IN')}` : '-'}</TableCell>
+                    <TableCell>{item.discount != null ? `${getCurrencySymbol()}${Number(item.discount).toLocaleString('en-IN')}` : '-'}</TableCell>
+                    <TableCell>{item.lineTotal != null ? `${getCurrencySymbol()}${Number(item.lineTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
                   </TableRow>
                 ))
               )}

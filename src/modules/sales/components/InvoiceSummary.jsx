@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Card, CardContent, CardHeader, Divider, Stack, Typography } from '@mui/material';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const InvoiceSummary = ({ invoice }) => {
-  const formatAmount = (value) => (value != null ? `₹${Number(value).toLocaleString('en-IN')}` : '-');
+  const formatAmount = (value) => (value != null ? `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN')}` : '-');
 
   return (
     <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>

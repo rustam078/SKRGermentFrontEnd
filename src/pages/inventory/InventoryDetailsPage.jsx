@@ -39,13 +39,16 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import TuneOutlinedIcon from '@mui/icons-material/TuneOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
+import GenerateLabelsDialog from '../../modules/qr/components/GenerateLabelsDialog';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import axiosInstance from '../../services/axios';
+import { getCurrencySymbol } from '../../utils/currency';
 
 const formatCurrency = (value) =>
-  value == null ? '—' : `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  value == null ? '—' : `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const formatNumber = (value) =>
   value == null ? '—' : Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -89,6 +92,8 @@ const InventoryDetailsPage = () => {
 
   // Adjust-stock modal state
   const [adjustTarget, setAdjustTarget] = useState(null); // the batch row being adjusted
+  // QR-label generation modal state
+  const [qrBatch, setQrBatch] = useState(null);
   const [adjQty, setAdjQty] = useState('');
   const [adjDir, setAdjDir] = useState('INCREASE');
   const [adjRemarks, setAdjRemarks] = useState('');
@@ -456,17 +461,36 @@ const InventoryDetailsPage = () => {
                             </TableCell>
                             {tab === 0 && (
                               <TableCell align="center">
-                                <Tooltip title="Adjust stock (increase / decrease)">
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<TuneOutlinedIcon fontSize="small" />}
-                                    onClick={() => openAdjust(batch)}
-                                    sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
-                                  >
-                                    Adjust
-                                  </Button>
-                                </Tooltip>
+                                <Stack direction="row" spacing={1} justifyContent="center">
+                                  <Tooltip title="Adjust stock (increase / decrease)">
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<TuneOutlinedIcon fontSize="small" />}
+                                      onClick={() => openAdjust(batch)}
+                                      sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                                    >
+                                      Adjust
+                                    </Button>
+                                  </Tooltip>
+                                  <Tooltip title="Generate & print QR labels for this batch">
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="secondary"
+                                      startIcon={<QrCode2Icon fontSize="small" />}
+                                      onClick={() => setQrBatch({
+                                        batchNumber: batch.batchNumber,
+                                        productName: details.productName,
+                                        quantityAvailable: availableQ,
+                                        quantityReceived: totalQ,
+                                      })}
+                                      sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                                    >
+                                      QR
+                                    </Button>
+                                  </Tooltip>
+                                </Stack>
                               </TableCell>
                             )}
                           </TableRow>
@@ -501,6 +525,14 @@ const InventoryDetailsPage = () => {
           </Card>
         </>
       ) : null}
+
+      {/* QR labels modal */}
+      <GenerateLabelsDialog
+        open={Boolean(qrBatch)}
+        onClose={() => setQrBatch(null)}
+        batch={qrBatch}
+        onGenerated={() => setRefreshKey((k) => k + 1)}
+      />
 
       {/* Adjust Stock modal */}
       <Dialog open={Boolean(adjustTarget)} onClose={adjSaving ? undefined : closeAdjust} maxWidth="xs" fullWidth>

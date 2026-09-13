@@ -22,11 +22,29 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '../../services/axios';
 
 const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
+
+  // Low-stock alert count for the bell (shared cache key with the Inventory page).
+  const { data: lowStockAlerts } = useQuery({
+    queryKey: ['lowStockAlerts'],
+    queryFn: async () => {
+      const res = await axiosInstance.get('/inventory/alerts');
+      return Array.isArray(res.data) ? res.data : (res.data?.content || []);
+    },
+    refetchInterval: 60000,
+  });
+  const lowStockCount = lowStockAlerts?.length || 0;
+
+  const handleOpenAlerts = () => {
+    // Open the global alerts drawer on the current page — no navigation.
+    window.dispatchEvent(new Event('open-inventory-alerts'));
+  };
 
   const handleOpenMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -95,10 +113,10 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Notifications */}
-          <Tooltip title="Notifications">
-            <IconButton color="inherit" size="large">
-              <Badge badgeContent={3} color="primary">
+          {/* Low-stock alerts */}
+          <Tooltip title={`Low Stock Alerts${lowStockCount > 0 ? ` (${lowStockCount})` : ''}`}>
+            <IconButton color="inherit" size="large" onClick={handleOpenAlerts} aria-label="low stock alerts">
+              <Badge badgeContent={lowStockCount} color="error" max={99}>
                 <NotificationsIcon />
               </Badge>
             </IconButton>

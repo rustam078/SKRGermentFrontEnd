@@ -9,8 +9,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { notification } from 'antd';
 import salesService from '../services/salesService';
+import { getCurrencySymbol } from '../../../utils/currency';
 
-const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const STATUS_COLOR = {
   PAID: 'success',

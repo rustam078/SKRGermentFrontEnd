@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Typography, Empty, Button, Input, DatePicker, Space, Pagination, Tag } from 'antd';
+import { Typography, Empty, Button, Input, DatePicker, Space, Pagination, Tag, Popover, Badge } from 'antd';
 import { ShoppingOutlined, PlusOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -116,7 +116,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
 
   return (
     <div style={{ marginTop: 32 }}>
-      {/* Header */}
+      {/* Header with filter popover */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <Title level={4} style={{ fontWeight: 800, color: '#0F172A', margin: 0 }}>
           Purchase History
@@ -126,50 +126,45 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
             </Tag>
           )}
         </Title>
-      </div>
-
-      {/* Filters */}
-      <div style={{ 
-        display: 'flex', 
-        gap: 12, 
-        marginBottom: 20, 
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        padding: '12px 16px',
-        backgroundColor: '#F8FAFC',
-        borderRadius: 8,
-        border: '1px solid #E2E8F0'
-      }}>
-        <FilterOutlined style={{ color: '#64748B' }} />
-        <Input.Search
-          placeholder="Search by Invoice No (e.g. INV-000001)"
-          allowClear
-          style={{ width: 280, borderRadius: 6 }}
-          prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
-          onSearch={handleSearch}
-          onChange={(e) => {
-            if (!e.target.value) handleSearch('');
-          }}
-        />
-        <RangePicker
-          format="DD MMM YYYY"
-          placeholder={['From Date', 'To Date']}
-          onChange={handleDateChange}
-          style={{ borderRadius: 6 }}
-        />
-        {hasFilters && (
-          <Button
-            size="small"
-            onClick={() => {
-              setSearchText('');
-              setDateRange(null);
-              setCurrentPage(1);
-            }}
-            style={{ borderRadius: 6, color: '#64748B' }}
-          >
-            Clear
-          </Button>
-        )}
+        <Popover
+          trigger="click"
+          placement="bottomRight"
+          content={
+            <div style={{ width: 280 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Invoice No</div>
+              <Input
+                placeholder="e.g. INV-000001"
+                allowClear
+                value={searchText}
+                prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
+                onChange={(e) => handleSearch(e.target.value)}
+                style={{ borderRadius: 6, marginBottom: 12 }}
+              />
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Date range</div>
+              <RangePicker
+                format="DD MMM YYYY"
+                placeholder={['From Date', 'To Date']}
+                value={dateRange}
+                onChange={handleDateChange}
+                style={{ borderRadius: 6, width: '100%', marginBottom: 12 }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  disabled={!hasFilters}
+                  onClick={() => { setSearchText(''); setDateRange(null); setCurrentPage(1); }}
+                  style={{ borderRadius: 6, color: '#64748B' }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          }
+        >
+          <Badge count={(searchText.trim() ? 1 : 0) + (dateRange && dateRange[0] ? 1 : 0)} size="small">
+            <Button icon={<FilterOutlined />} style={{ borderRadius: 8 }}>Filters</Button>
+          </Badge>
+        </Popover>
       </div>
 
       {/* Invoice Cards */}

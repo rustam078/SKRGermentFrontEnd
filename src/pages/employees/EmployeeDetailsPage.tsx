@@ -248,9 +248,9 @@ const EmployeeDetailsPage: React.FC = () => {
     const { totalQuantity, totalEarning } = dayData;
 
     // Color brackets:
-    // ₹1 - ₹999: Light Green
-    // ₹1,000 - ₹4,999: Medium Green
-    // ₹5,000+: Dark Green
+    // 1 - 999: Light Green
+    // 1,000 - 4,999: Medium Green
+    // 5,000+: Dark Green
     let bgColor = '';
     let textColor = '';
     let borderColor = '';

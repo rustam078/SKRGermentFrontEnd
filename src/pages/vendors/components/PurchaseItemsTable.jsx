@@ -1,5 +1,6 @@
 import React from 'react';
 import { Table, Tag } from 'antd';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const PurchaseItemsTable = ({ items }) => {
   const columns = [
@@ -48,7 +49,7 @@ const PurchaseItemsTable = ({ items }) => {
       render: (text) => <span style={{ color: '#64748B' }}>{text}</span>,
     },
     {
-      title: 'Rate (₹)',
+      title: `Rate (${getCurrencySymbol()})`,
       dataIndex: 'rate',
       key: 'rate',
       align: 'right',
@@ -59,7 +60,7 @@ const PurchaseItemsTable = ({ items }) => {
       ),
     },
     {
-      title: 'Amount (₹)',
+      title: `Amount (${getCurrencySymbol()})`,
       key: 'amount',
       align: 'right',
       render: (_, record) => {

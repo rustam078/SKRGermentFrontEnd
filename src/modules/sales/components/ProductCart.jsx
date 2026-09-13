@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCurrencySymbol } from '../../../utils/currency';
 import {
   Box,
   Card,
@@ -126,7 +127,7 @@ const ProductCart = ({
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>₹{((item.sellingPrice || 0) * (item.quantity || 0) - (item.discount || 0)).toFixed(2)}</TableCell>
+                    <TableCell>{getCurrencySymbol()}{((item.sellingPrice || 0) * (item.quantity || 0) - (item.discount || 0)).toFixed(2)}</TableCell>
                     <TableCell align="center">
                       <IconButton color="error" onClick={() => onRemoveItem(index)} disabled={items.length === 1}>
                         <DeleteOutlineIcon />

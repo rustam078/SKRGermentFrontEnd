@@ -85,4 +85,40 @@ export const investmentService = {
     const response = await axiosInstance.post('/investments', data);
     return response.data;
   },
+
+  // ── Payments ──────────────────────────────
+  // Add a payment against an invoice. Body: { paymentDate, mode, amount }
+  addPayment: async (investmentId, data) => {
+    const response = await axiosInstance.post(`/investments/${investmentId}/payments`, data);
+    return response.data;
+  },
+
+  getPayments: async (investmentId) => {
+    const response = await axiosInstance.get(`/investments/${investmentId}/payments`);
+    return response.data;
+  },
+
+  deletePayment: async (investmentId, paymentId) => {
+    const response = await axiosInstance.delete(`/investments/${investmentId}/payments/${paymentId}`);
+    return response.data;
+  },
+
+  /**
+   * Download the backend-generated purchase invoice PDF (HTML template based).
+   * GET /api/investments/{id}/invoice/pdf
+   */
+  downloadInvoicePdf: async (investmentId, invoiceNumber) => {
+    const response = await axiosInstance.get(`/investments/${investmentId}/invoice/pdf`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoiceNumber || `purchase-invoice-${investmentId}`}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
 };

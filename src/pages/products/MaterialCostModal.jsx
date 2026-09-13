@@ -9,6 +9,7 @@ import {
 import { RiseOutlined, FallOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import productService from '../../services/productService';
+import { getCurrencySymbol } from '../../utils/currency';
 
 const MaterialCostModal = ({
     open,
@@ -112,7 +113,7 @@ const MaterialCostModal = ({
                         style={{ width: '100%' }}
                         min={0}
                         precision={2}
-                        addonBefore="₹"
+                        addonBefore={getCurrencySymbol()}
                         placeholder="e.g. 120 (making / purchase cost)"
                         onChange={(v) => setCost(v)}
                     />
@@ -132,7 +133,7 @@ const MaterialCostModal = ({
                         style={{ width: '100%' }}
                         min={0}
                         precision={2}
-                        addonBefore="₹"
+                        addonBefore={getCurrencySymbol()}
                         placeholder="e.g. 150 (selling price)"
                         onChange={(v) => setSalePrice(v)}
                     />
@@ -160,7 +161,7 @@ const MaterialCostModal = ({
                             {positive ? <RiseOutlined /> : <FallOutlined />}
                             {profitPct != null ? `${positive ? '+' : ''}${profitPct.toFixed(1)}%` : '—'}
                             <span style={{ fontWeight: 600, opacity: 0.85 }}>
-                                ({positive ? '+' : '−'}₹{Math.abs(profitAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })})
+                                ({positive ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profitAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })})
                             </span>
                         </span>
                     ) : (

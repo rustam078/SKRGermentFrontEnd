@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import { getCurrencySymbol } from '../../utils/currency';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ConfigProvider,
@@ -447,75 +448,6 @@ const ProductsPage = () => {
           </div>
         </div>
 
-        {/* ── Summary Stats Cards ── */}
-        <Row gutter={[10, 10]}>
-          <Col xs={24} sm={12} xl={6}>
-            <Card
-              style={cardStyle}
-              bodyStyle={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16 }}
-            >
-              <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ShoppingOutlined style={{ fontSize: '1.4rem', color: '#6366F1' }} />
-              </div>
-              <div style={{ flexGrow: 1 }}>
-                <div style={{ color: '#64748B', fontWeight: 600, fontSize: '0.85rem' }}>Total Products</div>
-                <div style={{ color: '#0F172A', fontWeight: 800, fontSize: '1.75rem', margin: '4px 0' }}>{totalProducts}</div>
-                <div style={{ color: '#94A3B8', fontSize: '0.75rem', fontWeight: 500 }}>All registered lines</div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} xl={6}>
-            <Card
-              style={cardStyle}
-              bodyStyle={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16 }}
-            >
-              <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <CheckCircleOutlined style={{ fontSize: '1.4rem', color: '#16A34A' }} />
-              </div>
-              <div style={{ flexGrow: 1 }}>
-                <div style={{ color: '#64748B', fontWeight: 600, fontSize: '0.85rem' }}>Active Products</div>
-                <div style={{ color: '#0F172A', fontWeight: 800, fontSize: '1.75rem', margin: '4px 0' }}>{activeProducts}</div>
-                <div style={{ color: '#94A3B8', fontSize: '0.75rem', fontWeight: 500 }}>Accepting production</div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} xl={6}>
-            <Card
-              style={cardStyle}
-              bodyStyle={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16 }}
-            >
-              <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <InboxOutlined style={{ fontSize: '1.4rem', color: '#DC2626' }} />
-              </div>
-              <div style={{ flexGrow: 1 }}>
-                <div style={{ color: '#64748B', fontWeight: 600, fontSize: '0.85rem' }}>Inactive Products</div>
-                <div style={{ color: '#0F172A', fontWeight: 800, fontSize: '1.75rem', margin: '4px 0' }}>{inactiveProducts}</div>
-                <div style={{ color: '#94A3B8', fontSize: '0.75rem', fontWeight: 500 }}>Temporarily suspended</div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} xl={6}>
-            <Card
-              style={cardStyle}
-              bodyStyle={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16 }}
-            >
-              <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <BarcodeOutlined style={{ fontSize: '1.4rem', color: '#D97706' }} />
-              </div>
-              <div style={{ flexGrow: 1 }}>
-                <div style={{ color: '#64748B', fontWeight: 600, fontSize: '0.85rem' }}>Total Piece Codes</div>
-                <div style={{ color: '#0F172A', fontWeight: 800, fontSize: '1.75rem', margin: '4px 0' }}>
-                  {totalPieceCodesAcrossAll}
-                </div>
-                <div style={{ color: '#94A3B8', fontSize: '0.75rem', fontWeight: 500 }}>Active pricing formulas</div>
-              </div>
-            </Card>
-          </Col>
-        </Row>
-
         {/* ── Product Cards Grid Section ── */}
         <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <Tabs
@@ -539,10 +471,16 @@ const ProductsPage = () => {
           </div>
         </div>
         {filteredProducts.length > 0 ? (
-          <Row gutter={[10, 10]}>
+          <Row gutter={[12, 12]}>
             {filteredProducts.map((product) => {
               const productIcon = getProductIcon(product.iconName, product.name);
-              
+
+              const openDetails = () => {
+                const nextParams = new URLSearchParams(searchParams);
+                nextParams.set('tab', activeTab);
+                navigate(`/products/${product.id}?${nextParams.toString()}`);
+              };
+
               const dropdownMenu = {
                 items: [
                   {
@@ -555,116 +493,90 @@ const ProductsPage = () => {
               };
 
               return (
-                <Col xs={24} sm={12} xl={8} className="product-card-col" key={product.id}>
-                  <div className="product-card" style={cardStyle}>
-                    <div style={{ padding: '24px 24px 18px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      {/* Top Info section */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          {/* Large Icon Container */}
-                          <div
+                <Col xs={12} sm={8} md={6} lg={4} key={product.id}>
+                  <div className="product-card" style={cardStyle} onClick={openDetails}>
+                    {/* Image / icon area */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        height: 130,
+                        background: 'linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '3.4rem',
+                        borderBottom: '1px solid #F1F5F9',
+                      }}
+                    >
+                      {productIcon}
+
+                      {/* Status badge (top-left) */}
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          backgroundColor: product.active ? '#DCFCE7' : '#FEF2F2',
+                          color: product.active ? '#16A34A' : '#DC2626',
+                          fontSize: '0.62rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                        }}
+                      >
+                        {product.active ? 'Active' : 'Inactive'}
+                      </span>
+
+                      {/* Kebab (top-right corner) */}
+                      <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
+                        <Dropdown menu={dropdownMenu} trigger={['click']} placement="bottomRight">
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<MoreOutlined style={{ fontSize: '1.05rem', color: '#334155' }} />}
                             style={{
-                              width: 56,
-                              height: 56,
-                              borderRadius: 14,
-                              backgroundColor: '#F8FAFC',
-                              border: '1px solid #E2E8F0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '1.8rem',
-                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
-                              flexShrink: 0,
+                              width: 26, height: 26, padding: 0, borderRadius: '50%',
+                              background: '#ffffff', boxShadow: '0 1px 4px rgba(15,23,42,0.18)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
-                          >
-                            {productIcon}
-                          </div>
-                        </div>
-
-                        {/* Source icon + Status Badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                            {product.source === 'PURCHASED' ? (
-                              <ShoppingOutlined style={{ color: '#6366F1' }} />
-                            ) : (
-                              <BuildOutlined style={{ color: '#0C4A6E' }} />
-                            )}
-                          </div>
-                          <span
-                            style={{
-                              backgroundColor: product.active ? '#DCFCE7' : '#FEF2F2',
-                              color: product.active ? '#16A34A' : '#DC2626',
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              padding: '3px 10px',
-                              borderRadius: 12,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: product.active ? '#16A34A' : '#DC2626' }} />
-                            {product.active ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Product Info — e-commerce style */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '8px 0 16px' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ color: '#64748B', fontSize: '0.78rem', fontWeight: 600, marginBottom: 6 }}>Overview</div>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>{product.name}</div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                          {/* <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0F172A' }}>
-                            {product.price ?? product.currentRate ?? product.defaultRate ?? '--'}
-                          </div> */}
-                            {product.source !== 'PURCHASED' && (
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '6px 8px', borderRadius: 8, fontWeight: 700, color: '#0F172A' }}>{(product.totalPieceCodes || 0) + ' codes'}</div>
-                              </div>
-                            )}
-                        </div>
+                          />
+                        </Dropdown>
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #F1F5F9', padding: '14px 24px', backgroundColor: '#FCFDFE', borderRadius: '0 0 12px 12px' }}>
-                      <Button
-                        type="primary"
-                        icon={<EyeOutlined />}
-                        onClick={() => {
-                          const nextParams = new URLSearchParams(searchParams);
-                          nextParams.set('tab', activeTab);
-                          navigate(`/products/${product.id}?${nextParams.toString()}`);
-                        }}
-                        style={{
-                          flex: 1,
-                          fontWeight: 700,
-                          borderRadius: 8,
-                          fontSize: '0.85rem',
-                          height: 36,
-                          boxShadow: 'none',
-                        }}
+                    {/* Body */}
+                    <div style={{ padding: '10px 12px 12px' }}>
+                      <div
+                        title={product.name}
+                        style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                       >
-                        View Details
-                      </Button>
-                      <Dropdown menu={dropdownMenu} trigger={['click']} placement="topRight" dropdownAlign={{ offset: [10, 0] }}>
-                        <Button
-                          icon={<MoreOutlined style={{ fontSize: '1.1rem', color: '#475569' }} />}
+                        {product.name}
+                      </div>
+                      {/* Current selling price */}
+                      <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 800, color: '#059669' }}>
+                        {product.sellingPrice != null
+                          ? `${getCurrencySymbol()}${Number(product.sellingPrice).toLocaleString('en-IN')}`
+                          : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>No price set</span>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                        <span
                           style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 8,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid #E2E8F0',
-                            padding: 0,
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontSize: '0.68rem', fontWeight: 700,
+                            color: product.source === 'PURCHASED' ? '#6366F1' : '#0C4A6E',
+                            backgroundColor: product.source === 'PURCHASED' ? '#EEF2FF' : '#E0F2FE',
+                            padding: '2px 7px', borderRadius: 6,
                           }}
-                        />
-                      </Dropdown>
+                        >
+                          {product.source === 'PURCHASED' ? <ShoppingOutlined /> : <BuildOutlined />}
+                          {product.source === 'PURCHASED' ? 'Purchased' : 'Manufactured'}
+                        </span>
+                        {product.source !== 'PURCHASED' && (
+                          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6 }}>
+                            {(product.totalPieceCodes || 0)} codes
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Col>
@@ -790,18 +702,14 @@ const ProductsPage = () => {
         {/* CSS Hover Transitions for Grid Cards */}
         <style>{`
           .product-card {
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           }
           .product-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            transform: translateY(-3px);
+            box-shadow: 0 16px 24px -8px rgba(0, 0, 0, 0.12) !important;
             border-color: #6366F1 !important;
-          }
-          @media (min-width: 1200px) {
-            .product-card-col {
-              flex: 0 0 20% !important;
-              max-width: 20% !important;
-            }
           }
         `}</style>
 

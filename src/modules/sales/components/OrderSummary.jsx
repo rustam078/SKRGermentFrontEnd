@@ -14,6 +14,7 @@ import {
   Stack,
   Button,
 } from '@mui/material';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCancel, loading }) => {
   const subtotal = values.subtotal ?? 0;
@@ -29,20 +30,20 @@ const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCanc
           <Stack spacing={1}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography color="text.secondary">Subtotal</Typography>
-              <Typography sx={{ fontWeight: 700 }}>₹{subtotal.toFixed(2)}</Typography>
+              <Typography sx={{ fontWeight: 700 }}>{getCurrencySymbol()}{subtotal.toFixed(2)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography color="text.secondary">Discount</Typography>
-              <Typography>₹{discount.toFixed(2)}</Typography>
+              <Typography>{getCurrencySymbol()}{discount.toFixed(2)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography color="text.secondary">Tax</Typography>
-              <Typography>₹{tax.toFixed(2)}</Typography>
+              <Typography>{getCurrencySymbol()}{tax.toFixed(2)}</Typography>
             </Box>
             <Divider />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography sx={{ fontWeight: 700 }}>Grand Total</Typography>
-              <Typography sx={{ fontWeight: 700 }}>₹{grandTotal.toFixed(2)}</Typography>
+              <Typography sx={{ fontWeight: 700 }}>{getCurrencySymbol()}{grandTotal.toFixed(2)}</Typography>
             </Box>
           </Stack>
         </Box>

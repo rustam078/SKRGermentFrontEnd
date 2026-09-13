@@ -36,6 +36,9 @@ import salesService from '../services/salesService';
 import customerService from '../services/customerService';
 import productService from '../services/productService';
 import CustomerInformationCard from '../components/CustomerInformationCard';
+import ScanBar from '../../qr/components/ScanBar';
+import { mergeScannedUnit } from '../../qr/scanCart';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const initialItem = {
   productId: '',
@@ -200,6 +203,8 @@ const CreateSale = () => {
         quantity: Number(item.quantity),
         sellingPrice: Number(item.sellingPrice),
         discount: Number(item.discount),
+        batchNumber: item.batchNumber || undefined,
+        serials: item.serials && item.serials.length ? item.serials : undefined,
       })),
     };
 
@@ -261,6 +266,29 @@ const CreateSale = () => {
       customerMobile: customer.mobile,
       customerEmail: customer.email,
     }));
+  };
+
+  // A scanned QR unit → add/merge a batch-bound line at its frozen price.
+  const handleScannedUnit = (unit) => {
+    const makeNewItem = (u) => ({
+      productId: u.productId,
+      productName: u.productName,
+      quantityAvailable: null,
+      quantity: 1,
+      sellingPrice: Number(u.printedPrice),
+      cost: Number(u.unitCost) || 0,
+      discount: 0,
+      batchNumber: u.batchNumber,
+      serials: [u.serial],
+    });
+    const real = formValues.items.filter((it) => it.productId);
+    const { items, error } = mergeScannedUnit(real, unit, makeNewItem);
+    if (error) {
+      setToast({ open: true, message: error, severity: 'error' });
+      return;
+    }
+    setFormValues((prev) => ({ ...prev, items }));
+    setToast({ open: true, message: `Added ${unit.serial}`, severity: 'success' });
   };
 
   const handleSelectProduct = (product, index) => {
@@ -345,6 +373,7 @@ const CreateSale = () => {
               </Box>
               <CardContent sx={{ p: 2 }}>
               <Stack spacing={2}>
+                <ScanBar onUnit={handleScannedUnit} onError={(m) => setToast({ open: true, message: m, severity: 'error' })} />
                 <TableContainer sx={{ boxShadow: 'none' }}>
                   <Table size="small" sx={{ '& th': { backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: 'none' }, '& tbody tr:hover': { backgroundColor: '#F8FAFC' } }}>
                     <TableHead>
@@ -368,8 +397,9 @@ const CreateSale = () => {
                             <Autocomplete
                               options={productOptions.filter((p) => p.productId === item.productId || !formValues.items.some((it) => it.productId === p.productId && it.productId !== item.productId))}
                               loading={productLoading}
+                              disabled={Boolean(item.serials && item.serials.length)}
                               popupIcon={<ArrowDropDownIcon />}
-                              value={productOptions.find((option) => option.productId === item.productId) || null}
+                              value={productOptions.find((option) => option.productId === item.productId) || (item.productId ? { productId: item.productId, productName: item.productName } : null)}
                               onChange={(event, value) => handleSelectProduct(value, index)}
                               getOptionLabel={formatProductLabel}
                               isOptionEqualToValue={(option, value) => option.productId === value?.productId}
@@ -403,6 +433,11 @@ const CreateSale = () => {
                                 />
                               )}
                             />
+                            {item.serials && item.serials.length ? (
+                              <Typography variant="caption" sx={{ color: '#2563EB', display: 'block', mt: 0.5 }}>
+                                {item.batchNumber} · {item.serials.length} scanned
+                              </Typography>
+                            ) : null}
                           </TableCell>
                           <TableCell sx={{ py: 0.5 }}>
                             <Typography variant="body2" color={item.quantityAvailable > 0 ? 'success.main' : 'text.secondary'}>
@@ -411,7 +446,7 @@ const CreateSale = () => {
                           </TableCell>
                           <TableCell sx={{ py: 0.5, px: 0.5 }}>
                             <Stack direction="row" alignItems="center" spacing={0.25}>
-                              <IconButton size="small" sx={{ p: 0.25 }} disabled={!item.productId} onClick={() => updateItem(index, { quantity: Math.max(1, (Number(item.quantity) || 0) - 1) })}>
+                              <IconButton size="small" sx={{ p: 0.25 }} disabled={!item.productId || Boolean(item.serials && item.serials.length)} onClick={() => updateItem(index, { quantity: Math.max(1, (Number(item.quantity) || 0) - 1) })}>
                                 <RemoveIcon fontSize="small" />
                               </IconButton>
                               <TextField
@@ -426,11 +461,11 @@ const CreateSale = () => {
                                 error={isQuantityExceeded(item) || Boolean(errors[`quantity_${index}`])}
                                 helperText={isQuantityExceeded(item) ? `Only ${item.quantityAvailable} left` : errors[`quantity_${index}`] || ''}
                                 sx={{ width: 48, '& .MuiInputBase-root': { backgroundColor: '#FBFCFF' } }}
-                                disabled={!item.productId}
+                                disabled={!item.productId || Boolean(item.serials && item.serials.length)}
                               />
                               <IconButton
                                 size="small"
-                                disabled={!item.productId || (item.quantityAvailable != null && Number(item.quantity) >= Number(item.quantityAvailable))}
+                                disabled={!item.productId || Boolean(item.serials && item.serials.length) || (item.quantityAvailable != null && Number(item.quantity) >= Number(item.quantityAvailable))}
                                 onClick={() => {
                                   const current = Number(item.quantity) || 0;
                                   const max = item.quantityAvailable != null ? Number(item.quantityAvailable) : current + 1;
@@ -465,7 +500,7 @@ const CreateSale = () => {
                             />
                           </TableCell>
                           <TableCell>
-                            ₹{((Number(item.sellingPrice) || 0) * (Number(item.quantity) || 0) - (Number(item.discount) || 0)).toLocaleString('en-IN')}
+                            {getCurrencySymbol()}{((Number(item.sellingPrice) || 0) * (Number(item.quantity) || 0) - (Number(item.discount) || 0)).toLocaleString('en-IN')}
                           </TableCell>
                           <TableCell sx={{ py: 0.5, px: 0.5 }}>
                             {(() => {
@@ -481,7 +516,7 @@ const CreateSale = () => {
                                     {p.pct != null ? `${positive ? '+' : ''}${p.pct.toFixed(1)}%` : '—'}
                                   </Typography>
                                   <Typography sx={{ fontSize: '0.72rem', color: positive ? '#059669' : '#DC2626' }}>
-                                    {positive ? '+' : '−'}₹{Math.abs(p.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                    {positive ? '+' : '−'}{getCurrencySymbol()}{Math.abs(p.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                                   </Typography>
                                 </Box>
                               );
@@ -537,26 +572,26 @@ const CreateSale = () => {
                         {formValues.items.filter((i) => i.productId).length} item{formValues.items.filter((i) => i.productId).length === 1 ? '' : 's'}
                       </Box>
                     </Box>
-                    <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>₹{subtotal.toLocaleString('en-IN')}</Typography>
+                    <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN')}</Typography>
                     {totalDiscount > 0 && (
-                      <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.25 }}>You saved ₹{totalDiscount.toLocaleString('en-IN')}</Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.25 }}>You saved {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>
                     )}
                   </Box>
 
                   <Stack spacing={1}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Subtotal</Typography>
-                      <Typography sx={{ fontWeight: 600 }}>₹{subtotal.toLocaleString('en-IN')}</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN')}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography>
-                      <Typography sx={{ fontWeight: 600 }}>₹{totalDiscount.toLocaleString('en-IN')}</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>
                     </Box>
                     {totalCostBasis > 0 && anyProductSelected && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Estimated Profit</Typography>
                         <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? '#047857' : '#B91C1C' }}>
-                          {totalProfit >= 0 ? '+' : '−'}₹{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                           {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
                         </Typography>
                       </Box>

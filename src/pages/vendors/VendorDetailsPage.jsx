@@ -6,7 +6,6 @@ import { Skeleton, ConfigProvider, Breadcrumb, Modal, notification } from 'antd'
 import { vendorService } from '../../services/investmentService';
 
 import VendorProfileCard from './components/VendorProfileCard';
-import VendorSummaryCards from './components/VendorSummaryCards';
 import VendorPurchaseHistory from './components/VendorPurchaseHistory';
 
 const VendorDetailsPage = () => {
@@ -55,12 +54,9 @@ const VendorDetailsPage = () => {
           </div>
         ) : vendor ? (
           <>
-            <VendorProfileCard 
-              vendor={vendor} 
-              onCreateInvestment={handleCreateInvestment} 
-            />
-
-            <VendorSummaryCards 
+            <VendorProfileCard
+              vendor={vendor}
+              onCreateInvestment={handleCreateInvestment}
               summary={{
                 totalInvoices: vendor.totalInvoices,
                 totalPurchaseAmount: vendor.totalPurchaseAmount,
@@ -68,7 +64,7 @@ const VendorDetailsPage = () => {
               }}
             />
 
-            <VendorPurchaseHistory 
+            <VendorPurchaseHistory
               invoices={vendor.purchases || []} 
               onAddInvestment={handleCreateInvestment}
             />

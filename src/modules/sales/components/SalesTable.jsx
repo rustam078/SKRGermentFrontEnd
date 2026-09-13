@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Button, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Typography, Paper, Skeleton, Alert, Stack } from '@mui/material';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import { getCurrencySymbol } from '../../../utils/currency';
 
 const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onView, onRowClick }) => {
   const emptyRows = rowsPerPage - Math.min(rowsPerPage, rows.length - page * rowsPerPage);
@@ -66,7 +67,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                         <TableCell>{sale.saleDate || sale.createdAt?.split('T')[0] || sale.date || '-'}</TableCell>
                         <TableCell>{sale.customerName || sale.customer || '-'}</TableCell>
                         <TableCell>{sale.customerMobile || sale.mobile || '-'}</TableCell>
-                        <TableCell>{sale.grandTotal != null ? `₹${Number(sale.grandTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
+                        <TableCell>{sale.grandTotal != null ? `${getCurrencySymbol()}${Number(sale.grandTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
                         <TableCell>{sale.paymentMode || '-'}</TableCell>
                         <TableCell>{sale.paymentStatus || '-'}</TableCell>
                         <TableCell align="center" onClick={(event) => event.stopPropagation()}>
