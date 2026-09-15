@@ -10,12 +10,16 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  InputAdornment,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import PrintIcon from '@mui/icons-material/Print';
+import SearchIcon from '@mui/icons-material/Search';
 import qrService from '../qrService';
 import { printLabels } from '../labelPrinting';
 
@@ -31,6 +35,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
   const [existing, setExisting] = useState([]);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [labelConfig, setLabelConfig] = useState(null);
+  const [search, setSearch] = useState('');
 
   const batchNumber = batch?.batchNumber;
   const received = Number(batch?.quantityReceived ?? batch?.quantityAvailable ?? 0);
@@ -41,6 +46,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
     setCount('');
     setError('');
     setNotice('');
+    setSearch('');
     setLoadingExisting(true);
     qrService
       .getUnits(batchNumber)
@@ -85,8 +91,21 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
     }
   };
 
+  const printOne = async (unit) => {
+    setError('');
+    try {
+      await printLabels([unit], { batchNumber, config: labelConfig });
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to print label.');
+    }
+  };
+
   const soldCount = existing.filter((u) => u.status === 'SOLD').length;
   const voidCount = existing.filter((u) => u.status === 'VOID').length;
+
+  const q = search.trim().toLowerCase();
+  const matches = q ? existing.filter((u) => u.serial?.toLowerCase().includes(q)) : existing;
+  const STATUS_COLOR = { AVAILABLE: 'primary', SOLD: 'success', VOID: 'default' };
 
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth="xs" fullWidth>
@@ -133,6 +152,51 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
             fullWidth
             disabled={remaining === 0}
           />
+
+          {existing.length > 0 && (
+            <>
+              <Divider>
+                <Typography variant="caption" color="text.secondary">Reprint a lost label</Typography>
+              </Divider>
+              <TextField
+                size="small"
+                fullWidth
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search serial (e.g. 007)…"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment>
+                  ),
+                }}
+              />
+              <Box sx={{ maxHeight: 180, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                {matches.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>No matching serial.</Typography>
+                ) : (
+                  matches.map((u) => (
+                    <Stack
+                      key={u.serial}
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{ px: 1.5, py: 0.75, borderBottom: '1px solid', borderColor: 'divider' }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{u.serial}</Typography>
+                        <Chip size="small" label={u.status} color={STATUS_COLOR[u.status] || 'default'} variant="outlined" />
+                      </Stack>
+                      <Tooltip title="Reprint this label">
+                        <IconButton size="small" onClick={() => printOne(u)} disabled={busy}>
+                          <PrintIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  ))
+                )}
+              </Box>
+            </>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>

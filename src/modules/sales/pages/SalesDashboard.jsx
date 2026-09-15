@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ConfigProvider, Card, Row, Col, Segmented, Button, Table, Tag, Spin, Empty, Alert,
+  ConfigProvider, Card, Row, Col, Button, Table, Tag, Spin, Empty, Alert, Popover, Radio, DatePicker,
 } from 'antd';
 import {
-  PlusOutlined, DollarCircleOutlined, ShoppingCartOutlined, RiseOutlined,
-  PercentageOutlined, WarningOutlined, LineChartOutlined,
+  DollarCircleOutlined, ShoppingCartOutlined, RiseOutlined,
+  PercentageOutlined, WarningOutlined, LineChartOutlined, FilterOutlined,
 } from '@ant-design/icons';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -22,6 +22,8 @@ const num = (v) => new Intl.NumberFormat('en-IN').format(Number(v) || 0);
 const PIE_COLORS = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'];
 
 const RANGES = {
+  'Today': [dayjs().startOf('day'), dayjs().endOf('day')],
+  'This Week': [dayjs().startOf('week'), dayjs().endOf('day')],
   'This Month': [dayjs().startOf('month'), dayjs()],
   'Last Month': [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')],
   'Last 3 Months': [dayjs().subtract(3, 'month'), dayjs()],
@@ -63,7 +65,9 @@ const Section = ({ title, icon, children }) => (
 const SalesDashboard = () => {
   const navigate = useNavigate();
   const [preset, setPreset] = useState('This Month');
-  const [from, to] = RANGES[preset];
+  const [customRange, setCustomRange] = useState(null); // [dayjs, dayjs] overrides the preset
+  const hasCustom = Boolean(customRange && customRange[0] && customRange[1]);
+  const [from, to] = hasCustom ? customRange : RANGES[preset];
   const fromDate = from.format('YYYY-MM-DD');
   const toDate = to.format('YYYY-MM-DD');
 
@@ -116,22 +120,36 @@ const SalesDashboard = () => {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Segmented size="small" value={preset} onChange={setPreset} options={Object.keys(RANGES)} />
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/sales/new')}>New Sale</Button>
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              content={(
+                <div style={{ width: 250 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8, color: '#0F172A' }}>Date range</div>
+                  <Radio.Group
+                    value={hasCustom ? null : preset}
+                    onChange={(e) => { setPreset(e.target.value); setCustomRange(null); }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+                  >
+                    {Object.keys(RANGES).map((k) => <Radio key={k} value={k}>{k}</Radio>)}
+                  </Radio.Group>
+                  <div style={{ fontWeight: 700, margin: '12px 0 6px', color: '#0F172A' }}>Custom range</div>
+                  <DatePicker.RangePicker
+                    value={customRange}
+                    onChange={(v) => setCustomRange(v)}
+                    allowClear
+                    style={{ width: '100%' }}
+                    format="DD MMM YYYY"
+                  />
+                </div>
+              )}
+            >
+              <Button icon={<FilterOutlined />}>Filters · {hasCustom ? 'Custom' : preset}</Button>
+            </Popover>
           </div>
         </div>
 
         {error && <Alert type="error" showIcon message="Failed to load sales dashboard" description={error.message} />}
-
-        {data && (data.lowStockCount || 0) > 0 && (
-          <Alert
-            type="warning"
-            showIcon
-            icon={<WarningOutlined />}
-            message={`${data.lowStockCount} product(s) are low on stock`}
-            action={<Button size="small" onClick={() => navigate('/inventory')}>View Inventory</Button>}
-          />
-        )}
 
         <Spin spinning={isLoading}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
