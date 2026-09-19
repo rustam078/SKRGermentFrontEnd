@@ -16,6 +16,20 @@ export const dashboardService = {
     const res = await axiosInstance.get('/dashboard/overview', { params });
     return res.data?.data ?? res.data;
   },
+
+  /** Date-wise money in/out rows: { date, investment, wages, sales, cogs }. */
+  getDaily: async (fromDate, toDate) => {
+    try {
+      const params = {};
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
+      const res = await axiosInstance.get('/dashboard/daily', { params });
+      return res.data?.data ?? res.data ?? [];
+    } catch {
+      // Older backend without /dashboard/daily — show empty tables instead of a toast.
+      return [];
+    }
+  },
 };
 
 export default dashboardService;

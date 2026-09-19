@@ -1454,7 +1454,7 @@ const InvestmentPage = () => {
                         <Input
                           value={investmentFilters.search}
                           onChange={(e) => setInvestmentFilters((p) => ({ ...p, search: e.target.value }))}
-                          placeholder="Reference, vendor…"
+                          placeholder="Invoice number …"
                           prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
                           style={{ ...inlineInputStyle, width: '100%', marginBottom: 16 }}
                           allowClear

@@ -41,7 +41,7 @@ const MENU_ITEMS = [
   { key: 'products', text: 'Products', path: '/products', icon: <ProductsIcon /> },
   { key: 'investment', text: 'Investment', path: '/investment', icon: <InvestmentIcon /> },
   { key: 'employees', text: 'Employees', path: '/employees', icon: <EmployeesIcon /> },
-  { key: 'sales', text: 'Sales', icon: <SalesIcon />, group: true },
+  { key: 'sales', text: 'Sales', path: '/sales/list', icon: <SalesIcon /> },
   { key: 'settings', text: 'Settings', path: '/settings', icon: <SettingsIcon /> },
 ];
 
@@ -59,8 +59,7 @@ export const orderMenu = (items, order) => {
 };
 
 const SALES_SUBMENU = [
-  { text: 'Dashboard', path: '/sales/dashboard', icon: <DashboardIcon /> },
-  // { text: 'New Sale', path: '/sales/new', icon: <PointOfSaleIcon /> },
+  // Sales analytics now live in the top-level Dashboard (Sales board).
   { text: 'Sales List', path: '/sales/list', icon: <ListIcon /> },
 ];
 

@@ -15,11 +15,13 @@ import QrCode2Icon from '@mui/icons-material/QrCode2';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import ReorderRoundedIcon from '@mui/icons-material/ReorderRounded';
+import PieChartOutlineRoundedIcon from '@mui/icons-material/PieChartOutlineRounded';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import QrLabelSettings from '../../modules/qr/components/QrLabelSettings';
 import ThresholdSettings from './ThresholdSettings';
 import CompanyInvoiceSettings from './CompanyInvoiceSettings';
 import MenuOrderSettings from './MenuOrderSettings';
+import ChartSettings from './ChartSettings';
 
 // Registry of settings sections — add future settings here and they get search + collapse for free.
 const SECTIONS = [
@@ -38,6 +40,14 @@ const SECTIONS = [
     keywords: 'menu order sidebar navigation left arrange sort position dashboard reorder',
     icon: <ReorderRoundedIcon color="primary" />,
     render: () => <MenuOrderSettings />,
+  },
+  {
+    id: 'dashboard-charts',
+    title: 'Dashboard Charts',
+    subtitle: 'Show/hide names on pie charts',
+    keywords: 'dashboard chart pie label name leader line show hide report graph',
+    icon: <PieChartOutlineRoundedIcon color="primary" />,
+    render: () => <ChartSettings />,
   },
   {
     id: 'qr-label',

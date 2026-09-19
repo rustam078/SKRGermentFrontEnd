@@ -1,81 +1,41 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ConfigProvider,
-  Card,
-  Row,
-  Col,
-  DatePicker,
-  Segmented,
-  Button,
-  Dropdown,
-  Popover,
-  Space,
-  Divider,
-  Table,
-  Tag,
-  Spin,
-  Empty,
-  Tooltip,
-  notification,
+  ConfigProvider, Card, Row, Col, DatePicker, Segmented, Button, Dropdown, Popover,
+  Space, Divider, Table, Tag, Spin, Empty, Tooltip, Select, notification,
 } from 'antd';
 import {
-  ReloadOutlined,
-  FilePdfOutlined,
-  FileExcelOutlined,
-  RiseOutlined,
-  ShoppingCartOutlined,
-  DollarCircleOutlined,
-  ToolOutlined,
-  WalletOutlined,
-  InboxOutlined,
-  WarningOutlined,
-  TeamOutlined,
-  LineChartOutlined,
-  AreaChartOutlined,
-  BarChartOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  DownloadOutlined,
-  LeftOutlined,
-  RightOutlined,
-  FundOutlined,
+  ReloadOutlined, FilePdfOutlined, FileExcelOutlined, RiseOutlined, ShoppingCartOutlined,
+  DollarCircleOutlined, ToolOutlined, WalletOutlined, InboxOutlined, WarningOutlined,
+  TeamOutlined, LineChartOutlined, AreaChartOutlined, BarChartOutlined, FilterOutlined,
+  MoreOutlined, LeftOutlined, RightOutlined, FundOutlined, ShopOutlined,
+  AppstoreOutlined, PieChartOutlined,
 } from '@ant-design/icons';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RTooltip,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  BarChart,
-  Bar,
+  ResponsiveContainer, AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, PieChart, Pie, Cell, Legend, BarChart, Bar, Treemap,
 } from 'recharts';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import { dashboardService } from '../../services/dashboardService';
+import { investmentService, vendorService } from '../../services/investmentService';
+import productService from '../../services/productService';
+import salesService from '../../modules/sales/services/salesService';
+import axiosInstance from '../../services/axios';
 import { exportToExcel, exportElementToPdf } from '../../utils/exportUtils';
-import HeadingInfo from '../../components/common/HeadingInfo';
+import { getCurrencySymbol } from '../../utils/currency';
 
 dayjs.extend(quarterOfYear);
 
 const { RangePicker } = DatePicker;
 
-const inr = (v) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(v) || 0);
-const num = (v) => new Intl.NumberFormat('en-IN').format(Number(v) || 0);
+const num = (v) => new Intl.NumberFormat('en-IN').format(Math.round(Number(v) || 0));
+const money = (v) => `${getCurrencySymbol()}${num(v)}`;
 
 const PIE_COLORS = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'];
+// Light pastel fills for the treemap so dark text stays readable.
+const TREEMAP_COLORS = ['#BFDBFE', '#BBF7D0', '#FDE68A', '#DDD6FE', '#A5F3FC', '#FBCFE8', '#FECACA', '#C7D2FE'];
 
-// Quick presets — each returns a FULL-period range (e.g. This Month = 1st … last day),
-// so searching a month always covers all its days, not just up to today.
 const QUICK = {
   Today: () => [dayjs().startOf('day'), dayjs().endOf('day')],
   'This Week': () => [dayjs().startOf('week'), dayjs().endOf('week')],
@@ -85,244 +45,457 @@ const QUICK = {
   'All Time': () => [dayjs('2000-01-01'), dayjs().endOf('day')],
 };
 
-const REV_PAGE_SIZE = 12;
+const PAGE_SIZE = 12;
 
-const cardStyle = {
-  borderRadius: 12,
-  border: '1px solid #E2E8F0',
-  boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.04), 0px 10px 15px -3px rgba(15, 23, 42, 0.04)',
-};
+const BOARDS = [
+  { value: 'overview', label: 'Overview', icon: <FundOutlined /> },
+  { value: 'sales', label: 'Sales', icon: <ShoppingCartOutlined /> },
+  { value: 'inventory', label: 'Inventory', icon: <InboxOutlined /> },
+  { value: 'expenses', label: 'Expenses', icon: <WalletOutlined /> },
+  { value: 'employees', label: 'Employees', icon: <TeamOutlined /> },
+];
+
+const cardStyle = { borderRadius: 10, border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' };
 
 const KpiTile = ({ icon, color, label, value, sub }) => (
-  <Card style={cardStyle} styles={{ body: { padding: 16 } }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          backgroundColor: `${color}14`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {React.cloneElement(icon, { style: { fontSize: 18, color } })}
+  <Card style={cardStyle} styles={{ body: { padding: 12 } }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: `${color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {React.cloneElement(icon, { style: { fontSize: 16, color } })}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          {label}
-        </div>
-        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.2, marginTop: 2 }}>
-          {value}
-        </div>
-        {sub != null && <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8' }}>{sub}</div>}
+        <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.15, marginTop: 1 }}>{value}</div>
+        {sub != null && <div style={{ fontSize: '0.66rem', fontWeight: 600, color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
       </div>
     </div>
   </Card>
 );
 
-const SectionCard = ({ title, icon, extra, children, bodyPad = 16 }) => (
+const SectionCard = ({ title, icon, extra, children, bodyPad = 12 }) => (
   <Card
     style={{ ...cardStyle, height: '100%' }}
-    styles={{ body: { padding: bodyPad } }}
-    title={
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>
-        {icon}
-        {title}
-      </span>
-    }
+    styles={{ body: { padding: bodyPad }, header: { minHeight: 42, padding: '0 12px' } }}
+    title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.85rem' }}>{icon}{title}</span>}
     extra={extra}
   >
     {children}
   </Card>
 );
 
+// One chart, three render modes. `series` items carry a `label` + the numeric `dataKey`.
+const TrendChart = ({ series, dataKey, color, type, formatter }) => {
+  if (!series.length) {
+    return <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>;
+  }
+  const axes = (
+    <>
+      <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
+      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} />
+      <YAxis tick={{ fontSize: 10, fill: '#64748B' }} tickLine={false} axisLine={false} width={58} tickFormatter={formatter} />
+      <RTooltip formatter={(v) => formatter(v)} labelStyle={{ fontWeight: 600 }} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+    </>
+  );
+  if (type === 'bar') {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>{axes}
+          <Bar dataKey={dataKey} fill={color} radius={[5, 5, 0, 0]} maxBarSize={34} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+  if (type === 'line') {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>{axes}
+          <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.5} dot={{ r: 2 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={series} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id={`fill-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        {axes}
+        <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill={`url(#fill-${dataKey})`} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Chart-type toggle + chunk pager, shown in a section's `extra` slot.
+const ChartToolbar = ({ type, setType, page, totalPages, setPage }) => (
+  <Space size={4}>
+    {totalPages > 1 && (
+      <>
+        <Button size="small" type="text" icon={<LeftOutlined />} disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))} />
+        <span style={{ fontSize: 11, color: '#94A3B8' }}>{page + 1}/{totalPages}</span>
+        <Button size="small" type="text" icon={<RightOutlined />} disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} />
+        <Divider type="vertical" />
+      </>
+    )}
+    <Segmented size="small" value={type} onChange={setType}
+      options={[{ value: 'area', icon: <AreaChartOutlined /> }, { value: 'line', icon: <LineChartOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
+  </Space>
+);
+
+// Chunk pager (prev/next) for widgets that page through more items than fit.
+const Pager = ({ page, totalPages, setPage }) => (
+  totalPages > 1 ? (
+    <Space size={4}>
+      <Button size="small" type="text" icon={<LeftOutlined />} disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))} />
+      <span style={{ fontSize: 11, color: '#94A3B8' }}>{page + 1}/{totalPages}</span>
+      <Button size="small" type="text" icon={<RightOutlined />} disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} />
+    </Space>
+  ) : null
+);
+
+// Horizontal ranked bars (top products / employees / vendors).
+const RankBars = ({ data, categoryKey, valueKey, color, formatter, height = 300 }) => (
+  <div style={{ height }}>
+    {data.length ? (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 10, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} tickFormatter={formatter} />
+          <YAxis type="category" dataKey={categoryKey} tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={110} />
+          <RTooltip formatter={(v) => formatter(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+          <Bar dataKey={valueKey} fill={color} radius={[0, 5, 5, 0]} barSize={15} />
+        </BarChart>
+      </ResponsiveContainer>
+    ) : (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>
+    )}
+  </div>
+);
+
+// Treemap cell: each product is a rectangle sized by units sold (its share of total sales).
+const TreemapCell = ({ x, y, width, height, index, name, value, depth }) => {
+  // Only draw the product tiles (leaves). Skipping the root node avoids the
+  // full-area overlay that made the labels look like a faint shadow.
+  if (depth !== 1 || !name) return null;
+  const fill = TREEMAP_COLORS[index % TREEMAP_COLORS.length];
+  // Dark text with a white halo (stroke painted behind the fill) → crisp on any tile.
+  const haloText = { paintOrder: 'stroke', stroke: '#ffffff', strokeWidth: 3, strokeLinejoin: 'round', pointerEvents: 'none' };
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} rx={4} style={{ fill, stroke: '#fff', strokeWidth: 2 }} />
+      {width > 46 && height > 24 ? (
+        <text x={x + 8} y={y + 19} fill="#0F172A" fontSize={12} fontWeight={800} style={haloText}>
+          {name.length > 16 ? `${name.slice(0, 15)}…` : name}
+        </text>
+      ) : null}
+      {width > 46 && height > 40 ? (
+        <text x={x + 8} y={y + 36} fill="#1E293B" fontSize={11} fontWeight={700} style={haloText}>
+          {num(value)} pcs
+        </text>
+      ) : null}
+    </g>
+  );
+};
+
+const ProductTreemap = ({ data, height = 300 }) => {
+  const tree = data.filter((p) => (Number(p.quantity) || 0) > 0).map((p) => ({ name: p.name, size: Number(p.quantity) || 0 }));
+  return (
+    <div style={{ height }}>
+      {tree.length ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <Treemap data={tree} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
+            <RTooltip formatter={(v) => `${num(v)} units sold`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+          </Treemap>
+        </ResponsiveContainer>
+      ) : (
+        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No product sales" /></div>
+      )}
+    </div>
+  );
+};
+
+// Generic treemap cell (formatter-aware) — reads a precomputed `disp` string per node.
+const GenericTreemapCell = ({ x, y, width, height, index, name, disp, depth }) => {
+  if (depth !== 1 || !name) return null;
+  const fill = TREEMAP_COLORS[index % TREEMAP_COLORS.length];
+  const halo = { paintOrder: 'stroke', stroke: '#ffffff', strokeWidth: 3, strokeLinejoin: 'round', pointerEvents: 'none' };
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} rx={4} style={{ fill, stroke: '#fff', strokeWidth: 2 }} />
+      {width > 50 && height > 24 ? <text x={x + 8} y={y + 19} fill="#0F172A" fontSize={12} fontWeight={800} style={halo}>{name.length > 15 ? `${name.slice(0, 14)}…` : name}</text> : null}
+      {width > 50 && height > 40 ? <text x={x + 8} y={y + 36} fill="#1E293B" fontSize={11} fontWeight={700} style={halo}>{disp}</text> : null}
+    </g>
+  );
+};
+
+const RankTreemap = ({ data, categoryKey, valueKey, formatter, height = 300 }) => {
+  const tree = (data || []).filter((d) => (Number(d[valueKey]) || 0) > 0)
+    .map((d) => ({ name: d[categoryKey], size: Number(d[valueKey]) || 0, disp: formatter(Number(d[valueKey]) || 0) }));
+  return (
+    <div style={{ height }}>
+      {tree.length ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <Treemap data={tree} dataKey="size" stroke="#fff" isAnimationActive={false} content={<GenericTreemapCell />}>
+            <RTooltip formatter={(v) => formatter(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+          </Treemap>
+        </ResponsiveContainer>
+      ) : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>}
+    </div>
+  );
+};
+
+// Ranked list rendered as bar / pie / treemap — user toggles, each card sets its own default.
+// Bars page through long lists; pie & treemap show the top slice.
+const RankCard = ({ title, icon, data, categoryKey = 'name', valueKey, color, formatter, defaultType = 'bar', pageSize = 8, height = 300, showLabels = false }) => {
+  const [type, setType] = useState(defaultType);
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil((data?.length || 0) / pageSize));
+  useEffect(() => { setPage(0); }, [data?.length]);
+  // Same paged slice for every mode, so the pager works in bar, pie AND treemap.
+  const slice = (data || []).slice(page * pageSize, page * pageSize + pageSize);
+  return (
+    <SectionCard
+      title={title}
+      icon={icon}
+      extra={(
+        <Space size={4}>
+          <Pager page={page} totalPages={totalPages} setPage={setPage} />
+          <Segmented size="small" value={type} onChange={setType}
+            options={[{ value: 'bar', icon: <BarChartOutlined /> }, { value: 'pie', icon: <PieChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }]} />
+        </Space>
+      )}
+    >
+      {type === 'pie'
+        ? <Donut data={slice.map((d) => ({ label: d[categoryKey], amount: Number(d[valueKey]) || 0 }))} nameKey="label" dataKey="amount" formatter={formatter} height={height} showLabels={showLabels} />
+        : type === 'treemap'
+          ? <RankTreemap data={slice} categoryKey={categoryKey} valueKey={valueKey} formatter={formatter} height={height} />
+          : <RankBars data={slice} categoryKey={categoryKey} valueKey={valueKey} color={color} formatter={formatter} height={height} />}
+    </SectionCard>
+  );
+};
+
+// A breakdown ({label,count,amount}) shown as a donut or a bar — user toggles.
+const BreakdownChart = ({ data, type, color = '#2563EB', showLabels = false }) => (
+  type === 'bar'
+    ? <RankBars data={[...data].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0)).map((d) => ({ name: d.label, value: Number(d.amount) || 0 }))} categoryKey="name" valueKey="value" color={color} formatter={money} height={260} />
+    : <Donut data={data} showLabels={showLabels} />
+);
+
+// Donut/bar toggle for a breakdown card's `extra` slot.
+const BreakdownToolbar = ({ type, setType }) => (
+  <Segmented size="small" value={type} onChange={setType}
+    options={[{ value: 'donut', icon: <PieChartOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
+);
+
+const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, formatter = money, showLabels = false }) => (
+  <div style={{ height }}>
+    {data.length ? (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data} dataKey={dataKey} nameKey={nameKey} cx="50%" cy="50%"
+            innerRadius={showLabels ? 44 : 52} outerRadius={showLabels ? 72 : 86} paddingAngle={2}
+            labelLine={showLabels}
+            label={showLabels ? ({ name, percent }) => (percent > 0.03 ? `${name} ${(percent * 100).toFixed(0)}%` : '') : false}
+          >
+            {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+          </Pie>
+          <RTooltip formatter={(v) => formatter(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    ) : (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>
+    )}
+  </div>
+);
+
 const DashboardPage = () => {
   const reportRef = useRef(null);
+  const [board, setBoard] = useState('overview');
   const [range, setRange] = useState(QUICK['This Month']());
   const [filterLabel, setFilterLabel] = useState('This Month');
   const [filterOpen, setFilterOpen] = useState(false);
-
-  // Revenue Trend view state
-  const [revType, setRevType] = useState('area');
+  const [revType, setRevType] = useState('area');   // revenue trend default: area
+  const [expType, setExpType] = useState('bar');    // monthly spend default: bar
+  const [prodChart, setProdChart] = useState('treemap'); // best-sellers default: treemap
+  const [payType, setPayType] = useState('donut');  // payment modes default: donut
+  const [catType, setCatType] = useState('donut');  // expense category default: donut
+  // Show names on pie slices — toggled from Settings (stored per browser).
+  const [showLabels, setShowLabels] = useState(() => { try { return localStorage.getItem('skr_chart_labels') !== 'false'; } catch { return true; } });
+  useEffect(() => {
+    const h = () => { try { setShowLabels(localStorage.getItem('skr_chart_labels') !== 'false'); } catch { /* ignore */ } };
+    window.addEventListener('chart-labels-changed', h);
+    window.addEventListener('storage', h);
+    return () => { window.removeEventListener('chart-labels-changed', h); window.removeEventListener('storage', h); };
+  }, []);
   const [revPage, setRevPage] = useState(0);
+  const [expPage, setExpPage] = useState(0);
 
   const fromDate = range?.[0]?.format('YYYY-MM-DD');
   const toDate = range?.[1]?.format('YYYY-MM-DD');
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['dashboardOverview', fromDate, toDate],
     queryFn: () => dashboardService.getOverview(fromDate, toDate),
     keepPreviousData: true,
+    staleTime: 0,
+    refetchOnMount: 'always', // auto-refresh whenever the dashboard is opened
   });
 
-  const applyQuick = (key) => {
-    setRange(QUICK[key]());
-    setFilterLabel(key);
-    setFilterOpen(false);
-  };
-  const applyMonth = (m) => {
-    if (!m) return;
-    setRange([m.startOf('month'), m.endOf('month')]);
-    setFilterLabel(m.format('MMM YYYY'));
-    setFilterOpen(false);
-  };
-  const applyCustom = (val) => {
-    if (!val || !val[0] || !val[1]) return;
-    setRange([val[0].startOf('day'), val[1].endOf('day')]);
-    setFilterLabel('Custom');
-    setFilterOpen(false);
-  };
+  // Recent sales for the selected range (server-side paginated, newest first).
+  const [salesPage, setSalesPage] = useState(0);
+  const [salesSize, setSalesSize] = useState(10);
+  useEffect(() => { setSalesPage(0); }, [fromDate, toDate]);
+  const { data: salesPageData } = useQuery({
+    queryKey: ['dashRecentSales', fromDate, toDate, salesPage, salesSize],
+    queryFn: () => salesService.getSales({ page: salesPage, size: salesSize, fromDate, toDate }),
+    enabled: board === 'overview' || board === 'sales',
+    keepPreviousData: true,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+  const recentRows = salesPageData?.content || [];
+  const recentTotal = salesPageData?.totalElements ?? recentRows.length;
 
+  // Catalogue + vendor counts (current snapshots) for the overview KPIs.
+  const { data: productsList } = useQuery({
+    queryKey: ['dashProducts'], queryFn: productService.getProducts, enabled: board === 'overview', staleTime: 5 * 60 * 1000,
+  });
+  const { data: vendorsList } = useQuery({
+    queryKey: ['dashVendors'], queryFn: vendorService.getVendors, enabled: board === 'overview', staleTime: 5 * 60 * 1000,
+  });
+  const productCount = (() => { const a = productsList?.data ?? productsList?.content ?? productsList; return Array.isArray(a) ? a.length : 0; })();
+  const vendorCount = (() => { const a = vendorsList?.data ?? vendorsList?.content ?? vendorsList; return Array.isArray(a) ? a.length : 0; })();
+
+  // Inventory board data (current snapshot).
+  const { data: inventoryData, isFetching: invFetching } = useQuery({
+    queryKey: ['dashboardInventory'],
+    queryFn: async () => {
+      const [inv, alerts] = await Promise.all([
+        axiosInstance.get('/inventory', { params: { page: 0, size: 1000 } }),
+        axiosInstance.get('/inventory/alerts'),
+      ]);
+      return {
+        products: inv.data?.content || [],
+        alerts: Array.isArray(alerts.data) ? alerts.data : (alerts.data?.content || []),
+      };
+    },
+    enabled: board === 'inventory',
+    keepPreviousData: true,
+  });
+
+  // Overview daily report (date-wise money in/out).
+  const { data: dailyRaw } = useQuery({
+    queryKey: ['dashboardDaily', fromDate, toDate],
+    queryFn: () => dashboardService.getDaily(fromDate, toDate),
+    enabled: board === 'overview',
+    keepPreviousData: true,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  // Expenses board data (date-ranged investments), aggregated client-side.
+  const { data: investmentsRaw, isFetching: expFetching } = useQuery({
+    queryKey: ['dashboardInvestments', fromDate, toDate],
+    queryFn: async () => {
+      const res = await investmentService.getInvestments({ fromDate, toDate });
+      return res?.data || [];
+    },
+    enabled: board === 'expenses',
+    keepPreviousData: true,
+  });
+
+  const applyQuick = (key) => { setRange(QUICK[key]()); setFilterLabel(key); setFilterOpen(false); };
+  const applyMonth = (m) => { if (!m) return; setRange([m.startOf('month'), m.endOf('month')]); setFilterLabel(m.format('MMM YYYY')); setFilterOpen(false); };
+  const applyCustom = (val) => { if (!val || !val[0] || !val[1]) return; setRange([val[0].startOf('day'), val[1].endOf('day')]); setFilterLabel('Custom'); setFilterOpen(false); };
+
+  // ── Derived: sales/overview ──────────────────────────
   const revenueSeries = useMemo(
-    () =>
-      (data?.revenueSeries || []).map((p) => ({
-        ...p,
-        label: dayjs(p.date).format('DD MMM'),
-        revenue: Number(p.revenue) || 0,
-      })),
+    () => (data?.revenueSeries || []).map((p) => ({ ...p, label: dayjs(p.date).format('DD MMM'), revenue: Number(p.revenue) || 0 })),
     [data]
   );
-
-  // Paginate the revenue series so dense ranges stay readable (esp. as bars).
-  const revTotalPages = Math.max(1, Math.ceil(revenueSeries.length / REV_PAGE_SIZE));
-  useEffect(() => {
-    // Jump to the latest page whenever the data set changes.
-    setRevPage(Math.max(0, Math.ceil(revenueSeries.length / REV_PAGE_SIZE) - 1));
-  }, [revenueSeries.length]);
-  const pagedRevenue = useMemo(
-    () => revenueSeries.slice(revPage * REV_PAGE_SIZE, revPage * REV_PAGE_SIZE + REV_PAGE_SIZE),
-    [revenueSeries, revPage]
-  );
+  const revTotalPages = Math.max(1, Math.ceil(revenueSeries.length / PAGE_SIZE));
+  useEffect(() => { setRevPage(Math.max(0, Math.ceil(revenueSeries.length / PAGE_SIZE) - 1)); }, [revenueSeries.length]);
+  const pagedRevenue = useMemo(() => revenueSeries.slice(revPage * PAGE_SIZE, revPage * PAGE_SIZE + PAGE_SIZE), [revenueSeries, revPage]);
 
   const paymentBreakdown = data?.paymentBreakdown || [];
-  const topProducts = useMemo(
-    () => (data?.topProducts || []).map((p) => ({ ...p, revenue: Number(p.revenue) || 0, quantity: Number(p.quantity) || 0 })),
-    [data]
-  );
-  const topEmployees = useMemo(
-    () => (data?.topEmployees || []).map((e) => ({ ...e, quantity: Number(e.quantity) || 0, earnings: Number(e.earnings) || 0 })),
-    [data]
-  );
+  const topProducts = useMemo(() => (data?.topProducts || []).map((p) => ({ ...p, revenue: Number(p.revenue) || 0, quantity: Number(p.quantity) || 0 })), [data]);
+  // Page the treemap 6 at a time (backend returns the top sellers).
+  const PROD_PAGE = 6;
+  const [prodPage, setProdPage] = useState(0);
+  const prodTotalPages = Math.max(1, Math.ceil(topProducts.length / PROD_PAGE));
+  useEffect(() => { setProdPage(0); }, [topProducts.length]);
+  const pagedProducts = useMemo(() => topProducts.slice(prodPage * PROD_PAGE, prodPage * PROD_PAGE + PROD_PAGE), [topProducts, prodPage]);
+  const topEmployees = useMemo(() => (data?.topEmployees || []).map((e) => ({ ...e, quantity: Number(e.quantity) || 0, earnings: Number(e.earnings) || 0 })), [data]);
   const recentSales = data?.recentSales || [];
+  const topCustomers = useMemo(() => (data?.topCustomers || []).map((c) => ({ ...c, orders: Number(c.orders) || 0, spend: Number(c.spend) || 0 })), [data]);
+
+  // ── Derived: expenses ────────────────────────────────
+  const investments = investmentsRaw || [];
+  const expenseByType = useMemo(() => {
+    const m = {};
+    investments.forEach((i) => { const k = i.investmentType || 'OTHER'; m[k] = (m[k] || 0) + (Number(i.grandTotal) || 0); });
+    return Object.entries(m).map(([label, amount]) => ({ label: label.charAt(0) + label.slice(1).toLowerCase(), amount }));
+  }, [investments]);
+  const expenseMonthly = useMemo(() => {
+    const m = {};
+    investments.forEach((i) => { if (!i.purchaseDate) return; const k = dayjs(i.purchaseDate).format('YYYY-MM'); m[k] = (m[k] || 0) + (Number(i.grandTotal) || 0); });
+    return Object.keys(m).sort().map((k) => ({ key: k, label: dayjs(k + '-01').format('MMM YY'), amount: m[k] }));
+  }, [investments]);
+  const expTotalPages = Math.max(1, Math.ceil(expenseMonthly.length / PAGE_SIZE));
+  useEffect(() => { setExpPage(Math.max(0, Math.ceil(expenseMonthly.length / PAGE_SIZE) - 1)); }, [expenseMonthly.length]);
+  const pagedExpenses = useMemo(() => expenseMonthly.slice(expPage * PAGE_SIZE, expPage * PAGE_SIZE + PAGE_SIZE), [expenseMonthly, expPage]);
+  const topVendors = useMemo(() => {
+    const m = {};
+    investments.forEach((i) => { const k = i.vendorName || '—'; m[k] = (m[k] || 0) + (Number(i.grandTotal) || 0); });
+    return Object.entries(m).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount);
+  }, [investments]);
+  const expenseTotals = useMemo(() => {
+    const total = investments.reduce((s, i) => s + (Number(i.grandTotal) || 0), 0);
+    const paid = investments.reduce((s, i) => s + (Number(i.amountPaid) || 0), 0);
+    return { total, paid, due: Math.max(0, total - paid), count: investments.length };
+  }, [investments]);
+
+  // ── Derived: inventory ───────────────────────────────
+  const invProducts = inventoryData?.products || [];
+  const invAlerts = inventoryData?.alerts || [];
+  const invByValue = useMemo(
+    () => [...invProducts].map((p) => ({ name: p.productName, value: Number(p.stockValue) || 0 })).sort((a, b) => b.value - a.value).slice(0, 8),
+    [invProducts]
+  );
 
   const handleExportExcel = () => {
     if (!data) return;
     try {
-      exportToExcel(
-        [
-          {
-            name: 'Summary',
-            rows: [
-              {
-                'From Date': data.fromDate,
-                'To Date': data.toDate,
-                'Sales Orders': data.salesCount,
-                'Sales Revenue': Number(data.salesRevenue) || 0,
-                'Discount Given': Number(data.salesDiscount) || 0,
-                'Avg Order Value': Number(data.avgOrderValue) || 0,
-                'Gross Profit': Number(data.grossProfit) || 0,
-                'Production Entries': data.productionEntries,
-                'Production Qty': data.productionQty,
-                'Production Amount': Number(data.productionAmount) || 0,
-                'Investment / Expense': Number(data.investmentTotal) || 0,
-                'Net Cash Flow': Number(data.netProfit) || 0,
-                'Inventory Stock Value': Number(data.inventoryStockValue) || 0,
-                'Inventory Units': Number(data.inventoryUnits) || 0,
-                'Low Stock Items': data.lowStockCount,
-                'Active Employees': data.activeEmployees,
-                'Total Employees': data.totalEmployees,
-              },
-            ],
-          },
-          { name: 'Revenue Trend', rows: revenueSeries.map((r) => ({ Date: r.date, Revenue: r.revenue, Orders: r.orders })) },
-          { name: 'Payment Breakdown', rows: paymentBreakdown.map((r) => ({ Mode: r.label, Orders: r.count, Amount: Number(r.amount) || 0 })) },
-          { name: 'Top Products', rows: topProducts.map((r) => ({ Product: r.name, Quantity: r.quantity, Revenue: r.revenue })) },
-          { name: 'Employee Productivity', rows: topEmployees.map((r) => ({ Employee: r.name, 'Pieces Produced': r.quantity, 'Piece-Rate Earnings': r.earnings })) },
-          {
-            name: 'Recent Sales',
-            rows: recentSales.map((r) => ({ Invoice: r.invoiceNo, Customer: r.customerName, Amount: Number(r.amount) || 0, Status: r.paymentStatus, Date: r.date })),
-          },
-        ],
-        `SKR-Dashboard_${fromDate}_to_${toDate}`
-      );
+      exportToExcel([
+        { name: 'Summary', rows: [{
+          'From Date': data.fromDate, 'To Date': data.toDate, 'Sales Orders': data.salesCount,
+          'Sales Revenue': Number(data.salesRevenue) || 0, 'Discount': Number(data.salesDiscount) || 0,
+          'Avg Order Value': Number(data.avgOrderValue) || 0, 'Gross Profit': Number(data.grossProfit) || 0,
+          'Production Wages': Number(data.productionAmount) || 0, 'Investment / Expense': Number(data.investmentTotal) || 0,
+          'Net Cash Flow': Number(data.netProfit) || 0, 'Inventory Value': Number(data.inventoryStockValue) || 0,
+          'Inventory Units': Number(data.inventoryUnits) || 0, 'Low Stock': data.lowStockCount,
+          'Active Employees': data.activeEmployees, 'Total Employees': data.totalEmployees,
+        }] },
+        { name: 'Revenue', rows: revenueSeries.map((r) => ({ Date: r.date, Revenue: r.revenue, Orders: r.orders })) },
+        { name: 'Top Products', rows: topProducts.map((r) => ({ Product: r.name, Quantity: r.quantity, Revenue: r.revenue })) },
+        { name: 'Employees', rows: topEmployees.map((r) => ({ Employee: r.name, Pieces: r.quantity, Earnings: r.earnings })) },
+      ], `SKR-Dashboard_${fromDate}_to_${toDate}`);
       notification.success({ message: 'Excel exported', placement: 'topRight' });
-    } catch (e) {
-      notification.error({ message: 'Excel export failed', description: e.message, placement: 'topRight' });
-    }
+    } catch (e) { notification.error({ message: 'Excel export failed', description: e.message, placement: 'topRight' }); }
   };
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const handleExportPdf = async () => {
-    try {
-      setExportingPdf(true);
-      await exportElementToPdf(reportRef.current, `SKR-Dashboard_${fromDate}_to_${toDate}`);
-      notification.success({ message: 'PDF exported', placement: 'topRight' });
-    } catch (e) {
-      notification.error({ message: 'PDF export failed', description: e.message, placement: 'topRight' });
-    } finally {
-      setExportingPdf(false);
-    }
+    try { setExportingPdf(true); await exportElementToPdf(reportRef.current, `SKR-Dashboard_${fromDate}_to_${toDate}`); notification.success({ message: 'PDF exported', placement: 'topRight' }); }
+    catch (e) { notification.error({ message: 'PDF export failed', description: e.message, placement: 'topRight' }); }
+    finally { setExportingPdf(false); }
   };
-
-  const kpis = data
-    ? [
-        { icon: <DollarCircleOutlined />, color: '#2563EB', label: 'Sales Revenue', value: inr(data.salesRevenue), sub: `${num(data.salesCount)} orders` },
-        { icon: <FundOutlined />, color: (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', label: 'Gross Profit', value: inr(data.grossProfit), sub: 'revenue − cost of goods' },
-        { icon: <ShoppingCartOutlined />, color: '#0EA5E9', label: 'Avg Order Value', value: inr(data.avgOrderValue), sub: `${inr(data.salesDiscount)} discount` },
-        { icon: <ToolOutlined />, color: '#8B5CF6', label: 'Production Wages', value: inr(data.productionAmount), sub: `${num(data.productionQty)} pcs made` },
-        { icon: <WalletOutlined />, color: '#F59E0B', label: 'Investment / Buys', value: inr(data.investmentTotal), sub: `${num(data.investmentCount)} entries` },
-        { icon: <RiseOutlined />, color: (Number(data.netProfit) || 0) >= 0 ? '#10B981' : '#EF4444', label: 'Net Cash Flow', value: inr(data.netProfit), sub: 'sales − wages − buys' },
-        { icon: <InboxOutlined />, color: '#06B6D4', label: 'Inventory Value', value: inr(data.inventoryStockValue), sub: `${num(data.inventoryUnits)} units in stock` },
-        { icon: <WarningOutlined />, color: (data.lowStockCount || 0) > 0 ? '#EF4444' : '#10B981', label: 'Low Stock', value: num(data.lowStockCount), sub: 'items to reorder' },
-        { icon: <TeamOutlined />, color: '#6366F1', label: 'Active Staff', value: num(data.activeEmployees), sub: `of ${num(data.totalEmployees)} total` },
-      ]
-    : [];
-
-  const recentColumns = [
-    { title: 'Invoice', dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
-    { title: 'Customer', dataIndex: 'customerName', key: 'customerName' },
-    { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#10B981' }}>{inr(v)}</span> },
-    {
-      title: 'Status',
-      dataIndex: 'paymentStatus',
-      key: 'paymentStatus',
-      render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{v || '—'}</Tag>,
-    },
-    { title: 'Date', dataIndex: 'date', key: 'date', render: (v) => (v ? dayjs(v).format('DD MMM YYYY') : '—') },
-  ];
-
-  // ── Filter popover panel ─────────────────────────────
-  const filterPanel = (
-    <div style={{ width: 300 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Quick ranges</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {Object.keys(QUICK).map((k) => (
-          <Button
-            key={k}
-            size="small"
-            type={filterLabel === k ? 'primary' : 'default'}
-            onClick={() => applyQuick(k)}
-            style={{ textAlign: 'left' }}
-          >
-            {k}
-          </Button>
-        ))}
-      </div>
-      <Divider style={{ margin: '12px 0' }} />
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Particular month (full month)</div>
-      <DatePicker
-        picker="month"
-        style={{ width: '100%' }}
-        onChange={applyMonth}
-        placeholder="Select month & year"
-      />
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', margin: '12px 0 6px' }}>Custom date range</div>
-      <RangePicker style={{ width: '100%' }} format="DD MMM YY" onChange={applyCustom} allowClear={false} />
-    </div>
-  );
 
   const downloadMenu = {
     items: [
@@ -331,231 +504,398 @@ const DashboardPage = () => {
     ],
   };
 
-  const renderRevenueChart = () => {
-    if (!pagedRevenue.length) {
-      return (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Empty description="No sales in this range" />
-        </div>
-      );
-    }
-    const axes = (
-      <>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" vertical={false} />
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} />
-        <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} width={64} tickFormatter={(v) => inr(v)} />
-        <RTooltip formatter={(v) => inr(v)} labelStyle={{ fontWeight: 600 }} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
-      </>
-    );
-    if (revType === 'bar') {
-      return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={pagedRevenue} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {axes}
-            <Bar dataKey="revenue" fill="#2563EB" radius={[6, 6, 0, 0]} maxBarSize={38} />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
-    if (revType === 'line') {
-      return (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={pagedRevenue} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            {axes}
-            <Line type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={2.5} dot={{ r: 2 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    }
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={pagedRevenue} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          {axes}
-          <Area type="monotone" dataKey="revenue" stroke="#2563EB" strokeWidth={2} fill="url(#revFill)" />
-        </AreaChart>
-      </ResponsiveContainer>
-    );
+  const filterPanel = (
+    <div style={{ width: 300 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Quick ranges</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {Object.keys(QUICK).map((k) => (
+          <Button key={k} size="small" type={filterLabel === k ? 'primary' : 'default'} onClick={() => applyQuick(k)} style={{ textAlign: 'left' }}>{k}</Button>
+        ))}
+      </div>
+      <Divider style={{ margin: '12px 0' }} />
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Particular month</div>
+      <DatePicker picker="month" style={{ width: '100%' }} onChange={applyMonth} placeholder="Select month & year" />
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', margin: '12px 0 6px' }}>Custom date range</div>
+      <RangePicker style={{ width: '100%' }} format="DD MMM YY" onChange={applyCustom} allowClear={false} />
+    </div>
+  );
+
+  const kpi = (icon, color, label, value, sub) => ({ icon, color, label, value, sub });
+
+  // Per-board KPI sets.
+  const kpiSet = () => {
+    if (!data) return [];
+    if (board === 'sales') return [
+      kpi(<DollarCircleOutlined />, '#2563EB', 'Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
+      kpi(<RiseOutlined />, '#10B981', 'Avg Order Value', money(data.avgOrderValue), 'per invoice'),
+      kpi(<WalletOutlined />, '#F59E0B', 'Discount Given', money(data.salesDiscount), 'in range'),
+      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Gross Profit', money(data.grossProfit), 'revenue − COGS'),
+      kpi(<TeamOutlined />, '#6366F1', 'New Customers', num(data.newCustomerCount), 'first order in range'),
+    ];
+    if (board === 'inventory') return [
+      kpi(<InboxOutlined />, '#06B6D4', 'Stock Value', money(data.inventoryStockValue), 'at cost'),
+      kpi(<ShopOutlined />, '#2563EB', 'Units', num(data.inventoryUnits), 'in stock'),
+      kpi(<FundOutlined />, '#8B5CF6', 'Products', num(invProducts.length), 'in catalogue'),
+      kpi(<WarningOutlined />, (invAlerts.length || 0) > 0 ? '#EF4444' : '#10B981', 'Low Stock', num(invAlerts.length), 'to reorder'),
+    ];
+    if (board === 'expenses') return [
+      kpi(<WalletOutlined />, '#F59E0B', 'Total Spend', money(expenseTotals.total), `${num(expenseTotals.count)} entries`),
+      kpi(<DollarCircleOutlined />, '#10B981', 'Paid', money(expenseTotals.paid), 'settled'),
+      kpi(<RiseOutlined />, (expenseTotals.due || 0) > 0 ? '#EF4444' : '#10B981', 'Due', money(expenseTotals.due), 'outstanding'),
+      kpi(<ShopOutlined />, '#8B5CF6', 'Vendors', num(topVendors.length), 'billed'),
+    ];
+    if (board === 'employees') return [
+      kpi(<ToolOutlined />, '#8B5CF6', 'Piece-Rate Pay', money(data.productionAmount), `${num(data.productionQty)} pcs made`),
+      kpi(<TeamOutlined />, '#6366F1', 'Active Staff', num(data.activeEmployees), `of ${num(data.totalEmployees)} total`),
+      kpi(<FundOutlined />, '#2563EB', 'Production Entries', num(data.productionEntries), 'in range'),
+      kpi(<RiseOutlined />, '#10B981', 'Avg / Worker', money(data.activeEmployees ? (Number(data.productionAmount) || 0) / data.activeEmployees : 0), 'piece-rate'),
+    ];
+    // overview — row 1: money flow (all date-ranged); row 2: current snapshots
+    const totalSpend = (Number(data.investmentTotal) || 0) + (Number(data.productionAmount) || 0);
+    return [
+      // Row 1
+      kpi(<WalletOutlined />, '#B45309', 'Total Spend', money(totalSpend), 'expense + wages'),
+      kpi(<ShopOutlined />, '#F59E0B', 'Expenses', money(data.investmentTotal), `${num(data.investmentCount)} entries`),
+      kpi(<ToolOutlined />, '#8B5CF6', 'Employee Earning', money(data.productionAmount), `${num(data.productionQty)} pcs`),
+      kpi(<DollarCircleOutlined />, '#2563EB', 'Sales Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
+      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Sales Profit', money(data.grossProfit), 'revenue − COGS'),
+      kpi(<RiseOutlined />, (Number(data.netProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Net Cash Flow', money(data.netProfit), 'sales − spend'),
+      // Row 2
+      kpi(<InboxOutlined />, '#06B6D4', 'Inventory Value', money(data.inventoryStockValue), `${num(data.inventoryUnits)} units`),
+      kpi(<ShopOutlined />, '#0EA5E9', 'Total Products', num(productCount), 'in catalogue'),
+      kpi(<WarningOutlined />, (data.lowStockCount || 0) > 0 ? '#EF4444' : '#10B981', 'Low Stock', num(data.lowStockCount), 'to reorder'),
+      kpi(<TeamOutlined />, '#6366F1', 'Active Staff', num(data.activeEmployees), `of ${num(data.totalEmployees)} total`),
+      kpi(<TeamOutlined />, '#8B5CF6', 'Total Vendors', num(vendorCount), 'registered'),
+      kpi(<FundOutlined />, '#64748B', 'Inventory Units', num(data.inventoryUnits), 'pcs in stock'),
+    ];
   };
 
-  const revExtra = (
-    <Space size={4}>
-      {revTotalPages > 1 && (
-        <>
-          <Button size="small" type="text" icon={<LeftOutlined />} disabled={revPage <= 0} onClick={() => setRevPage((p) => Math.max(0, p - 1))} />
-          <span style={{ fontSize: 11, color: '#94A3B8' }}>{revPage + 1}/{revTotalPages}</span>
-          <Button size="small" type="text" icon={<RightOutlined />} disabled={revPage >= revTotalPages - 1} onClick={() => setRevPage((p) => Math.min(revTotalPages - 1, p + 1))} />
-          <Divider type="vertical" />
-        </>
-      )}
-      <Segmented
-        size="small"
-        value={revType}
-        onChange={setRevType}
-        options={[
-          { value: 'area', icon: <AreaChartOutlined /> },
-          { value: 'line', icon: <LineChartOutlined /> },
-          { value: 'bar', icon: <BarChartOutlined /> },
-        ]}
-      />
-    </Space>
-  );
+  // ── Overview daily report ────────────────────────────
+  const dailyRows = dailyRaw || [];
+  const dailyTotals = useMemo(() => dailyRows.reduce((a, r) => {
+    a.investment += Number(r.investment) || 0;
+    a.wages += Number(r.wages) || 0;
+    a.sales += Number(r.sales) || 0;
+    a.cogs += Number(r.cogs) || 0;
+    return a;
+  }, { investment: 0, wages: 0, sales: 0, cogs: 0 }), [dailyRows]);
+  const spendTotal = dailyTotals.investment + dailyTotals.wages;
+  const netProfit = dailyTotals.sales - spendTotal;
+
+  const dailyDate = (v) => (v ? dayjs(v).format('DD MMM YY') : '—');
+  const spendCols = [
+    { title: 'Date', dataIndex: 'date', key: 'd', render: dailyDate },
+    { title: 'Investment', dataIndex: 'investment', key: 'i', align: 'right', render: (v) => money(v) },
+    { title: 'Employee Earnings', dataIndex: 'wages', key: 'w', align: 'right', render: (v) => money(v) },
+    { title: 'Total', key: 't', align: 'right', render: (_, r) => <b>{money((Number(r.investment) || 0) + (Number(r.wages) || 0))}</b> },
+  ];
+  const revCols = [
+    { title: 'Date', dataIndex: 'date', key: 'd', render: dailyDate },
+    { title: 'Sales', dataIndex: 'sales', key: 's', align: 'right', render: (v) => money(v) },
+    { title: 'COGS (cost)', dataIndex: 'cogs', key: 'c', align: 'right', render: (v) => <span style={{ color: '#64748B' }}>{money(v)}</span> },
+    { title: 'Gross Profit', key: 'g', align: 'right', render: (_, r) => { const g = (Number(r.sales) || 0) - (Number(r.cogs) || 0); return <b style={{ color: g >= 0 ? '#047857' : '#B91C1C' }}>{money(g)}</b>; } },
+  ];
+
+  const recentColumns = [
+    { title: 'Invoice', dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
+    { title: 'Customer', dataIndex: 'customerName', key: 'customerName', render: (v) => v || '—' },
+    { title: 'Amount', key: 'amount', align: 'right', render: (_, r) => <span style={{ fontWeight: 700, color: '#10B981' }}>{money(r.grandTotal ?? r.amount)}</span> },
+    { title: 'Mode', dataIndex: 'paymentMode', key: 'paymentMode', render: (v) => v || '—' },
+    { title: 'Status', dataIndex: 'paymentStatus', key: 'paymentStatus', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
+    { title: 'Date', key: 'date', render: (_, r) => { const d = r.saleDate ?? r.date; return d ? dayjs(d).format('DD MMM YYYY') : '—'; } },
+  ];
+
+  // Per-board KPI tiles-per-row: overview 6, sales 5, others 4.
+  const kpiBasis = board === 'overview' ? 'calc(16.66% - 9px)' : board === 'sales' ? 'calc(20% - 8px)' : 'calc(25% - 8px)';
+
+  const revToolbar = <ChartToolbar type={revType} setType={setRevType} page={revPage} totalPages={revTotalPages} setPage={setRevPage} />;
+  const expToolbar = <ChartToolbar type={expType} setType={setExpType} page={expPage} totalPages={expTotalPages} setPage={setExpPage} />;
+
+  const busy = isLoading || (board === 'inventory' && invFetching && !inventoryData) || (board === 'expenses' && expFetching && !investmentsRaw);
 
   return (
     <ConfigProvider theme={{ token: { colorPrimary: '#2563EB', borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Header + toolbar */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-              Business Dashboard
-              <HeadingInfo text="Key reports across sales, production, inventory & workforce" />
-            </h1>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Toolbar: board dropdown + range filter + refresh + export */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <Space size={10} wrap>
+            <Select
+              value={board}
+              onChange={setBoard}
+              style={{ width: 190 }}
+              size="large"
+              options={BOARDS.map((b) => ({ value: b.value, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>{b.icon}{b.label}</span> }))}
+            />
             {data && (
-              <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: 2 }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
                 {dayjs(data.fromDate).format('DD MMM')} – {dayjs(data.toDate).format('DD MMM YYYY')}
-              </div>
+              </span>
             )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Popover
-              trigger="click"
-              placement="bottomRight"
-              open={filterOpen}
-              onOpenChange={setFilterOpen}
-              content={filterPanel}
-            >
-              <Button icon={<FilterOutlined />}>
-                {filterLabel}
-              </Button>
+          </Space>
+          <Space size={8} wrap>
+            <Popover trigger="click" placement="bottomRight" open={filterOpen} onOpenChange={setFilterOpen} content={filterPanel}>
+              <Button icon={<FilterOutlined />} loading={isFetching}>{filterLabel}</Button>
             </Popover>
-            <Tooltip title="Refresh">
-              <Button icon={<ReloadOutlined spin={isFetching} />} onClick={() => refetch()} />
-            </Tooltip>
-            <Dropdown menu={downloadMenu} trigger={['click']} placement="bottomRight" disabled={!data}>
-              <Button icon={<MoreOutlined />} />
-            </Dropdown>
-          </div>
+            <Dropdown menu={downloadMenu} trigger={['click']} placement="bottomRight" disabled={!data}><Button icon={<MoreOutlined />} /></Dropdown>
+          </Space>
         </div>
 
-        <Spin spinning={isLoading}>
-          <div ref={reportRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* KPI grid */}
-            <Row gutter={[12, 12]}>
-              {kpis.map((k) => (
-                <Col xs={12} sm={8} md={6} key={k.label}>
-                  <KpiTile {...k} />
-                </Col>
+        <Spin spinning={busy}>
+          <div ref={reportRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* KPI grid (board-specific): 6 per row overview, 5 sales, 4 others */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {kpiSet().map((k) => (
+                <div key={k.label} style={{ flex: `1 1 ${kpiBasis}`, minWidth: 148 }}><KpiTile {...k} /></div>
               ))}
-              {!data && !isLoading && (
-                <Col span={24}>
-                  <Card style={cardStyle}><Empty description="No data" /></Card>
-                </Col>
-              )}
-            </Row>
+            </div>
+            {!data && !isLoading ? <Card style={cardStyle}><Empty description="No data" /></Card> : null}
 
-            {/* Revenue trend + payment donut */}
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={16}>
-                <SectionCard title="Revenue Trend" icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revExtra}>
-                  <div style={{ height: 280 }}>{renderRevenueChart()}</div>
-                </SectionCard>
-              </Col>
-              <Col xs={24} lg={8}>
-                <SectionCard title="Payment Modes" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />}>
-                  <div style={{ height: 280 }}>
-                    {paymentBreakdown.length ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={paymentBreakdown} dataKey="amount" nameKey="label" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2}>
-                            {paymentBreakdown.map((_, i) => (
-                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <RTooltip formatter={(v) => inr(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
-                          <Legend wrapperStyle={{ fontSize: 12 }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Empty description="No payments" />
-                      </div>
-                    )}
-                  </div>
-                </SectionCard>
-              </Col>
-            </Row>
-
-            {/* Top products + employee productivity */}
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={12}>
-                <SectionCard title="Top Products (by qty)" icon={<InboxOutlined style={{ color: '#8B5CF6' }} />}>
-                  <div style={{ height: 300 }}>
-                    {topProducts.length ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={topProducts} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
-                          <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} />
-                          <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={100} />
-                          <RTooltip formatter={(v, n) => (n === 'revenue' ? inr(v) : num(v))} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
-                          <Bar dataKey="quantity" fill="#8B5CF6" radius={[0, 6, 6, 0]} barSize={16} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Empty description="No product sales" />
-                      </div>
-                    )}
-                  </div>
-                </SectionCard>
-              </Col>
-              <Col xs={24} lg={12}>
-                <SectionCard title="Employee Productivity (pieces made)" icon={<TeamOutlined style={{ color: '#6366F1' }} />}>
-                  <div style={{ height: 300 }}>
-                    {topEmployees.length ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={topEmployees} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
-                          <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} />
-                          <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={100} />
-                          <RTooltip
-                            formatter={(v, n) => (n === 'earnings' ? inr(v) : `${num(v)} pcs`)}
-                            contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }}
-                          />
-                          <Bar dataKey="quantity" fill="#6366F1" radius={[0, 6, 6, 0]} barSize={16} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Empty description="No production in this range" />
-                      </div>
-                    )}
-                  </div>
-                </SectionCard>
-              </Col>
-            </Row>
-
-            {/* Recent sales (full width) */}
-            <Row gutter={[16, 16]}>
-              <Col xs={24}>
-                <SectionCard title="Recent Sales" icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
+            {/* ── OVERVIEW ── */}
+            {board === 'overview' && (
+              <>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={16}>
+                    <SectionCard title="Sales Revenue Trend (daily)" icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
+                      <div style={{ height: 260 }}><TrendChart series={pagedRevenue} dataKey="revenue" color="#2563EB" type={revType} formatter={money} /></div>
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <SectionCard title="Revenue by Payment Mode" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                  </Col>
+                </Row>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}>
+                    <SectionCard
+                      title="Best-Selling Products — share of units sold"
+                      icon={<InboxOutlined style={{ color: '#8B5CF6' }} />}
+                      extra={(
+                        <Space size={4}>
+                          <Pager page={prodPage} totalPages={prodTotalPages} setPage={setProdPage} />
+                          <Segmented size="small" value={prodChart} onChange={setProdChart}
+                            options={[{ value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
+                        </Space>
+                      )}
+                    >
+                      {prodChart === 'bar'
+                        ? <RankBars data={pagedProducts} categoryKey="name" valueKey="quantity" color="#8B5CF6" formatter={num} />
+                        : <ProductTreemap data={pagedProducts} />}
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Employee Productivity — pieces produced" icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topEmployees} valueKey="quantity" color="#6366F1" formatter={num} /></Col>
+                </Row>
+                <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
                   <Table
-                    dataSource={recentSales}
+                    dataSource={recentRows}
                     columns={recentColumns}
-                    rowKey={(r) => r.invoiceNo}
+                    rowKey={(r) => r.saleId || r.invoiceNo}
                     size="small"
-                    pagination={false}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="No recent sales" /> }}
+                    locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                    pagination={{
+                      current: salesPage + 1,
+                      pageSize: salesSize,
+                      total: recentTotal,
+                      size: 'small',
+                      showSizeChanger: true,
+                      pageSizeOptions: [10, 20, 50, 100],
+                      showTotal: (t) => `${num(t)} sales`,
+                      onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); },
+                    }}
                   />
                 </SectionCard>
-              </Col>
-            </Row>
+
+                {/* Date-wise money in / out */}
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Daily Spend (Investment + Wages)" icon={<WalletOutlined style={{ color: '#F59E0B' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={dailyRows} columns={spendCols} rowKey={(r) => `s-${r.date}`} size="small"
+                        pagination={{ pageSize: 7, size: 'small', hideOnSinglePage: true }}
+                        scroll={{ x: 'max-content' }}
+                        locale={{ emptyText: <Empty description="No spend in this range" /> }}
+                        summary={() => (
+                          <Table.Summary fixed>
+                            <Table.Summary.Row style={{ background: '#FFFBEB' }}>
+                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.investment)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.wages)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={3} align="right"><b>{money(spendTotal)}</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                          </Table.Summary>
+                        )}
+                      />
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Daily Revenue (Sales vs Cost)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={dailyRows} columns={revCols} rowKey={(r) => `r-${r.date}`} size="small"
+                        pagination={{ pageSize: 7, size: 'small', hideOnSinglePage: true }}
+                        scroll={{ x: 'max-content' }}
+                        locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                        summary={() => (
+                          <Table.Summary fixed>
+                            <Table.Summary.Row style={{ background: '#ECFDF5' }}>
+                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.sales)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.cogs)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={3} align="right"><b>{money(dailyTotals.sales - dailyTotals.cogs)}</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                          </Table.Summary>
+                        )}
+                      />
+                    </SectionCard>
+                  </Col>
+                </Row>
+
+              </>
+            )}
+
+            {/* ── SALES ── */}
+            {board === 'sales' && (
+              <>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={16}>
+                    <SectionCard title="Sales Revenue Trend (daily)" icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
+                      <div style={{ height: 260 }}><TrendChart series={pagedRevenue} dataKey="revenue" color="#2563EB" type={revType} formatter={money} /></div>
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <SectionCard title="Revenue by Payment Mode" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                  </Col>
+                </Row>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Best-Selling Products (units sold)" icon={<InboxOutlined style={{ color: '#8B5CF6' }} />} data={topProducts} valueKey="quantity" color="#8B5CF6" formatter={num} defaultType="treemap" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Highest-Revenue Products" icon={<DollarCircleOutlined style={{ color: '#2563EB' }} />} data={[...topProducts].sort((a, b) => b.revenue - a.revenue)} valueKey="revenue" color="#2563EB" formatter={money} defaultType="bar" /></Col>
+                </Row>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}>
+                    <RankCard showLabels={showLabels} title="Most Visited Customers — by orders" icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topCustomers} valueKey="orders" color="#6366F1" formatter={num} defaultType="pie" />
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Top Customers (orders & spend)" icon={<TeamOutlined style={{ color: '#8B5CF6' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={topCustomers} rowKey={(r, i) => `${r.mobile}-${i}`} size="small"
+                        pagination={false} scroll={{ x: 'max-content' }}
+                        locale={{ emptyText: <Empty description="No customers in range" /> }}
+                        columns={[
+                          { title: 'Customer', dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v || 'Walk-in'}</span> },
+                          { title: 'Mobile', dataIndex: 'mobile', key: 'm', render: (v) => v || '—' },
+                          { title: 'Orders', dataIndex: 'orders', key: 'o', align: 'right', render: (v) => num(v) },
+                          { title: 'Spend', dataIndex: 'spend', key: 's', align: 'right', render: (v) => <b>{money(v)}</b> },
+                        ]}
+                      />
+                    </SectionCard>
+                  </Col>
+                </Row>
+                <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
+                  <Table
+                    dataSource={recentRows} columns={recentColumns} rowKey={(r) => r.saleId || r.invoiceNo} size="small"
+                    scroll={{ x: 'max-content' }} locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                    pagination={{ current: salesPage + 1, pageSize: salesSize, total: recentTotal, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (t) => `${num(t)} sales`, onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); } }}
+                  />
+                </SectionCard>
+              </>
+            )}
+
+            {/* ── INVENTORY ── */}
+            {board === 'inventory' && (
+              <>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Top Products by Stock Value" icon={<InboxOutlined style={{ color: '#06B6D4' }} />}><RankBars data={invByValue} categoryKey="name" valueKey="value" color="#06B6D4" formatter={money} /></SectionCard>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title={`Low Stock (${invAlerts.length})`} icon={<WarningOutlined style={{ color: '#EF4444' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={invAlerts} rowKey={(r) => r.productId} size="small"
+                        pagination={{ pageSize: 6, size: 'small', hideOnSinglePage: true }}
+                        locale={{ emptyText: <Empty description="Nothing low on stock" /> }}
+                        columns={[
+                          { title: 'Product', dataIndex: 'productName', key: 'p' },
+                          { title: 'In Stock', dataIndex: 'currentStock', key: 's', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#DC2626' }}>{num(v)}</span> },
+                          { title: 'Threshold', dataIndex: 'threshold', key: 't', align: 'right', render: (v) => num(v) },
+                        ]}
+                      />
+                    </SectionCard>
+                  </Col>
+                </Row>
+                <SectionCard title="Stock on Hand" icon={<ShopOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
+                  <Table
+                    dataSource={invProducts} rowKey={(r) => r.productId} size="small"
+                    pagination={{ defaultPageSize: 10, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100] }}
+                    scroll={{ x: 'max-content' }}
+                    locale={{ emptyText: <Empty description="No products" /> }}
+                    columns={[
+                      { title: 'Product', dataIndex: 'productName', key: 'p', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                      { title: 'In Stock', dataIndex: 'currentStock', key: 's', align: 'right', sorter: (a, b) => (a.currentStock || 0) - (b.currentStock || 0), render: (v) => num(v) },
+                      { title: 'Avg Cost', dataIndex: 'averageCost', key: 'c', align: 'right', render: (v) => money(v) },
+                      { title: 'Stock Value', dataIndex: 'stockValue', key: 'v', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => (a.stockValue || 0) - (b.stockValue || 0), render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
+                    ]}
+                  />
+                </SectionCard>
+              </>
+            )}
+
+            {/* ── EXPENSES ── */}
+            {board === 'expenses' && (
+              <>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={16}>
+                    <SectionCard title="Monthly Spend" icon={<LineChartOutlined style={{ color: '#F59E0B' }} />} extra={expToolbar}>
+                      <div style={{ height: 260 }}><TrendChart series={pagedExpenses} dataKey="amount" color="#F59E0B" type={expType} formatter={money} /></div>
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={8}>
+                    <SectionCard title="Expenses by Category (Purchase vs Overhead)" icon={<WalletOutlined style={{ color: '#8B5CF6' }} />} extra={<BreakdownToolbar type={catType} setType={setCatType} />}><BreakdownChart data={expenseByType} type={catType} color="#8B5CF6" showLabels={showLabels} /></SectionCard>
+                  </Col>
+                </Row>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Top Vendors (by spend)" icon={<ShopOutlined style={{ color: '#F59E0B' }} />} data={topVendors} valueKey="amount" color="#F59E0B" formatter={money} defaultType="treemap" /></Col>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Recent Investments" icon={<WalletOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={[...investments].sort((a, b) => dayjs(b.purchaseDate).valueOf() - dayjs(a.purchaseDate).valueOf())}
+                        rowKey={(r) => r.id || r.invoiceNumber} size="small"
+                        pagination={{ pageSize: 6, size: 'small', hideOnSinglePage: true }}
+                        scroll={{ x: 'max-content' }}
+                        locale={{ emptyText: <Empty description="No investments in range" /> }}
+                        columns={[
+                          { title: 'Invoice', dataIndex: 'invoiceNumber', key: 'i', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                          { title: 'Vendor', dataIndex: 'vendorName', key: 'v', render: (v) => v || '—' },
+                          { title: 'Type', dataIndex: 'investmentType', key: 't', render: (v) => <Tag color={v === 'PURCHASE' ? 'blue' : 'orange'}>{v}</Tag> },
+                          { title: 'Amount', dataIndex: 'grandTotal', key: 'a', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{money(v)}</span> },
+                          { title: 'Status', dataIndex: 'paymentStatus', key: 's', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PARTIALLY_PAID' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
+                        ]}
+                      />
+                    </SectionCard>
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {/* ── EMPLOYEES ── */}
+            {board === 'employees' && (
+              <>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Output (pieces made)" icon={<ToolOutlined style={{ color: '#8B5CF6' }} />} data={topEmployees} valueKey="quantity" color="#8B5CF6" formatter={num} /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Earnings (piece-rate)" icon={<DollarCircleOutlined style={{ color: '#6366F1' }} />} data={[...topEmployees].sort((a, b) => b.earnings - a.earnings)} valueKey="earnings" color="#6366F1" formatter={money} defaultType="pie" /></Col>
+                </Row>
+                <SectionCard title="Employee Earnings" icon={<TeamOutlined style={{ color: '#6366F1' }} />} bodyPad={0}>
+                  <Table
+                    dataSource={topEmployees} rowKey={(r) => r.name} size="small"
+                    pagination={{ pageSize: 10, size: 'small', hideOnSinglePage: true }}
+                    scroll={{ x: 'max-content' }}
+                    locale={{ emptyText: <Empty description="No production in this range" /> }}
+                    columns={[
+                      { title: 'Employee', dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                      { title: 'Pieces Made', dataIndex: 'quantity', key: 'q', align: 'right', sorter: (a, b) => a.quantity - b.quantity, render: (v) => num(v) },
+                      { title: 'Earnings', dataIndex: 'earnings', key: 'e', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => a.earnings - b.earnings, render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
+                    ]}
+                  />
+                </SectionCard>
+              </>
+            )}
           </div>
         </Spin>
       </div>
