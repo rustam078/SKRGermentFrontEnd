@@ -12,6 +12,14 @@ import {
   Badge,
   Divider,
   ListItemIcon,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Alert,
+  Stack,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -19,16 +27,40 @@ import {
   ExitToApp as LogoutIcon,
   Person as ProfileIcon,
   Settings as SettingsIcon,
+  LockReset as LockResetIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { authService } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../services/axios';
 
 const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
+  const { companyName } = useAppSettings();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
+
+  // Change-password dialog
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwState, setPwState] = useState({ busy: false, error: '', ok: false });
+
+  const openChangePassword = () => { handleCloseMenu(); setPw({ current: '', next: '', confirm: '' }); setPwState({ busy: false, error: '', ok: false }); setPwOpen(true); };
+
+  const submitChangePassword = async () => {
+    if (pw.next.length < 4) { setPwState({ busy: false, error: 'New password must be at least 4 characters.', ok: false }); return; }
+    if (pw.next !== pw.confirm) { setPwState({ busy: false, error: 'New password and confirm do not match.', ok: false }); return; }
+    setPwState({ busy: true, error: '', ok: false });
+    try {
+      await authService.changePassword(user?.email, pw.current, pw.next);
+      setPwState({ busy: false, error: '', ok: true });
+      setTimeout(() => setPwOpen(false), 900);
+    } catch (e) {
+      setPwState({ busy: false, error: e.message || 'Could not change password.', ok: false });
+    }
+  };
 
   // Low-stock alert count for the bell (shared cache key with the Inventory page).
   const { data: lowStockAlerts } = useQuery({
@@ -107,7 +139,7 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             userSelect: 'none',
           }}
         >
-          SKR Garment ERP
+          {companyName || 'SKR Garment'}
         </Typography>
 
         <Box sx={{ flexGrow: 1 }} />
@@ -192,11 +224,11 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             </Typography>
           </Box>
           <Divider />
-          <MenuItem onClick={handleProfileSettings}>
+          <MenuItem onClick={openChangePassword}>
             <ListItemIcon>
-              <ProfileIcon fontSize="small" />
+              <LockResetIcon fontSize="small" />
             </ListItemIcon>
-            My Profile
+            Change Password
           </MenuItem>
           <MenuItem onClick={handleProfileSettings}>
             <ListItemIcon>
@@ -212,6 +244,28 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             <Typography color="error.main">Logout</Typography>
           </MenuItem>
         </Menu>
+
+        <Dialog open={pwOpen} onClose={() => !pwState.busy && setPwOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800 }}>Change Password</DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2} sx={{ mt: 0.5 }}>
+              <TextField label="Current password" type="password" size="small" fullWidth autoFocus
+                value={pw.current} onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))} />
+              <TextField label="New password" type="password" size="small" fullWidth
+                value={pw.next} onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))} />
+              <TextField label="Confirm new password" type="password" size="small" fullWidth
+                value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} />
+              {pwState.error ? <Alert severity="error" sx={{ py: 0 }}>{pwState.error}</Alert> : null}
+              {pwState.ok ? <Alert severity="success" sx={{ py: 0 }}>Password changed.</Alert> : null}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={() => setPwOpen(false)} disabled={pwState.busy}>Cancel</Button>
+            <Button variant="contained" onClick={submitChangePassword} disabled={pwState.busy || !pw.current || !pw.next}>
+              {pwState.busy ? 'Saving…' : 'Update Password'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Toolbar>
     </AppBar>
   );

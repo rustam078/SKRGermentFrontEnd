@@ -2,11 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  Alert,
   Autocomplete,
   Box,
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   IconButton,
@@ -36,6 +41,7 @@ import productService from '../services/productService';
 import ScanBar from '../../qr/components/ScanBar';
 import { mergeScannedUnit } from '../../qr/scanCart';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 // Profit % / amount for one line, based on unit cost vs selling price (after discount).
 const lineProfit = (item) => {
@@ -92,6 +98,7 @@ const EditableNumber = ({ value, onCommit, prefix = '', disabled, min = 0, width
 const CreateSale = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { gstEnabled, gstPercent } = useAppSettings();
   const [formValues, setFormValues] = useState({
     customerName: '',
     customerMobile: '',
@@ -123,6 +130,11 @@ const CreateSale = () => {
     return false;
   }, [formValues]);
 
+  // Physical-QR-stock reconciliation prompt (batch-wise) — shown when the backend reports
+  // scanned QR whose batch system stock is 0/short (FIFO already drained it).
+  const [reconcile, setReconcile] = useState({ open: false, batches: [] });
+  const pendingPayloadRef = React.useRef(null);
+
   const createSaleMutation = useMutation({
     mutationFn: salesService.createSale,
     onSuccess: () => {
@@ -137,9 +149,23 @@ const CreateSale = () => {
       setTimeout(() => navigate('/sales/list'), 900);
     },
     onError: (error) => {
+      const body = error.response?.data;
+      if (body?.reconcileNeeded && Array.isArray(body.batches) && body.batches.length) {
+        // Ask the user (once per batch) to reconcile physical stock, then resend.
+        setReconcile({ open: true, batches: body.batches });
+        return;
+      }
       setToast({ open: true, message: error.message || 'Unable to create sale', severity: 'error' });
     },
   });
+
+  // User approved reconciliation → resend the same sale, now authorising those batches.
+  const handleConfirmReconcile = () => {
+    const batchNumbers = reconcile.batches.map((b) => b.batchNumber);
+    const base = pendingPayloadRef.current || {};
+    setReconcile({ open: false, batches: [] });
+    createSaleMutation.mutate({ ...base, reconcileBatches: batchNumbers });
+  };
 
   // Final payable = sum of (price * qty - discount).
   const subtotal = useMemo(
@@ -157,6 +183,9 @@ const CreateSale = () => {
   const totalProfitPct = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : null;
   const totalDiscount = formValues.items.reduce((sum, item) => sum + (Number(item.discount) || 0), 0);
   const itemsTotal = subtotal + totalDiscount; // gross before discount
+  // GST on the net amount (subtotal already = price*qty - discount), only when enabled in Settings.
+  const gstAmount = gstEnabled && subtotal > 0 ? (subtotal * (Number(gstPercent) || 0)) / 100 : 0;
+  const payable = subtotal + gstAmount;
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -215,6 +244,7 @@ const CreateSale = () => {
         serials: item.serials && item.serials.length ? item.serials : undefined,
       })),
     };
+    pendingPayloadRef.current = payload; // reused if reconciliation is needed
     createSaleMutation.mutate(payload);
   };
 
@@ -527,7 +557,7 @@ const CreateSale = () => {
             <Stack spacing={2}>
               <Box sx={{ p: 2.25, borderRadius: 0, bgcolor: '#2e3647', color: '#fff' }}>
                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN')}</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 {totalDiscount > 0 && <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', mt: 0.25 }}>You saved {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>}
               </Box>
 
@@ -542,10 +572,16 @@ const CreateSale = () => {
                     {totalDiscount > 0 ? '− ' : ''}{getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}
                   </Typography>
                 </Box>
+                {gstEnabled && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>GST ({Number(gstPercent) || 0}%)</Typography>
+                    <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                  </Box>
+                )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Total Payable</Typography>
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN')}</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 </Box>
                 {totalCostBasis > 0 && anyProductSelected && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -581,6 +617,34 @@ const CreateSale = () => {
           </Box>
         </Grid>
       </Grid>
+
+      <Dialog open={reconcile.open} onClose={() => setReconcile({ open: false, batches: [] })} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>Reconcile physical stock?</DialogTitle>
+        <DialogContent dividers>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            These batches have 0 / low system stock, but the scanned QR units are still physically available
+            (a direct FIFO sale already deducted the stock). Reconcile the physical stock to continue this sale.
+          </Alert>
+          <Stack spacing={1}>
+            {reconcile.batches.map((b) => (
+              <Box key={b.batchNumber} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 1.25 }}>
+                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>
+                  {b.batchNumber}{b.productName ? ` · ${b.productName}` : ''}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  System stock {Number(b.available)} · {Number(b.requested)} QR scanned → reconcile <b style={{ color: '#B45309' }}>+{Number(b.deficit)}</b>
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setReconcile({ open: false, batches: [] })}>No, cancel</Button>
+          <Button variant="contained" onClick={handleConfirmReconcile} disabled={createSaleMutation.isLoading}>
+            {createSaleMutation.isLoading ? 'Processing…' : 'Yes, reconcile & sell'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Box sx={{ position: 'fixed', top: 20, right: 20, zIndex: 1300 }}>
         {toast.open ? (

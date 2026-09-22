@@ -13,9 +13,17 @@ import { getCurrencySymbol } from '../../../utils/currency';
 const { Panel } = Collapse;
 const { Text } = Typography;
 
+const PAY_META = {
+  PAID: { color: 'green', bg: '#f6ffed', label: 'Paid' },
+  PARTIALLY_PAID: { color: 'orange', bg: '#fff7e6', label: 'Partial' },
+  PENDING: { color: 'red', bg: '#fff1f0', label: 'Pending' },
+};
+
 const PurchaseInvoiceCard = ({ invoice }) => {
-  const { invoiceNumber, investmentType, purchaseDate, grandTotal, items } = invoice;
+  const { invoiceNumber, investmentType, purchaseDate, grandTotal, items, paymentStatus, amountPaid, amountDue } = invoice;
   const [expanded, setExpanded] = useState(false);
+  const pm = PAY_META[paymentStatus] || PAY_META.PENDING;
+  const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN')}`;
 
   let typeColor = 'default';
   let typeBg = '#f5f5f5';
@@ -28,7 +36,7 @@ const PurchaseInvoiceCard = ({ invoice }) => {
     typeBg = '#fff2e8';
   }
 
-  const formattedDate = purchaseDate ? dayjs(purchaseDate).format('DD Jun YYYY') : 'N/A'; // Formatting according to user example "02 Jun 2026"
+  const formattedDate = purchaseDate ? dayjs(purchaseDate).format('DD MMM YYYY') : 'N/A';
 
   const header = (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -49,9 +57,14 @@ const PurchaseInvoiceCard = ({ invoice }) => {
           <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', marginBottom: 4 }}>
             {invoiceNumber || 'N/A'}
           </div>
-          <Tag color={typeColor} style={{ backgroundColor: typeBg, border: 'none', fontWeight: 600 }}>
-            {investmentType}
-          </Tag>
+          <Space size={6}>
+            <Tag color={typeColor} style={{ backgroundColor: typeBg, border: 'none', fontWeight: 600 }}>
+              {investmentType}
+            </Tag>
+            <Tag color={pm.color} style={{ backgroundColor: pm.bg, border: 'none', fontWeight: 700 }}>
+              {pm.label}
+            </Tag>
+          </Space>
         </div>
       </div>
 
@@ -74,6 +87,10 @@ const PurchaseInvoiceCard = ({ invoice }) => {
           </div>
           <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0F172A' }}>
             {getCurrencySymbol()}{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 2 }}>
+            Paid <span style={{ color: '#059669', fontWeight: 700 }}>{inr(amountPaid)}</span>
+            {' · '}Due <span style={{ color: (Number(amountDue) || 0) > 0 ? '#DC2626' : '#94A3B8', fontWeight: 700 }}>{inr(amountDue)}</span>
           </div>
         </div>
       </div>

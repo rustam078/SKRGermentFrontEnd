@@ -10,6 +10,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { notification } from 'antd';
 import salesService from '../services/salesService';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
@@ -33,6 +34,7 @@ const MetaBlock = ({ label, children }) => (
 const SaleDetails = () => {
   const navigate = useNavigate();
   const { saleId } = useParams();
+  const { companyName } = useAppSettings();
   const [downloading, setDownloading] = useState(false);
 
   const { data: sale, isLoading, error } = useQuery({
@@ -96,7 +98,7 @@ const SaleDetails = () => {
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={8}>
               <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: '#2563EB', letterSpacing: '1px' }}>
-                SKR GARMENT ERP
+                {companyName || 'SKR Garment'}
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mt: 0.5 }}>
                 Invoice {invoiceNo}
@@ -175,6 +177,12 @@ const SaleDetails = () => {
               <Typography sx={{ color: '#64748B' }}>Discount</Typography>
               <Typography sx={{ fontWeight: 600 }}>- {inr(inv.discount)}</Typography>
             </Stack>
+            {Number(inv.tax) > 0 && (
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ color: '#64748B' }}>GST</Typography>
+                <Typography sx={{ fontWeight: 600 }}>{inr(inv.tax)}</Typography>
+              </Stack>
+            )}
             <Divider sx={{ my: 0.5 }} />
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Grand Total</Typography>

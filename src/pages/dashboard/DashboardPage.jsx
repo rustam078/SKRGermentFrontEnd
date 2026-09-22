@@ -393,7 +393,7 @@ const DashboardPage = () => {
   const { data: dailyRaw } = useQuery({
     queryKey: ['dashboardDaily', fromDate, toDate],
     queryFn: () => dashboardService.getDaily(fromDate, toDate),
-    enabled: board === 'overview',
+    enabled: board === 'overview' || board === 'sales',
     keepPreviousData: true,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -788,13 +788,37 @@ const DashboardPage = () => {
                     </SectionCard>
                   </Col>
                 </Row>
-                <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
-                  <Table
-                    dataSource={recentRows} columns={recentColumns} rowKey={(r) => r.saleId || r.invoiceNo} size="small"
-                    scroll={{ x: 'max-content' }} locale={{ emptyText: <Empty description="No sales in this range" /> }}
-                    pagination={{ current: salesPage + 1, pageSize: salesSize, total: recentTotal, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (t) => `${num(t)} sales`, onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); } }}
-                  />
-                </SectionCard>
+                <Row gutter={[12, 12]}>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={recentRows} columns={recentColumns} rowKey={(r) => r.saleId || r.invoiceNo} size="small"
+                        scroll={{ x: 'max-content' }} locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                        pagination={{ current: salesPage + 1, pageSize: salesSize, total: recentTotal, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (t) => `${num(t)} sales`, onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); } }}
+                      />
+                    </SectionCard>
+                  </Col>
+                  <Col xs={24} lg={12}>
+                    <SectionCard title="Daily Revenue (Sales vs Cost)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
+                      <Table
+                        dataSource={dailyRows} columns={revCols} rowKey={(r) => `sr-${r.date}`} size="small"
+                        pagination={{ pageSize: 10, size: 'small', hideOnSinglePage: true }}
+                        scroll={{ x: 'max-content' }}
+                        locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                        summary={() => (
+                          <Table.Summary fixed>
+                            <Table.Summary.Row style={{ background: '#ECFDF5' }}>
+                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.sales)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.cogs)}</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={3} align="right"><b>{money(dailyTotals.sales - dailyTotals.cogs)}</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                          </Table.Summary>
+                        )}
+                      />
+                    </SectionCard>
+                  </Col>
+                </Row>
               </>
             )}
 

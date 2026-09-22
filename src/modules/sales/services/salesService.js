@@ -31,6 +31,12 @@ const salesService = {
     return response.data;
   },
 
+  // Aggregate totals for the current filters (count / revenue / discount).
+  getSummary: async (params) => {
+    const response = await axiosInstance.get('/sales/summary', { params });
+    return response.data;
+  },
+
   getSaleById: async (saleId) => {
     const response = await axiosInstance.get(`/sales/${saleId}`);
     return response.data;

@@ -29,4 +29,10 @@ export const authService = {
     }
     throw new Error(responseData.message || 'Login failed');
   },
+
+  /** Change the logged-in user's password. */
+  changePassword: async (username, currentPassword, newPassword) => {
+    const response = await axiosInstance.post('/auth/change-password', { username, currentPassword, newPassword });
+    return response.data;
+  },
 };

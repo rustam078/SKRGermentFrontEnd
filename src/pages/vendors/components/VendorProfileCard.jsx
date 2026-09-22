@@ -18,6 +18,18 @@ import { getCurrencySymbol } from '../../../utils/currency';
 
 const { Title, Text } = Typography;
 
+const ContactRow = ({ icon, iconBg, iconColor, label, value }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {React.cloneElement(icon, { style: { color: iconColor, fontSize: '1.05rem' } })}
+    </div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+    </div>
+  </div>
+);
+
 const Stat = ({ title, value, icon, iconBg, iconColor }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 180px', minWidth: 150 }}>
     <div style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -64,25 +76,21 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
           </Space>
 
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'stretch' }}>
-            <Card
-              style={{ borderRadius: 8, border: '1px solid #F1F5F9', background: '#FAFAFA' }}
-              bodyStyle={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}
+            {/* Vendor contact card */}
+            <div
+              style={{
+                width: 380,
+                maxWidth: '100%',
+                padding: '4px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}
             >
-              <Space align="start">
-                <PhoneOutlined style={{ color: '#64748B', marginTop: 4 }} />
-                <Text style={{ color: '#334155', fontWeight: 500 }}>{vendor?.mobile || 'N/A'}</Text>
-              </Space>
-              <Space align="start">
-                <MailOutlined style={{ color: '#64748B', marginTop: 4 }} />
-                <Text style={{ color: '#334155', fontWeight: 500 }}>{vendor?.email || 'N/A'}</Text>
-              </Space>
-              <Space align="start">
-                <EnvironmentOutlined style={{ color: '#64748B', marginTop: 4 }} />
-                <Text style={{ color: '#334155', fontWeight: 500, maxWidth: 400 }}>
-                  {vendor?.address || 'N/A'}
-                </Text>
-              </Space>
-            </Card>
+              <ContactRow icon={<PhoneOutlined />} iconBg="#EFF6FF" iconColor="#2563EB" label="Mobile" value={vendor?.mobile || 'N/A'} />
+              <ContactRow icon={<MailOutlined />} iconBg="#ECFDF5" iconColor="#059669" label="Email" value={vendor?.email || 'N/A'} />
+              <ContactRow icon={<EnvironmentOutlined />} iconBg="#FFF7ED" iconColor="#D97706" label="Location" value={vendor?.address || 'N/A'} />
+            </div>
 
             {/* Summary stats — right of the contact card, filling the space */}
             <div

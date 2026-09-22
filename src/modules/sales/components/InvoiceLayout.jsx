@@ -1,8 +1,10 @@
 import React from 'react';
 import { Box, Button, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
+  const { companyName } = useAppSettings();
   const formatAmount = (value) => (value != null ? `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN')}` : '-');
   const invoiceDate = invoice?.createdAt?.split('T')[0] || invoice?.date || '-';
 
@@ -23,7 +25,7 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
     >
       <Stack spacing={4}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>SKR Garment ERP</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>{companyName || 'SKR Garment'}</Typography>
           <Typography color="text.secondary">Invoice Preview</Typography>
         </Box>
 

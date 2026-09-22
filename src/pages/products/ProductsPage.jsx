@@ -205,6 +205,9 @@ const ProductsPage = () => {
   const { data: productsData, isLoading: productsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
     queryFn: productService.getProducts,
+    // Auto-refresh on open — no manual refresh button needed.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const products = productsData?.data || [];
@@ -231,6 +234,9 @@ const ProductsPage = () => {
         duration: 4,
       });
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashProducts'] }); // dashboard "Total Products" count
+      queryClient.invalidateQueries({ queryKey: ['inventoryProducts'] });
+      refetchProducts();
       form.resetFields();
       setDrawerOpen(false);
     },
@@ -440,11 +446,6 @@ const ProductsPage = () => {
             >
               Add Product
             </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => refetchProducts()}
-              style={{ borderRadius: 8, height: 38 }}
-            />
           </div>
         </div>
 
@@ -471,7 +472,7 @@ const ProductsPage = () => {
           </div>
         </div>
         {filteredProducts.length > 0 ? (
-          <Row gutter={[12, 12]}>
+          <Row gutter={[12, 12]} align="stretch">
             {filteredProducts.map((product) => {
               const productIcon = getProductIcon(product.iconName, product.name);
 
@@ -494,7 +495,7 @@ const ProductsPage = () => {
 
               return (
                 <Col xs={12} sm={8} md={6} lg={4} key={product.id}>
-                  <div className="product-card" style={cardStyle} onClick={openDetails}>
+                  <div className="product-card" style={{ ...cardStyle, height: '100%', display: 'flex', flexDirection: 'column' }} onClick={openDetails}>
                     {/* Image / icon area */}
                     <div
                       style={{

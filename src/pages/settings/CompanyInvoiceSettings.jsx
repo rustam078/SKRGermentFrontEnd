@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, CircularProgress, Divider, Grid, InputAdornment, Stack, TextField, Typography,
+  Alert, Box, Button, CircularProgress, Divider, FormControlLabel, Grid, InputAdornment, Stack, Switch, TextField, Typography,
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import settingsService from '../../services/settingsService';
@@ -39,6 +39,7 @@ const CompanyInvoiceSettings = () => {
         COMPANY_CONTACT: settings.COMPANY_CONTACT ?? '',
         COMPANY_ADDRESS: settings.COMPANY_ADDRESS ?? '',
         DEFAULT_GST_PERCENT: settings.DEFAULT_GST_PERCENT ?? '0',
+        SALES_GST_ENABLED: String(settings.SALES_GST_ENABLED).toLowerCase() === 'true' ? 'true' : 'false',
         CURRENCY_SYMBOL: settings.CURRENCY_SYMBOL ?? '₹',
       });
     }
@@ -112,6 +113,20 @@ const CompanyInvoiceSettings = () => {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Applied to <strong>new</strong> invoices only. Existing invoices keep the values they were created with.
       </Typography>
+      <Box sx={{ mb: 2 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={String(form.SALES_GST_ENABLED).toLowerCase() === 'true'}
+              onChange={(e) => { setForm((f) => ({ ...f, SALES_GST_ENABLED: e.target.checked ? 'true' : 'false' })); setSaved(false); }}
+            />
+          }
+          label={<Typography sx={{ fontWeight: 600 }}>Apply GST on sales</Typography>}
+        />
+        <Typography variant="body2" color="text.secondary">
+          When ON, every new sale adds GST (at the % below) on top of the net amount. When OFF, sales are recorded without GST.
+        </Typography>
+      </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
           <TextField

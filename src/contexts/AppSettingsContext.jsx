@@ -12,6 +12,7 @@ const DEFAULTS = {
   COMPANY_CONTACT: '',
   COMPANY_GSTIN: '',
   DEFAULT_GST_PERCENT: '0',
+  SALES_GST_ENABLED: 'false',
   CURRENCY_SYMBOL: '₹',
   MENU_ORDER: '["dashboard","production","inventory","products","investment","employees","sales","settings"]',
 };
@@ -38,6 +39,7 @@ export const AppSettingsProvider = ({ children }) => {
 
   const value = useMemo(() => {
     const gstPercent = Number(map.DEFAULT_GST_PERCENT) || 0;
+    const gstEnabled = String(map.SALES_GST_ENABLED).toLowerCase() === 'true';
     const currencySymbol = map.CURRENCY_SYMBOL || '₹';
     let menuOrder = [];
     try {
@@ -56,6 +58,7 @@ export const AppSettingsProvider = ({ children }) => {
       },
       companyName: map.COMPANY_NAME,
       gstPercent,
+      gstEnabled,
       currencySymbol,
       // Convenience formatter bound to the current symbol.
       money: (v, opts) => formatMoney(v, opts),
