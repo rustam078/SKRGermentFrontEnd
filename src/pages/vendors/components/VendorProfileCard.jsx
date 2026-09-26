@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 const { Title, Text } = Typography;
 
@@ -44,6 +45,7 @@ const Stat = ({ title, value, icon, iconBg, iconColor }) => (
 
 const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   const { totalInvoices = 0, totalPurchaseAmount = 0, lastPurchaseDate } = summary || {};
   const avgInvoice = totalInvoices > 0 ? totalPurchaseAmount / totalInvoices : 0;
@@ -112,14 +114,16 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
         </div>
 
         <Space>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          {can('investment', 'write') && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={onCreateInvestment}
             style={{ borderRadius: 6, fontWeight: 600, height: 38, paddingInline: 18 }}
           >
             Create Investment
           </Button>
+          )}
           <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/investment?tab=vendors')}

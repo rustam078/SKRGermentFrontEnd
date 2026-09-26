@@ -48,6 +48,7 @@ import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../services/axios';
 import ScanBar from '../../modules/qr/components/ScanBar';
 import { mergeScannedUnit } from '../../modules/qr/scanCart';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const createEmptyItem = () => ({
   productId: '',
@@ -62,6 +63,7 @@ const createEmptyItem = () => ({
 
 const InventoryPage = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [inventoryData, setInventoryData] = useState({ content: [], totalElements: 0 });
@@ -495,9 +497,11 @@ const InventoryPage = () => {
         </Box>
 
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Button variant="contained" onClick={handleOpenSaleDrawer}>
-            Sale
-          </Button>
+          {can('inventory', 'write') && (
+            <Button variant="contained" onClick={handleOpenSaleDrawer}>
+              Sale
+            </Button>
+          )}
         </Stack>
       </Stack>
 

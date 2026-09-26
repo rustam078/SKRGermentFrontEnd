@@ -42,6 +42,7 @@ import ScanBar from '../../qr/components/ScanBar';
 import { mergeScannedUnit } from '../../qr/scanCart';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 // Profit % / amount for one line, based on unit cost vs selling price (after discount).
 const lineProfit = (item) => {
@@ -99,6 +100,7 @@ const CreateSale = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { gstEnabled, gstPercent } = useAppSettings();
+  const { can } = usePermissions();
   const [formValues, setFormValues] = useState({
     customerName: '',
     customerMobile: '',
@@ -609,9 +611,11 @@ const CreateSale = () => {
               ) : null}
               <TextField label="Remarks (optional)" name="remarks" value={formValues.remarks} onChange={handleInputChange} multiline minRows={2} fullWidth size="small" disabled={!anyProductSelected} />
 
-              <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleSave} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
-                {createSaleMutation.isLoading ? 'Saving…' : 'Complete Sale'}
-              </Button>
+              {can('sales', 'write') && (
+                <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleSave} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
+                  {createSaleMutation.isLoading ? 'Saving…' : 'Complete Sale'}
+                </Button>
+              )}
               <Button variant="text" fullWidth onClick={() => navigate('/sales/list')} sx={{ color: '#64748B' }}>Cancel</Button>
             </Stack>
           </Box>

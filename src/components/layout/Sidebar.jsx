@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
   Collapse,
   Drawer,
@@ -69,7 +70,12 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
 
   const [salesOpen, setSalesOpen] = useState(true);
   const { menuOrder } = useAppSettings();
-  const orderedItems = useMemo(() => orderMenu(MENU_ITEMS, menuOrder), [menuOrder]);
+  const { can } = usePermissions();
+  // Only show modules the current role can view (ADMIN sees all).
+  const orderedItems = useMemo(
+    () => orderMenu(MENU_ITEMS, menuOrder).filter((item) => can(item.key, 'view')),
+    [menuOrder, can]
+  );
 
   useEffect(() => {
     if (location.pathname.startsWith('/sales')) {

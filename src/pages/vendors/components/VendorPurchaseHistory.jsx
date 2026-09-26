@@ -4,6 +4,7 @@ import { ShoppingOutlined, PlusOutlined, SearchOutlined, FilterOutlined } from '
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import PurchaseInvoiceCard from './PurchaseInvoiceCard';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 dayjs.extend(isBetween);
 
@@ -13,6 +14,7 @@ const { RangePicker } = DatePicker;
 const PAGE_SIZE = 5;
 
 const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
+  const { can } = usePermissions();
   const [searchText, setSearchText] = useState('');
   const [dateRange, setDateRange] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,7 +102,8 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
               </div>
             }
           >
-            <Button 
+            {can('investment', 'write') && (
+            <Button
               type="default"
               icon={<PlusOutlined />}
               onClick={onAddInvestment}
@@ -108,6 +111,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
             >
               Create Investment
             </Button>
+            )}
           </Empty>
         </div>
       </div>

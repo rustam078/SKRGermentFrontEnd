@@ -36,10 +36,12 @@ import { useNavigate } from 'react-router-dom';
 import { employeeService } from '../../services/employee.service';
 import { IEmployee } from '../../types/employee.types';
 import { EmployeeFormDrawer } from './EmployeeFormDrawer';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const EmployeePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
   const [searchText, setSearchText] = useState('');
   
   // Drawer visibility states
@@ -294,15 +296,17 @@ const EmployeePage: React.FC = () => {
               style={{ minWidth: 32, padding: 0 }}
             />
           </Tooltip>
-          <Tooltip title="Edit Employee">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: '#2563EB' }} />}
-              onClick={() => handleOpenEdit(record)}
-              style={{ minWidth: 32, padding: 0 }}
-            />
-          </Tooltip>
-          {record.active && (
+          {can('employees', 'write') && (
+            <Tooltip title="Edit Employee">
+              <Button
+                type="text"
+                icon={<EditOutlined style={{ color: '#2563EB' }} />}
+                onClick={() => handleOpenEdit(record)}
+                style={{ minWidth: 32, padding: 0 }}
+              />
+            </Tooltip>
+          )}
+          {record.active && can('employees', 'write') && (
             <Tooltip title="Deactivate Employee">
               <Button
                 type="text"
@@ -344,14 +348,16 @@ const EmployeePage: React.FC = () => {
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
             />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6, height: 40 }}
-              onClick={handleOpenAdd}
-            >
-              Add Employee
-            </Button>
+            {can('employees', 'write') && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6, height: 40 }}
+                onClick={handleOpenAdd}
+              >
+                Add Employee
+              </Button>
+            )}
           </div>
         </div>
 

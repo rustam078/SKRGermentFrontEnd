@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/authService';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +38,13 @@ export const AuthProvider = ({ children }) => {
       
       setUser(data.user);
       setIsAuthenticated(true);
+      // Settings (incl. ROLE_PERMISSIONS) must be refetched with THIS user's X-User-Id
+      // header before we proceed, so menus/permissions reflect the new user immediately
+      // (not the previous user's cached values). Drop stale cache, then await a fresh fetch.
+      queryClient.removeQueries({ queryKey: ['appSettings'] });
+      try {
+        await queryClient.refetchQueries({ queryKey: ['appSettings'] });
+      } catch { /* non-fatal; provider will retry */ }
       setIsLoading(false);
       return { success: true };
     } catch (error) {
@@ -49,6 +58,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('skr_user');
     setUser(null);
     setIsAuthenticated(false);
+    queryClient.removeQueries({ queryKey: ['appSettings'] });
   };
 
   const value = {

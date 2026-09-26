@@ -53,6 +53,7 @@ import { investmentService, vendorService } from '../../services/investmentServi
 import { productService } from '../../services/productService';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { formatMoney, getCurrencySymbol } from '../../utils/currency';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -215,6 +216,7 @@ const InvestmentPage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const { can } = usePermissions();
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const queryVendorId = queryParams.get('vendorId');
@@ -1011,6 +1013,7 @@ const InvestmentPage = () => {
               }}
             />
           </Tooltip>
+          {can('investment', 'write') && (
           <Tooltip title="Edit Vendor">
             <Button
               type="text"
@@ -1030,7 +1033,8 @@ const InvestmentPage = () => {
               }}
             />
           </Tooltip>
-          {record.active ? (
+          )}
+          {can('investment', 'write') && (record.active ? (
             <Tooltip title="Deactivate">
               <Button
                 type="text"
@@ -1072,7 +1076,7 @@ const InvestmentPage = () => {
                 }}
               />
             </Tooltip>
-          )}
+          ))}
         </Space>
       ),
     },
@@ -1477,6 +1481,7 @@ const InvestmentPage = () => {
                       </Button>
                     </Badge>
                   </Popover>
+                  {can('investment', 'write') && (
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
@@ -1491,6 +1496,7 @@ const InvestmentPage = () => {
                   >
                     Add Investment
                   </Button>
+                  )}
                 </Space>
               </div>
 
@@ -1624,6 +1630,7 @@ const InvestmentPage = () => {
                     allowClear
                     style={{ width: 300, borderRadius: 8, height: 38 }}
                   />
+                  {can('investment', 'write') && (
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
@@ -1638,6 +1645,7 @@ const InvestmentPage = () => {
                   >
                     Add Vendor
                   </Button>
+                  )}
                 </Space>
               </div>
 

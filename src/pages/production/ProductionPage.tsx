@@ -51,10 +51,12 @@ import { getProductIconAndLabel } from '../../utils/product-icons';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const ProductionPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
 
@@ -548,8 +550,10 @@ const ProductionPage: React.FC = () => {
             items: [
               { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
               { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
-              { type: 'divider' },
-              { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDeleteRow(record) },
+              ...(can('production', 'delete') ? [
+                { type: 'divider' as const },
+                { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDeleteRow(record) },
+              ] : []),
             ],
           }}
         >
@@ -684,15 +688,17 @@ const ProductionPage: React.FC = () => {
               </Badge>
             </Popover>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              onClick={handleOpenDrawer}
-              style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
-            >
-              Create Production Entry
-            </Button>
+            {can('production', 'write') && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
+                onClick={handleOpenDrawer}
+                style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
+              >
+                Create Production Entry
+              </Button>
+            )}
           </Space>
         </div>
 

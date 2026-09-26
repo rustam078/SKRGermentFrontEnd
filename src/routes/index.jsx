@@ -1,6 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/common/ProtectedRoute';
+import ModuleGuard from '../components/common/ModuleGuard';
+import HomeRedirect from '../components/common/HomeRedirect';
+import AdminOnly from '../components/common/AdminOnly';
 import MainLayout from '../layouts/MainLayout';
 
 // Import Pages
@@ -32,8 +35,9 @@ const AppRoutes = () => {
       {/* Protected Enterprise Pages */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          {/* Index Route redirecting to Dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+         <Route element={<ModuleGuard />}>
+          {/* Index Route → first module the user can view */}
+          <Route path="/" element={<HomeRedirect />} />
           
           {/* Main Modules */}
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -42,7 +46,8 @@ const AppRoutes = () => {
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/inventory/:productId" element={<InventoryDetailsPage />} />
           <Route path="/products" element={<ProductsPage />} />
-          <Route path="/products/:productId" element={<ProductDetailsPage />} />
+          {/* Product details is an admin-only drill-down (staff sent back to the list). */}
+          <Route path="/products/:productId" element={<AdminOnly fallback="/products"><ProductDetailsPage /></AdminOnly>} />
           <Route path="/investment" element={<InvestmentPage />} />
           <Route path="/vendors/:id" element={<VendorDetailsPage />} />
           <Route path="/sales" element={<SalesDashboard />} />
@@ -56,6 +61,7 @@ const AppRoutes = () => {
           {/* Reports module removed — its important reports now live on the Dashboard */}
           <Route path="/reports" element={<Navigate to="/dashboard" replace />} />
           <Route path="/settings" element={<SettingsPage />} />
+         </Route>
         </Route>
       </Route>
 

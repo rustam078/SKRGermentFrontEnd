@@ -24,6 +24,7 @@ import salesService from '../../modules/sales/services/salesService';
 import axiosInstance from '../../services/axios';
 import { exportToExcel, exportElementToPdf } from '../../utils/exportUtils';
 import { getCurrencySymbol } from '../../utils/currency';
+import { usePermissions } from '../../hooks/usePermissions';
 
 dayjs.extend(quarterOfYear);
 
@@ -316,7 +317,16 @@ const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, form
 
 const DashboardPage = () => {
   const reportRef = useRef(null);
+  const { canSeeBoard, can } = usePermissions();
+  // Boards the current user may see (ADMIN: all; STAFF: per STAFF_DASHBOARD_BOARDS setting).
+  const visibleBoards = useMemo(() => BOARDS.filter((b) => canSeeBoard(b.value)), [canSeeBoard]);
   const [board, setBoard] = useState('overview');
+  // If the selected board isn't allowed (or default 'overview' is hidden), fall back to the first allowed.
+  useEffect(() => {
+    if (visibleBoards.length && !visibleBoards.some((b) => b.value === board)) {
+      setBoard(visibleBoards[0].value);
+    }
+  }, [visibleBoards, board]);
   const [range, setRange] = useState(QUICK['This Month']());
   const [filterLabel, setFilterLabel] = useState('This Month');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -364,10 +374,10 @@ const DashboardPage = () => {
 
   // Catalogue + vendor counts (current snapshots) for the overview KPIs.
   const { data: productsList } = useQuery({
-    queryKey: ['dashProducts'], queryFn: productService.getProducts, enabled: board === 'overview', staleTime: 5 * 60 * 1000,
+    queryKey: ['dashProducts'], queryFn: productService.getProducts, enabled: board === 'overview' && can('products', 'view'), staleTime: 5 * 60 * 1000,
   });
   const { data: vendorsList } = useQuery({
-    queryKey: ['dashVendors'], queryFn: vendorService.getVendors, enabled: board === 'overview', staleTime: 5 * 60 * 1000,
+    queryKey: ['dashVendors'], queryFn: vendorService.getVendors, enabled: board === 'overview' && can('investment', 'view'), staleTime: 5 * 60 * 1000,
   });
   const productCount = (() => { const a = productsList?.data ?? productsList?.content ?? productsList; return Array.isArray(a) ? a.length : 0; })();
   const vendorCount = (() => { const a = vendorsList?.data ?? vendorsList?.content ?? vendorsList; return Array.isArray(a) ? a.length : 0; })();
@@ -385,7 +395,7 @@ const DashboardPage = () => {
         alerts: Array.isArray(alerts.data) ? alerts.data : (alerts.data?.content || []),
       };
     },
-    enabled: board === 'inventory',
+    enabled: board === 'inventory' && can('inventory', 'view'),
     keepPreviousData: true,
   });
 
@@ -406,7 +416,7 @@ const DashboardPage = () => {
       const res = await investmentService.getInvestments({ fromDate, toDate });
       return res?.data || [];
     },
-    enabled: board === 'expenses',
+    enabled: board === 'expenses' && can('investment', 'view'),
     keepPreviousData: true,
   });
 
@@ -624,7 +634,7 @@ const DashboardPage = () => {
               onChange={setBoard}
               style={{ width: 190 }}
               size="large"
-              options={BOARDS.map((b) => ({ value: b.value, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>{b.icon}{b.label}</span> }))}
+              options={visibleBoards.map((b) => ({ value: b.value, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>{b.icon}{b.label}</span> }))}
             />
             {data && (
               <span style={{ fontSize: '0.8rem', color: '#64748B' }}>

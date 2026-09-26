@@ -58,6 +58,7 @@ import dayjs from 'dayjs';
 import { productService } from '../../services/productService';
 import { productionService } from '../../services/productionService';
 import { getProductIcon } from '../../utils/product-icons';
+import { usePermissions } from '../../hooks/usePermissions';
 
 /* ─────────────────────────────────────────
    Mini Sparkline (CSS only, no library)
@@ -136,6 +137,7 @@ const ProductDetailsPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
   const [form] = Form.useForm();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -525,6 +527,7 @@ const ProductDetailsPage = () => {
           </Tooltip>
         ) : (
           <Space size={6}>
+            {can('products', 'write') && (
             <Tooltip title={record.active ? 'Deactivate' : 'Activate'} placement="top">
               <Popconfirm
                 title={record.active ? 'Deactivate this piece code? Once inactive, it will not show in the table.' : 'Activate this piece code?'}
@@ -554,12 +557,15 @@ const ProductDetailsPage = () => {
                 />
               </Popconfirm>
             </Tooltip>
+            )}
+            {can('products', 'delete') && (
             <Tooltip title="Delete" placement="top">
               <Popconfirm title="Delete this piece code?" description="This action cannot be undone." onConfirm={() => deletePieceCode(record.id)} okText="Delete" okButtonProps={{ danger: true }} cancelText="Cancel" placement="topRight">
                 <Button type="text" size="small" icon={<DeleteOutlined />} loading={deletePieceCodeMutation.isLoading && deletingPieceCodeId === record.id}
                   style={{ color: '#EF4444', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
               </Popconfirm>
             </Tooltip>
+            )}
           </Space>
         )
       ),
@@ -651,6 +657,7 @@ const ProductDetailsPage = () => {
       align: 'center',
       render: (_, record) => (
         <Space>
+          {can('products', 'write') && (
           <Tooltip title="Edit">
             <Button
               size="small"
@@ -658,6 +665,8 @@ const ProductDetailsPage = () => {
               onClick={() => editMaterialCost(record)}
             />
           </Tooltip>
+          )}
+          {can('products', 'delete') && (
           <Popconfirm
             title="Delete this pricing row?"
             onConfirm={() => deleteMaterialCost(record.id)}
@@ -668,6 +677,7 @@ const ProductDetailsPage = () => {
               icon={<DeleteOutlined />}
             />
           </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -966,6 +976,7 @@ const ProductDetailsPage = () => {
                 </Space>
               }
               extra={
+                can('products', 'write') ? (
                 <Space>
                   <Tooltip title={isPurchasedProduct ? 'Piece codes do not apply to purchased products' : 'Add a new piece code'}>
                     <Button
@@ -979,6 +990,7 @@ const ProductDetailsPage = () => {
                     </Button>
                   </Tooltip>
                 </Space>
+                ) : null
               }
               style={cardStyle}
               bodyStyle={{ padding: 0 }}
@@ -1029,6 +1041,7 @@ const ProductDetailsPage = () => {
                 </Space>
               }
               extra={
+                can('products', 'write') ? (
                 <Space>
                   <Button
                     type="primary"
@@ -1039,6 +1052,7 @@ const ProductDetailsPage = () => {
                     Add Pricing
                   </Button>
                 </Space>
+                ) : null
               }
               style={cardStyle}
               bodyStyle={{ padding: 0 }}

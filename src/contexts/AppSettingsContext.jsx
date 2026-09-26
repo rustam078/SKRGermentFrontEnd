@@ -15,6 +15,8 @@ const DEFAULTS = {
   SALES_GST_ENABLED: 'false',
   CURRENCY_SYMBOL: '₹',
   MENU_ORDER: '["dashboard","production","inventory","products","investment","employees","sales","settings"]',
+  ROLE_PERMISSIONS: '{}',
+  STAFF_DASHBOARD_BOARDS: '["overview","sales","inventory","expenses","employees"]',
 };
 
 /**
@@ -27,7 +29,10 @@ export const AppSettingsProvider = ({ children }) => {
   const { data, isLoading } = useQuery({
     queryKey: ['appSettings'],
     queryFn: settingsService.getAll,
-    staleTime: 10 * 60 * 1000,
+    // Short stale window + refetch on focus so permission/menu changes made by an admin
+    // propagate to an already-open session soon after (login forces an immediate refetch).
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const map = useMemo(() => ({ ...DEFAULTS, ...(data || {}) }), [data]);
@@ -46,10 +51,24 @@ export const AppSettingsProvider = ({ children }) => {
       const parsed = JSON.parse(map.MENU_ORDER);
       if (Array.isArray(parsed)) menuOrder = parsed.filter((k) => typeof k === 'string');
     } catch { /* keep empty → sidebar uses its built-in order */ }
+
+    let rolePermissions = {};
+    try {
+      const parsed = JSON.parse(map.ROLE_PERMISSIONS);
+      if (parsed && typeof parsed === 'object') rolePermissions = parsed;
+    } catch { /* keep empty → staff sees nothing until configured */ }
+
+    let staffDashboardBoards = [];
+    try {
+      const parsed = JSON.parse(map.STAFF_DASHBOARD_BOARDS);
+      if (Array.isArray(parsed)) staffDashboardBoards = parsed.filter((k) => typeof k === 'string');
+    } catch { /* keep empty → staff sees no boards until configured */ }
     return {
       isLoading,
       raw: map,
       menuOrder,
+      rolePermissions,
+      staffDashboardBoards,
       company: {
         name: map.COMPANY_NAME,
         address: map.COMPANY_ADDRESS,

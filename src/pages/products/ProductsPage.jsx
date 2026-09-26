@@ -42,6 +42,7 @@ import { Box } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import { getProductIcon, PRODUCT_ICONS, PRODUCT_ICON_LABELS } from '../../utils/product-icons';
+import { usePermissions } from '../../hooks/usePermissions';
 
 /* ─────────────────────────────────────────────────────────
    Icon Picker (Popover grid)
@@ -186,6 +187,7 @@ const IconPicker = ({ value, onChange }) => {
 const ProductsPage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { can, isAdmin } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [form] = Form.useForm();
@@ -438,14 +440,16 @@ const ProductsPage = () => {
               ]}
             />
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setDrawerOpen(true)}
-              style={{ borderRadius: 8, fontWeight: 700, height: 38, paddingInline: 18 }}
-            >
-              Add Product
-            </Button>
+            {can('products', 'write') && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setDrawerOpen(true)}
+                style={{ borderRadius: 8, fontWeight: 700, height: 38, paddingInline: 18 }}
+              >
+                Add Product
+              </Button>
+            )}
           </div>
         </div>
 
@@ -477,6 +481,8 @@ const ProductsPage = () => {
               const productIcon = getProductIcon(product.iconName, product.name);
 
               const openDetails = () => {
+                // Product details is admin-only — staff cannot drill in.
+                if (!isAdmin) return;
                 const nextParams = new URLSearchParams(searchParams);
                 nextParams.set('tab', activeTab);
                 navigate(`/products/${product.id}?${nextParams.toString()}`);
@@ -529,6 +535,7 @@ const ProductsPage = () => {
                       </span>
 
                       {/* Kebab (top-right corner) */}
+                      {can('products', 'write') && (
                       <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
                         <Dropdown menu={dropdownMenu} trigger={['click']} placement="bottomRight">
                           <Button
@@ -543,6 +550,7 @@ const ProductsPage = () => {
                           />
                         </Dropdown>
                       </div>
+                      )}
                     </div>
 
                     {/* Body */}
@@ -594,9 +602,11 @@ const ProductsPage = () => {
                   <div style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: 16 }}>
                     No products matched your search or status filter. Get started by adding a product!
                   </div>
-                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)} style={{ borderRadius: 8, fontWeight: 600 }}>
-                    Add Your First Product
-                  </Button>
+                  {can('products', 'write') && (
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)} style={{ borderRadius: 8, fontWeight: 600 }}>
+                      Add Your First Product
+                    </Button>
+                  )}
                 </div>
               }
             />

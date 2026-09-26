@@ -16,15 +16,18 @@ import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import ReorderRoundedIcon from '@mui/icons-material/ReorderRounded';
 import PieChartOutlineRoundedIcon from '@mui/icons-material/PieChartOutlineRounded';
+import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import QrLabelSettings from '../../modules/qr/components/QrLabelSettings';
 import ThresholdSettings from './ThresholdSettings';
 import CompanyInvoiceSettings from './CompanyInvoiceSettings';
 import MenuOrderSettings from './MenuOrderSettings';
 import ChartSettings from './ChartSettings';
+import UsersRolesSettings from './UsersRolesSettings';
+import { usePermissions } from '../../hooks/usePermissions';
 
 // Registry of settings sections — add future settings here and they get search + collapse for free.
-const SECTIONS = [
+const BASE_SECTIONS = [
   {
     id: 'company-invoice',
     title: 'Company & Invoice',
@@ -70,11 +73,28 @@ const SECTIONS = [
 const SettingsPage = () => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState({});
+  const { isAdmin } = usePermissions();
+
+  // Users & Roles is ADMIN-only; append it to the base registry only for admins.
+  const sections = useMemo(() => {
+    if (!isAdmin) return BASE_SECTIONS;
+    return [
+      ...BASE_SECTIONS,
+      {
+        id: 'users-roles',
+        title: 'Users & Roles',
+        subtitle: 'Manage staff accounts and their permissions',
+        keywords: 'user role staff admin permission access account password add',
+        icon: <ManageAccountsRoundedIcon color="primary" />,
+        render: () => <UsersRolesSettings />,
+      },
+    ];
+  }, [isAdmin]);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(
-    () => SECTIONS.filter((s) => !q || `${s.title} ${s.subtitle} ${s.keywords}`.toLowerCase().includes(q)),
-    [q]
+    () => sections.filter((s) => !q || `${s.title} ${s.subtitle} ${s.keywords}`.toLowerCase().includes(q)),
+    [q, sections]
   );
 
   // While searching, matching sections are auto-expanded; otherwise use per-section toggle state.

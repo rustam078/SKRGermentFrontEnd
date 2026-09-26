@@ -14,6 +14,7 @@ import salesService from '../services/salesService';
 import SalesTable from '../components/SalesTable';
 import HeadingInfo from '../../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 dayjs.extend(quarterOfYear);
 
@@ -36,6 +37,7 @@ const money = (v) => `${getCurrencySymbol()}${new Intl.NumberFormat('en-IN').for
 
 const SalesList = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -124,9 +126,11 @@ const SalesList = () => {
               Filters
             </Button>
           </Badge>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/sales/new')}>
-            New Sale
-          </Button>
+          {can('sales', 'write') && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/sales/new')}>
+              New Sale
+            </Button>
+          )}
         </Stack>
       </Stack>
 

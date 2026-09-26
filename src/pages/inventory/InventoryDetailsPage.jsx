@@ -46,6 +46,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import axiosInstance from '../../services/axios';
 import { getCurrencySymbol } from '../../utils/currency';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const formatCurrency = (value) =>
   value == null ? '—' : `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -73,6 +74,7 @@ const quickRanges = [
 const InventoryDetailsPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -462,6 +464,7 @@ const InventoryDetailsPage = () => {
                             {tab === 0 && (
                               <TableCell align="center">
                                 <Stack direction="row" spacing={1} justifyContent="center">
+                                  {can('inventory', 'write') && (
                                   <Tooltip title="Adjust stock (increase / decrease)">
                                     <Button
                                       size="small"
@@ -473,6 +476,8 @@ const InventoryDetailsPage = () => {
                                       Adjust
                                     </Button>
                                   </Tooltip>
+                                  )}
+                                  {can('inventory', 'write') && (
                                   <Tooltip title="Generate & print QR labels for this batch">
                                     <Button
                                       size="small"
@@ -490,6 +495,7 @@ const InventoryDetailsPage = () => {
                                       QR
                                     </Button>
                                   </Tooltip>
+                                  )}
                                 </Stack>
                               </TableCell>
                             )}

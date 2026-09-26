@@ -44,9 +44,11 @@ import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const ProductionHistoryPage: React.FC = () => {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [form] = Form.useForm();
 
   // Filters state mapping directly to query parameters
@@ -305,8 +307,10 @@ const ProductionHistoryPage: React.FC = () => {
             items: [
               { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
               { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
-              { type: 'divider' },
-              { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDelete(record) },
+              ...(can('production', 'delete') ? [
+                { type: 'divider' as const },
+                { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDelete(record) },
+              ] : []),
             ],
           }}
         >
