@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -152,6 +152,48 @@ const ProductDetailsPage = () => {
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [deletingPieceCodeId, setDeletingPieceCodeId] = useState(null);
   const [togglingPieceCodeId, setTogglingPieceCodeId] = useState(null);
+
+  // Product image controls (upload/replace/remove) shown in the hero header.
+  const [imgVersion, setImgVersion] = useState(() => Date.now());
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageInputRef = useRef(null);
+
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      notification.error({ message: 'Invalid File', description: 'Please select an image file.', placement: 'topRight', duration: 4 });
+      return;
+    }
+    try {
+      setImageUploading(true);
+      const res = await productService.uploadImage(productId, file);
+      notification.success({ message: 'Image Updated', description: res.message || 'Product image updated.', placement: 'topRight', duration: 3 });
+      setImgVersion(Date.now()); // cache-bust so the new image shows immediately
+      await refetchProduct();
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (err) {
+      notification.error({ message: 'Upload Failed', description: err.response?.data?.message || err.message, placement: 'topRight', duration: 5 });
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    try {
+      setImageUploading(true);
+      const res = await productService.deleteImage(productId);
+      notification.success({ message: 'Image Removed', description: res.message || 'Product image removed.', placement: 'topRight', duration: 3 });
+      setImgVersion(Date.now());
+      await refetchProduct();
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (err) {
+      notification.error({ message: 'Remove Failed', description: err.response?.data?.message || err.message, placement: 'topRight', duration: 5 });
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   // ── Queries ──────────────────────────────────────
   const { data: productResponse, isLoading: productLoading, isError: productError, error: productFetchError, refetch: refetchProduct } = useQuery({
@@ -752,15 +794,78 @@ const ProductDetailsPage = () => {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
             {/* Left: Icon + Info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              {/* Large Product Icon */}
-              <div style={{
-                width: 100, height: 100, borderRadius: 16,
-                backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '3.5rem', flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              }}>
-                {productIcon}
+              {/* Large Product Image / Icon + admin controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div style={{
+                  width: 100, height: 100, borderRadius: 16,
+                  backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '3.5rem', flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  overflow: 'hidden', position: 'relative',
+                }}>
+                  {product.hasImage ? (
+                    <img
+                      src={productService.imageUrl(productId, imgVersion)}
+                      alt={product.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.nextElementSibling) {
+                          e.currentTarget.nextElementSibling.style.display = 'flex';
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <span style={{
+                    display: product.hasImage ? 'none' : 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    width: '100%', height: '100%',
+                  }}>
+                    {productIcon}
+                  </span>
+                </div>
+
+                {can('products', 'write') && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleImageFileChange}
+                    />
+                    <Tooltip title={product.hasImage ? 'Change photo' : 'Add photo'}>
+                      <Button
+                        size="small"
+                        shape="circle"
+                        icon={<EditOutlined />}
+                        loading={imageUploading}
+                        onClick={() => imageInputRef.current?.click()}
+                      />
+                    </Tooltip>
+                    {product.hasImage && (
+                      <Popconfirm
+                        title="Remove this photo?"
+                        onConfirm={handleRemoveImage}
+                        okText="Remove"
+                        okButtonProps={{ danger: true }}
+                        cancelText="Cancel"
+                        placement="bottomLeft"
+                      >
+                        <Tooltip title="Remove photo">
+                          <Button
+                            size="small"
+                            shape="circle"
+                            danger
+                            icon={<DeleteOutlined />}
+                            disabled={imageUploading}
+                          />
+                        </Tooltip>
+                      </Popconfirm>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Product Info */}
@@ -999,9 +1104,9 @@ const ProductDetailsPage = () => {
                 <InfoCircleOutlined style={{ color: isPurchasedProduct ? '#B45309' : '#D97706', fontSize: '0.85rem', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.78rem', color: isPurchasedProduct ? '#92400E' : '#92400E' }}>
                   {isPurchasedProduct ? (
-                    <><strong>Purchase products do not use piece codes.</strong> Piece code pricing applies only to manufactured products.</>
+                    <><strong>Bought products don't use piece codes.</strong> Only made products do.</>
                   ) : (
-                    <><strong>Immutable Pricing:</strong> Rates cannot be edited once set. To change pricing, create a new Piece Code. Old production history remains unchanged.</>
+                    <><strong>A rate can't be changed later.</strong> To use a new rate, add a new piece code. Old records stay the same.</>
                   )}
                 </span>
               </div>
@@ -1061,7 +1166,7 @@ const ProductDetailsPage = () => {
               <div style={{ backgroundColor: '#EFF6FF', borderBottom: '1px solid #BFDBFE', padding: '9px 20px', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <InfoCircleOutlined style={{ color: '#2563EB', fontSize: '0.85rem', flexShrink: 0 }} />
                 <span style={{ fontSize: '0.78rem', color: '#1E40AF' }}>
-                  Cost &amp; sale price are versioned by Effective From date — add a new row to change pricing. Production uses the latest cost; New Sale auto-fills the latest sale price and shows the profit %.
+                  <strong>To change the cost or sale price, add a new row.</strong> The newest row is always used. A sale shows profit = sale price − cost.
                 </span>
               </div>
 

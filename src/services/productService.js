@@ -1,5 +1,8 @@
 import axiosInstance from './axios';
 
+// Absolute API base for building <img src> URLs (image GET is public on the backend).
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
 /**
  * Service to handle product and piece code endpoints.
  * 
@@ -173,7 +176,32 @@ export const productService = {
       `/product-material-cost/${id}`
     );
     return response.data;
-  }
+  },
+
+  // ─────────────────────────────────────────────
+  // PRODUCT IMAGE (optional, one per product)
+  // ─────────────────────────────────────────────
+
+  /** Upload/replace the product's image. POST /api/products/{id}/image (multipart). */
+  uploadImage: async (productId, file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    // Content-Type undefined → the browser sets multipart/form-data with the boundary.
+    const response = await axiosInstance.post(`/products/${productId}/image`, fd, {
+      headers: { 'Content-Type': undefined },
+    });
+    return response.data;
+  },
+
+  /** Remove the product's image. DELETE /api/products/{id}/image */
+  deleteImage: async (productId) => {
+    const response = await axiosInstance.delete(`/products/${productId}/image`);
+    return response.data;
+  },
+
+  /** Public URL for the product image (usable directly in <img src>). */
+  imageUrl: (productId, cacheBust) =>
+    `${API_BASE}/products/${productId}/image${cacheBust ? `?t=${cacheBust}` : ''}`,
 };
 
 export default productService;

@@ -11,6 +11,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   MenuItem,
   Paper,
   Stack,
@@ -30,6 +31,8 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import ToggleOnRoundedIcon from '@mui/icons-material/ToggleOnRounded';
 import ToggleOffRoundedIcon from '@mui/icons-material/ToggleOffRounded';
+import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
+import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import userService from '../../services/userService';
@@ -82,6 +85,17 @@ const UsersRolesSettings = () => {
   const [pwOpen, setPwOpen] = useState(false);
   const [pwUser, setPwUser] = useState(null); // { id, username }
   const [pwValue, setPwValue] = useState('');
+  const [showAddPw, setShowAddPw] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
+
+  // Reusable eye toggle adornment for password fields.
+  const eyeAdornment = (visible, toggle) => (
+    <InputAdornment position="end">
+      <IconButton onClick={toggle} edge="end" size="small" tabIndex={-1} aria-label="toggle password visibility">
+        {visible ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
+      </IconButton>
+    </InputAdornment>
+  );
 
   const createMutation = useMutation({
     mutationFn: (payload) => userService.create(payload),
@@ -390,13 +404,14 @@ const UsersRolesSettings = () => {
             />
             <TextField
               label="Password"
-              type="password"
+              type={showAddPw ? 'text' : 'password'}
               size="small"
               required
               value={addForm.password}
               onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))}
               helperText="Minimum 4 characters"
               error={addForm.password.length > 0 && addForm.password.length < 4}
+              InputProps={{ endAdornment: eyeAdornment(showAddPw, () => setShowAddPw((s) => !s)) }}
             />
             <TextField
               label="Role"
@@ -466,13 +481,14 @@ const UsersRolesSettings = () => {
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               label="New password"
-              type="password"
+              type={showResetPw ? 'text' : 'password'}
               size="small"
               required
               value={pwValue}
               onChange={(e) => setPwValue(e.target.value)}
               helperText="Minimum 4 characters"
               error={pwValue.length > 0 && pwValue.length < 4}
+              InputProps={{ endAdornment: eyeAdornment(showResetPw, () => setShowResetPw((s) => !s)) }}
             />
           </Stack>
         </DialogContent>

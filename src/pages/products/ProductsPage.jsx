@@ -22,6 +22,7 @@ import {
   Drawer,
   Modal,
   Tabs,
+  Upload,
 } from 'antd';
 import {
   ShoppingOutlined,
@@ -196,6 +197,27 @@ const ProductsPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
+  // Optional image selected in the create form (uploaded after the product is created).
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState(null);
+
+  const clearNewImage = () => {
+    setNewImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setNewImageFile(null);
+  };
+
+  const handleSelectImage = (file) => {
+    // Replace any previously selected file and refresh the preview.
+    setNewImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setNewImageFile(file);
+  };
+
   useEffect(() => {
     const tabValue = searchParams.get('tab');
     if (['manufacture', 'purchase', 'all', 'archive'].includes(tabValue)) {
@@ -227,7 +249,25 @@ const ProductsPage = () => {
 
   // ── Mutations ──────────────────────────────────────────
   const createProductMutation = useMutation({
-    mutationFn: productService.createProduct,
+    mutationFn: async (values) => {
+      const result = await productService.createProduct(values);
+      // Optional image: upload only after the product exists. Never fail the
+      // create over an image error — the product is already saved.
+      if (newImageFile && result?.data?.id) {
+        try {
+          await productService.uploadImage(result.data.id, newImageFile);
+        } catch (imgErr) {
+          notification.warning({
+            message: 'Image Upload Failed',
+            description:
+              'The product was created, but its image could not be uploaded. You can add it later from the product page.',
+            placement: 'topRight',
+            duration: 5,
+          });
+        }
+      }
+      return result;
+    },
     onSuccess: (res) => {
       notification.success({
         message: 'Product Created',
@@ -240,6 +280,7 @@ const ProductsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['inventoryProducts'] });
       refetchProducts();
       form.resetFields();
+      clearNewImage();
       setDrawerOpen(false);
     },
     onError: (err) => {
@@ -513,9 +554,34 @@ const ProductsPage = () => {
                         justifyContent: 'center',
                         fontSize: '3.4rem',
                         borderBottom: '1px solid #F1F5F9',
+                        overflow: 'hidden',
                       }}
                     >
-                      {productIcon}
+                      {product.hasImage ? (
+                        <img
+                          src={productService.imageUrl(product.id)}
+                          alt={product.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            // Image missing/failed — fall back to the product icon.
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <span
+                        style={{
+                          display: product.hasImage ? 'none' : 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '100%',
+                          height: '100%',
+                        }}
+                      >
+                        {productIcon}
+                      </span>
 
                       {/* Status badge (top-left) */}
                       <span
@@ -638,6 +704,7 @@ const ProductsPage = () => {
           onClose={() => {
             setDrawerOpen(false);
             form.resetFields();
+            clearNewImage();
           }}
           open={drawerOpen}
           bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
@@ -647,6 +714,7 @@ const ProductsPage = () => {
                 onClick={() => {
                   setDrawerOpen(false);
                   form.resetFields();
+                  clearNewImage();
                 }}
                 style={{ borderRadius: 8, fontWeight: 600, height: 40 }}
               >
@@ -705,6 +773,51 @@ const ProductsPage = () => {
                   rows={4}
                   style={{ borderRadius: 8 }}
                 />
+              </Form.Item>
+
+              <Form.Item
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>Product Image <span style={{ fontWeight: 400, color: '#94A3B8' }}>(optional)</span></span>}
+                style={{ marginBottom: 0 }}
+              >
+                {newImagePreview ? (
+                  <div style={{ position: 'relative', width: 104, height: 104 }}>
+                    <img
+                      src={newImagePreview}
+                      alt="Selected product"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid #E2E8F0' }}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      onClick={clearNewImage}
+                      title="Remove image"
+                      style={{
+                        position: 'absolute', top: -8, right: -8, width: 22, height: 22, padding: 0,
+                        borderRadius: '50%', background: '#ffffff', color: '#EF4444',
+                        boxShadow: '0 1px 4px rgba(15,23,42,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, lineHeight: 1,
+                      }}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ) : (
+                  <Upload
+                    listType="picture-card"
+                    maxCount={1}
+                    accept="image/*"
+                    showUploadList={false}
+                    beforeUpload={(file) => {
+                      handleSelectImage(file);
+                      return false; // prevent auto-upload; we upload after create
+                    }}
+                  >
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8, fontSize: '0.78rem' }}>Upload</div>
+                    </div>
+                  </Upload>
+                )}
               </Form.Item>
             </Card>
           </Form>
