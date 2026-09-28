@@ -101,6 +101,8 @@ const CreateSale = () => {
   const queryClient = useQueryClient();
   const { gstEnabled, gstPercent } = useAppSettings();
   const { can } = usePermissions();
+  // Always pull the latest GST/settings when the sale form opens (no need to visit Settings first).
+  useEffect(() => { queryClient.invalidateQueries({ queryKey: ['appSettings'] }); }, [queryClient]);
   const [formValues, setFormValues] = useState({
     customerName: '',
     customerMobile: '',
@@ -574,12 +576,10 @@ const CreateSale = () => {
                     {totalDiscount > 0 ? '− ' : ''}{getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}
                   </Typography>
                 </Box>
-                {gstEnabled && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>GST ({Number(gstPercent) || 0}%)</Typography>
-                    <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
-                  </Box>
-                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>GST ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
+                  <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                </Box>
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Total Payable</Typography>

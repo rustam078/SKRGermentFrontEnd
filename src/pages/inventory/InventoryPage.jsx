@@ -50,6 +50,7 @@ import ScanBar from '../../modules/qr/components/ScanBar';
 import { mergeScannedUnit } from '../../modules/qr/scanCart';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const createEmptyItem = () => ({
   productId: '',
@@ -66,6 +67,7 @@ const InventoryPage = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const { gstEnabled, gstPercent } = useAppSettings();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [inventoryData, setInventoryData] = useState({ content: [], totalElements: 0 });
@@ -276,6 +278,7 @@ const InventoryPage = () => {
 
   const handleOpenSaleDrawer = async () => {
     setSaleDrawerOpen(true);
+    queryClient.invalidateQueries({ queryKey: ['appSettings'] }); // fresh GST each time the drawer opens
     setSubmitError('');
     setSubmitSuccess('');
     setToast({ open: false, message: '', severity: 'success' });
