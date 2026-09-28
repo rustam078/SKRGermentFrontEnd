@@ -1,16 +1,21 @@
 import axiosInstance from './axios';
-import { IProductionEntry, IProductionFilter } from '../types/production';
+import { IProductionEntry, IProductionFilter, IProductionPage } from '../types/production';
 
 /**
  * Service to handle Production API endpoints.
  */
 export const productionService = {
   /**
-   * Fetch production entries.
+   * Fetch ALL production entries (untruncated) as an array.
    * GET /api/production?employeeId=xxx&fromDate=xxx&toDate=xxx&productId=xxx&pieceCodeId=xxx
+   *
+   * The backend list endpoint is now paginated (data.content). Callers of this
+   * method (ProductDetailsPage / ProductionPage) compute per-product / all-time
+   * aggregates and must not be truncated, so we request a large page and return
+   * the flat array of entries.
    */
-  getProduction: async (filters: IProductionFilter = {}) => {
-    const params: any = {};
+  getProduction: async (filters: IProductionFilter = {}): Promise<IProductionEntry[]> => {
+    const params: any = { page: 0, size: 1000 };
     if (filters.employeeId) params.employeeId = filters.employeeId;
     if (filters.fromDate) params.fromDate = filters.fromDate;
     if (filters.toDate) params.toDate = filters.toDate;
@@ -18,7 +23,37 @@ export const productionService = {
     if (filters.pieceCodeId) params.pieceCodeId = filters.pieceCodeId;
 
     const response = await axiosInstance.get('/production', { params });
-    return response.data;
+    return response.data?.data?.content ?? [];
+  },
+
+  /**
+   * Fetch a single page of production entries for server-side pagination.
+   * GET /api/production?...&page&size
+   * Returns the full page object: { content, page, size, totalElements, totalPages, last }.
+   */
+  getProductionPage: async (
+    filters: IProductionFilter & { page?: number; size?: number } = {}
+  ): Promise<IProductionPage> => {
+    const params: any = {};
+    if (filters.employeeId) params.employeeId = filters.employeeId;
+    if (filters.fromDate) params.fromDate = filters.fromDate;
+    if (filters.toDate) params.toDate = filters.toDate;
+    if (filters.productId) params.productId = filters.productId;
+    if (filters.pieceCodeId) params.pieceCodeId = filters.pieceCodeId;
+    params.page = filters.page ?? 0;
+    params.size = filters.size ?? 20;
+
+    const response = await axiosInstance.get('/production', { params });
+    return (
+      response.data?.data ?? {
+        content: [],
+        page: params.page,
+        size: params.size,
+        totalElements: 0,
+        totalPages: 0,
+        last: true,
+      }
+    );
   },
 
   /**

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   ConfigProvider,
@@ -59,6 +59,10 @@ const ProductionHistoryPage: React.FC = () => {
     productId?: string;
   }>({});
 
+  // Server-side pagination state (backend page is 0-indexed; default size 20).
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+
   // "View items" modal — lists all products in a production entry
   const [itemsModal, setItemsModal] = useState<{ open: boolean; record: IProductionEntry | null }>({
     open: false,
@@ -93,7 +97,7 @@ const ProductionHistoryPage: React.FC = () => {
         try {
           await productionService.deleteProduction(record.id);
           notification.success({ message: 'Production entry deleted', placement: 'topRight' });
-          refetch();
+          refreshAll();
         } catch (e: any) {
           notification.error({ message: 'Delete failed', description: e.message, placement: 'topRight' });
         }
@@ -115,12 +119,28 @@ const ProductionHistoryPage: React.FC = () => {
   });
   const products = productsData?.data || [];
 
-  // Query 3: Fetch filtered production history entries
-  const { data: historyResponse, isLoading, refetch } = useQuery({
-    queryKey: ['productionHistory', filters],
+  // Query 3a: Fetch the current page of production history entries (server-side).
+  const { data: pageResponse, isLoading, refetch } = useQuery({
+    queryKey: ['productionHistory', filters, page, pageSize],
+    queryFn: () => productionService.getProductionPage({ ...filters, page, size: pageSize }),
+    placeholderData: keepPreviousData,
+  });
+  const productionEntries = pageResponse?.content || [];
+  const totalElements = pageResponse?.totalElements || 0;
+
+  // Query 3b: Fetch ALL filtered entries (untruncated) purely to compute the KPI
+  // totals below — the paged query above only returns the current page.
+  const { data: allEntriesResponse, refetch: refetchTotals } = useQuery({
+    queryKey: ['productionHistoryTotals', filters],
     queryFn: () => productionService.getProduction(filters),
   });
-  const productionEntries = historyResponse?.data || [];
+  const allEntries = allEntriesResponse || [];
+
+  // Refresh both the paged rows and the totals aggregate.
+  const refreshAll = () => {
+    refetch();
+    refetchTotals();
+  };
 
   // Currency formatter
   const formatCurrency = (value: number) => {
@@ -132,6 +152,8 @@ const ProductionHistoryPage: React.FC = () => {
   };
 
   const handleSearch = (values: any) => {
+    // Filtering happens on the server — reset to the first page on any filter change.
+    setPage(0);
     setFilters({
       fromDate: values.fromDate ? values.fromDate.format('YYYY-MM-DD') : undefined,
       toDate: values.toDate ? values.toDate.format('YYYY-MM-DD') : undefined,
@@ -142,25 +164,26 @@ const ProductionHistoryPage: React.FC = () => {
 
   const handleReset = () => {
     form.resetFields();
+    setPage(0);
     setFilters({});
   };
 
   // Dynamic KPI aggregates calculation
   const todayStr = dayjs().format('YYYY-MM-DD');
   
-  // Today Quantity Produced
-  const todayQuantity = productionEntries
+  // Today Quantity Produced (computed over ALL filtered entries, not just the page)
+  const todayQuantity = allEntries
     .filter((e) => e.productionDate === todayStr)
     .reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
 
   // This Month Quantity Produced (Current month: 2026-06)
-  const thisMonthQuantity = productionEntries
+  const thisMonthQuantity = allEntries
     .filter((e) => e.productionDate && e.productionDate.startsWith('2026-06'))
     .reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
 
   // Global totals from list
-  const totalQuantity = productionEntries.reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
-  const totalAmount = productionEntries.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+  const totalQuantity = allEntries.reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
+  const totalAmount = allEntries.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
 
   const cardStyle = {
     borderRadius: 12,
@@ -343,7 +366,7 @@ const ProductionHistoryPage: React.FC = () => {
           <Button
             type="default"
             icon={<ReloadOutlined />}
-            onClick={() => refetch()}
+            onClick={refreshAll}
             style={{ borderRadius: 6, fontWeight: 600 }}
           >
             Refresh
@@ -521,10 +544,22 @@ const ProductionHistoryPage: React.FC = () => {
               columns={columns}
               rowKey="id"
               pagination={{
-                defaultPageSize: 10,
+                current: page + 1,
+                pageSize,
+                total: totalElements,
                 showSizeChanger: true,
                 pageSizeOptions: ['10', '20', '50'],
                 showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} logs`,
+                onChange: (nextPage, nextSize) => {
+                  // antd is 1-indexed; the backend is 0-indexed. Reset to the first
+                  // page when the page size changes.
+                  if (nextSize !== pageSize) {
+                    setPageSize(nextSize);
+                    setPage(0);
+                  } else {
+                    setPage(nextPage - 1);
+                  }
+                },
               }}
               style={{ borderRadius: 12, overflow: 'hidden' }}
               locale={{

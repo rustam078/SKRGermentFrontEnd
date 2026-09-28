@@ -62,3 +62,13 @@ export interface IProductionFilter {
   productId?: string;
   pieceCodeId?: string;
 }
+
+/** A single page of production entries returned by the paginated list endpoint. */
+export interface IProductionPage {
+  content: IProductionEntry[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}

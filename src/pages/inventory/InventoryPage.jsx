@@ -49,6 +49,7 @@ import axiosInstance from '../../services/axios';
 import ScanBar from '../../modules/qr/components/ScanBar';
 import { mergeScannedUnit } from '../../modules/qr/scanCart';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAppSettings } from '../../contexts/AppSettingsContext';
 
 const createEmptyItem = () => ({
   productId: '',
@@ -64,6 +65,7 @@ const createEmptyItem = () => ({
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const { gstEnabled, gstPercent } = useAppSettings();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [inventoryData, setInventoryData] = useState({ content: [], totalElements: 0 });
@@ -451,8 +453,9 @@ const InventoryPage = () => {
 
       await axiosInstance.post('/sales', payload);
       const totalItems = payload.items.reduce((sum, item) => sum + item.quantity, 0);
-      const totalValue = payload.items.reduce((sum, item) => sum + item.quantity * item.sellingPrice, 0);
-      setSubmitSuccess(`Sale saved successfully for ${totalItems} item(s) totaling ${getCurrencySymbol()}${totalValue.toLocaleString('en-IN')}.`);
+      const net = payload.items.reduce((sum, item) => sum + item.quantity * item.sellingPrice, 0);
+      const totalValue = net + (gstEnabled && net > 0 ? (net * (Number(gstPercent) || 0)) / 100 : 0);
+      setSubmitSuccess(`Sale saved successfully for ${totalItems} item(s) totaling ${getCurrencySymbol()}${totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}.`);
       showToast(`Sale saved successfully for ${totalItems} item(s).`, 'success');
       resetSaleForm();
       // A sale reduces stock, which can trip low-stock thresholds — refresh both
@@ -471,6 +474,8 @@ const InventoryPage = () => {
   const selectedItems = saleForm.items.filter((item) => item.productId && item.quantity > 0);
   const totalSummaryQty = selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const totalSummaryValue = selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.sellingPrice || 0), 0);
+  const gstAmount = gstEnabled && totalSummaryValue > 0 ? (totalSummaryValue * (Number(gstPercent) || 0)) / 100 : 0;
+  const payableWithGst = totalSummaryValue + gstAmount;
   const lowStockCount = useMemo(() => alerts.length, [alerts]);
 
   // Line profit vs unit cost (averageCost): amount over the whole quantity + %.
@@ -748,9 +753,9 @@ const InventoryPage = () => {
                 <Paper key={`${item.productId || 'new'}-${index}`} variant="outlined" sx={{ borderRadius: 0, p: 2, bgcolor: '#fff' }}>
                   <Stack spacing={1}>
                     {/* Item label + Product + Quantity + Selling Price + delete — all on one row */}
-                    <Grid container spacing={1.5} alignItems="center">
+                    <Grid container spacing={1.5} alignItems="flex-start">
                       <Grid item xs={12} sm={2}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#475569', whiteSpace: 'nowrap', mt: { sm: '8px' } }}>
                           Item {index + 1}
                         </Typography>
                       </Grid>
@@ -794,7 +799,7 @@ const InventoryPage = () => {
                           inputProps={{ min: 1 }}
                           disabled={Boolean(item.serials && item.serials.length)}
                           error={Boolean(item.error)}
-                          helperText={item.error || (item.serials && item.serials.length ? 'scan-managed' : (item.quantityAvailable != null ? `Available: ${item.quantityAvailable}` : ''))}
+                          helperText={item.error || (item.serials && item.serials.length ? 'scan-managed' : (item.quantityAvailable != null ? `Avail: ${item.quantityAvailable}` : ''))}
                         />
                       </Grid>
                       <Grid item xs={6} sm={3}>
@@ -809,7 +814,7 @@ const InventoryPage = () => {
                           helperText={item.averageCost != null ? `Cost: ${getCurrencySymbol()}${Number(item.averageCost).toLocaleString('en-IN')}` : ''}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={1} sx={{ display: 'flex', justifyContent: { xs: 'flex-end', sm: 'center' } }}>
+                      <Grid item xs={12} sm={1} sx={{ display: 'flex', justifyContent: { xs: 'flex-end', sm: 'center' }, mt: { sm: '2px' } }}>
                         {saleForm.items.length > 1 ? (
                           <Tooltip title="Remove item">
                             <IconButton color="error" size="small" onClick={() => handleRemoveItem(index)}>
@@ -861,10 +866,18 @@ const InventoryPage = () => {
                     </Typography>
                   </Box>
                 ))}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Subtotal</Typography>
+                  <Typography variant="body2">{getCurrencySymbol()}{totalSummaryValue.toLocaleString('en-IN')}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">GST ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
+                  <Typography variant="body2">{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
                   <Typography variant="body2">Total</Typography>
                   <Typography variant="body2">
-                    {totalSummaryQty} item(s) • {getCurrencySymbol()}{totalSummaryValue.toLocaleString('en-IN')}
+                    {totalSummaryQty} item(s) • {getCurrencySymbol()}{payableWithGst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                   </Typography>
                 </Box>
                 {totalCostBasis > 0 ? (

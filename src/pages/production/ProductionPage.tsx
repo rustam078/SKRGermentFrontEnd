@@ -134,7 +134,7 @@ const ProductionPage: React.FC = () => {
     queryKey: ['productionRecent', historyFilters],
     queryFn: () => productionService.getProduction(historyFilters),
   });
-  const entries = productionResponse?.data || [];
+  const entries = productionResponse || [];
 
   const quickFilter = Form.useWatch('quickFilter', filterForm) || 'Custom Range';
   const isCustom = quickFilter === 'Custom Range';

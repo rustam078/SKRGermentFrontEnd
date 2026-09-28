@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import {
   Alert,
@@ -19,7 +19,6 @@ import {
   Select,
   Snackbar,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
@@ -27,7 +26,6 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Tabs,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -80,8 +78,7 @@ const InventoryDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [tab, setTab] = useState(0); // 0 = Available, 1 = Sold Out
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [quickRange, setQuickRange] = useState('All');
@@ -193,7 +190,7 @@ const InventoryDetailsPage = () => {
       setError('');
 
       try {
-        const params = {};
+        const params = { page, size: rowsPerPage };
         if (appliedQuickRange !== 'All') {
           if (appliedFromDate) params.fromDate = appliedFromDate;
           if (appliedToDate) params.toDate = appliedToDate;
@@ -212,32 +209,16 @@ const InventoryDetailsPage = () => {
     if (productId) {
       fetchInventoryDetails();
     }
-  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate, refreshKey]);
+  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate, refreshKey, page, rowsPerPage]);
 
   useEffect(() => {
     setPage(0);
   }, [productId, appliedQuickRange, appliedFromDate, appliedToDate]);
 
+  // `batches` is now a single server page of batches. Totals below stay accurate
+  // because the backend computes them over ALL batches, not just this page.
   const batches = details?.batches || [];
-
-  const availableBatches = useMemo(
-    () => batches.filter((b) => Number(b.quantityAvailable ?? 0) > 0),
-    [batches]
-  );
-  const soldOutBatches = useMemo(
-    () => batches.filter((b) => Number(b.quantityAvailable ?? 0) <= 0),
-    [batches]
-  );
-  const displayedBatches = tab === 0 ? availableBatches : soldOutBatches;
-
-  const paginatedBatches = useMemo(() => {
-    const start = page * rowsPerPage;
-    return displayedBatches.slice(start, start + rowsPerPage);
-  }, [displayedBatches, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [tab]);
+  const totalBatches = Number(details?.totalBatches ?? batches.length);
 
   return (
     <Box>
@@ -305,7 +286,7 @@ const InventoryDetailsPage = () => {
         </Stack>
       </Box>
 
-      {loading ? (
+      {loading && !details ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress />
         </Box>
@@ -366,7 +347,7 @@ const InventoryDetailsPage = () => {
                 { label: "Quantity Available", value: formatNumber(details.quantityAvailable), valueColor: 'success.main' },
                 { label: "Total Value", value: formatCurrency(details.totalValue) },
                 { label: "Average Cost", value: formatCurrency(details.averageCost) },
-                { label: "Batch Count", value: batches.length },
+                { label: "Batch Count", value: totalBatches },
               ].map((item) => (
                 <Box key={item.label} sx={{ minWidth: { sm: 120 } }}>
                   <Typography variant="caption" color="text.secondary">
@@ -391,15 +372,6 @@ const InventoryDetailsPage = () => {
                 </Typography>
               </Box>
 
-              <Tabs
-                value={tab}
-                onChange={(e, v) => setTab(v)}
-                sx={{ mb: 1, borderBottom: '1px solid #E2E8F0', minHeight: 40, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40 } }}
-              >
-                <Tab label={`Available (${availableBatches.length})`} />
-                <Tab label={`Sold Out (${soldOutBatches.length})`} />
-              </Tabs>
-
               <TableContainer>
                 <Table size="small">
                   <TableHead>
@@ -413,14 +385,12 @@ const InventoryDetailsPage = () => {
                       <TableCell sx={{ fontWeight: 700 }}>Unit Cost</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Batch Value</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      {tab === 0 && (
-                        <TableCell sx={{ fontWeight: 700 }} align="center">Actions</TableCell>
-                      )}
+                      <TableCell sx={{ fontWeight: 700 }} align="center">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginatedBatches.length > 0 ? (
-                      paginatedBatches.map((batch) => {
+                    {batches.length > 0 ? (
+                      batches.map((batch) => {
                         const totalQ = Number(batch.totalQuantity ?? 0);
                         const availableQ = Number(batch.quantityAvailable ?? 0);
                         const soldQ = totalQ - availableQ;
@@ -461,8 +431,8 @@ const InventoryDetailsPage = () => {
                                 variant="outlined"
                               />
                             </TableCell>
-                            {tab === 0 && (
-                              <TableCell align="center">
+                            <TableCell align="center">
+                              {availableQ > 0 ? (
                                 <Stack direction="row" spacing={1} justifyContent="center">
                                   {can('inventory', 'write') && (
                                   <Tooltip title="Adjust stock (increase / decrease)">
@@ -497,16 +467,18 @@ const InventoryDetailsPage = () => {
                                   </Tooltip>
                                   )}
                                 </Stack>
-                              </TableCell>
-                            )}
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">—</Typography>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={tab === 0 ? 10 : 9} align="center" sx={{ py: 4 }}>
+                        <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
-                            {tab === 0 ? 'No batches with available stock.' : 'No sold-out batches.'}
+                            No batches found for the selected filters.
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -517,7 +489,7 @@ const InventoryDetailsPage = () => {
 
               <TablePagination
                 component="div"
-                count={displayedBatches.length}
+                count={totalBatches}
                 page={page}
                 onPageChange={(event, newPage) => setPage(newPage)}
                 rowsPerPage={rowsPerPage}
@@ -525,7 +497,7 @@ const InventoryDetailsPage = () => {
                   setRowsPerPage(parseInt(event.target.value, 10));
                   setPage(0);
                 }}
-                rowsPerPageOptions={[5, 10, 20]}
+                rowsPerPageOptions={[10, 20, 50]}
               />
             </CardContent>
           </Card>

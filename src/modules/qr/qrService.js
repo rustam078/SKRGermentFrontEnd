@@ -15,9 +15,19 @@ const qrService = {
     return res.data;
   },
 
-  // All units for a batch (for the print sheet / reprint).
+  // All units for a batch (for the print sheet / reprint) — full, unpaged list.
   getUnits: async (batchNumber) => {
     const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units`);
+    return res.data;
+  },
+
+  // A single page of units for a batch (server-side pagination).
+  // Returns the CommonResponse envelope; caller reads
+  // `.data` = { content, page, size, totalElements, totalPages, last }.
+  getUnitsPage: async (batchNumber, page = 0, size = 20) => {
+    const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units/page`, {
+      params: { page, size },
+    });
     return res.data;
   },
 

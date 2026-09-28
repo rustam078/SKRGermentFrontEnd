@@ -223,7 +223,7 @@ const ProductDetailsPage = () => {
   const materialCosts = materialCostResponse?.data || [];
   const product = productResponse?.data;
   const pieceCodes = pieceCodesResponse?.data || [];
-  const productionEntries = productionResponse?.data || [];
+  const productionEntries = productionResponse || [];
 
   // ── Analytics Computations ──────────────────────
   const totalPieceCodes = pieceCodes.length;
