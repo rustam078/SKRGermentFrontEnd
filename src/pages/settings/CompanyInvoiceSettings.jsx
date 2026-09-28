@@ -28,6 +28,8 @@ const CompanyInvoiceSettings = () => {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['appSettings'],
     queryFn: settingsService.getAll,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Prefill once loaded.
