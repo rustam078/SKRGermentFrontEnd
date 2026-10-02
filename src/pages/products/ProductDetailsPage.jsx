@@ -338,7 +338,8 @@ const ProductDetailsPage = () => {
   }, [productProductionItems, pieceCodes, materialCosts]);
 
   const ACTIVITY_PREVIEW_COUNT = 5;
-  const visibleActivities = showAllActivities ? allActivities : allActivities.slice(0, ACTIVITY_PREVIEW_COUNT);
+  const ACTIVITY_MAX = 20;
+  const visibleActivities = showAllActivities ? allActivities.slice(0, ACTIVITY_MAX) : allActivities.slice(0, ACTIVITY_PREVIEW_COUNT);
   const hasMoreActivities = allActivities.length > ACTIVITY_PREVIEW_COUNT;
 
   const getActivityIcon = (type) => {
@@ -356,6 +357,58 @@ const ProductDetailsPage = () => {
       default:
         return { icon: <FileTextOutlined style={{ color: '#64748B', fontSize: '1rem' }} />, bg: '#F1F5F9' };
     }
+  };
+
+  // One activity card – shared by preview and expanded views so both look identical.
+  const renderActivityCard = (act) => {
+    const iconConfig = getActivityIcon(act.type);
+    return (
+      <div
+        key={act.id}
+        style={{
+          flex: '1 1 220px',
+          minWidth: 220,
+          maxWidth: 340,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+          padding: '14px 16px',
+          borderRadius: 10,
+          backgroundColor: '#FAFAFA',
+          border: '1px solid #F1F5F9',
+          transition: 'box-shadow 0.2s, border-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+          e.currentTarget.style.borderColor = '#E2E8F0';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.borderColor = '#F1F5F9';
+        }}
+      >
+        <div style={{
+          width: 36, height: 36, borderRadius: 10,
+          backgroundColor: iconConfig.bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          {iconConfig.icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.75rem', color: '#1E293B', marginBottom: 2, wordBreak: 'break-word' }}>
+            {act.title}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#64748B', lineHeight: 1.4, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+            {act.subtitle}
+          </div>
+          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <ClockCircleOutlined style={{ fontSize: '0.55rem' }} />
+            {act.date}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // ── Mutations ───────────────────────────────────
@@ -1231,126 +1284,14 @@ const ProductDetailsPage = () => {
         >
           {allActivities.length > 0 ? (
             <>
-              {/* Horizontal scrolling row – first 5 activities */}
+              {/* Wrapping grid – cards never shrink below 220px, so text can't overlap. */}
               <div style={{
                 display: 'flex',
+                flexWrap: 'wrap',
                 gap: 16,
-                overflowX: 'auto',
-                paddingBottom: 4,
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
               }}>
-                {allActivities.slice(0, ACTIVITY_PREVIEW_COUNT).map((act) => {
-                  const iconConfig = getActivityIcon(act.type);
-                  return (
-                    <div
-                      key={act.id}
-                      style={{
-                        minWidth: 200,
-                        flex: '1 1 0',
-                        display: 'flex',
-                        gap: 12,
-                        alignItems: 'flex-start',
-                        padding: '14px 16px',
-                        borderRadius: 10,
-                        backgroundColor: '#FAFAFA',
-                        border: '1px solid #F1F5F9',
-                        transition: 'box-shadow 0.2s, border-color 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-                        e.currentTarget.style.borderColor = '#E2E8F0';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = 'none';
-                        e.currentTarget.style.borderColor = '#F1F5F9';
-                      }}
-                    >
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        backgroundColor: iconConfig.bg,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        {iconConfig.icon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.72rem', color: '#1E293B', marginBottom: 2 }}>
-                          {act.title}
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: '#64748B', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
-                          {act.subtitle}
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <ClockCircleOutlined style={{ fontSize: '0.55rem' }} />
-                          {act.date}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {visibleActivities.map((act) => renderActivityCard(act))}
               </div>
-              <style>{`.ant-card-body > div::-webkit-scrollbar { display: none; }`}</style>
-
-              {/* Expanded activities below (shown on View All click) */}
-              {showAllActivities && allActivities.length > ACTIVITY_PREVIEW_COUNT && (
-                <div style={{
-                  display: 'flex',
-                  gap: 16,
-                  overflowX: 'auto',
-                  paddingBottom: 4,
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                }}>
-                  {allActivities.slice(ACTIVITY_PREVIEW_COUNT).map((act) => {
-                    const iconConfig = getActivityIcon(act.type);
-                    return (
-                      <div
-                        key={act.id}
-                        style={{
-                          minWidth: 200,
-                          flex: '1 1 0',
-                          display: 'flex',
-                          gap: 12,
-                          alignItems: 'flex-start',
-                          padding: '14px 16px',
-                          borderRadius: 10,
-                          backgroundColor: '#FAFAFA',
-                          border: '1px solid #F1F5F9',
-                          transition: 'box-shadow 0.2s, border-color 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FAFAFA'}
-                      >
-                        <div style={{
-                          width: 36, height: 36, borderRadius: 10,
-                          backgroundColor: iconConfig.bg,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          {iconConfig.icon}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#1E293B' }}>
-                            {act.title}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'pre-line', lineHeight: 1.4, marginTop: 1 }}>
-                            {act.subtitle}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>
-                            {act.date}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 2 }}>
-                            {act.dateBy}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </>
           ) : (
             <Empty description="No activity yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />

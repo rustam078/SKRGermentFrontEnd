@@ -92,3 +92,19 @@ export const useAppSettings = () => {
   if (!ctx) throw new Error('useAppSettings must be used within an AppSettingsProvider');
   return ctx;
 };
+
+// Always refetches settings on mount so a sale form reflects the current GST without
+// visiting Settings first; falls back to 0/off when not configured.
+export const useGstConfig = () => {
+  const { data } = useQuery({
+    queryKey: ['appSettings'],
+    queryFn: settingsService.getAll,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+  const map = { ...DEFAULTS, ...(data || {}) };
+  return {
+    gstEnabled: String(map.SALES_GST_ENABLED).toLowerCase() === 'true',
+    gstPercent: Number(map.DEFAULT_GST_PERCENT) || 0,
+  };
+};

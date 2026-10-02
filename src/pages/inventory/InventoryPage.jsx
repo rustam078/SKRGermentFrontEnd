@@ -49,7 +49,7 @@ import axiosInstance from '../../services/axios';
 import ScanBar from '../../modules/qr/components/ScanBar';
 import { mergeScannedUnit } from '../../modules/qr/scanCart';
 import { usePermissions } from '../../hooks/usePermissions';
-import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useGstConfig } from '../../contexts/AppSettingsContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 const createEmptyItem = () => ({
@@ -66,7 +66,7 @@ const createEmptyItem = () => ({
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
-  const { gstEnabled, gstPercent } = useAppSettings();
+  const { gstEnabled, gstPercent } = useGstConfig();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);

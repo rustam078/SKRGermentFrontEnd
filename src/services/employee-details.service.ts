@@ -1,5 +1,6 @@
 import axiosInstance from './axios';
 import { IEmployeeDetailsResponse, ICalendarDay } from '../types/employee-details.types';
+import { downloadReport, periodToken } from '../utils/reportDownload';
 
 /**
  * Service to manage employee details query.
@@ -35,6 +36,17 @@ export const employeeDetailsService = {
       params: { fromDate, toDate },
     });
     return response.data.data;
+  },
+
+  /** Date-range employee report (PDF or Excel). GET /api/employees/{id}/report/{format} */
+  downloadEmployeeReport: async (
+    format: 'pdf' | 'excel',
+    employeeId: string,
+    fromDate: string,
+    toDate: string
+  ) => {
+    await downloadReport(`/employees/${employeeId}/report/${format}`, { fromDate, toDate },
+      `employee_${periodToken(fromDate, toDate)}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
   },
 };
 
@@ -143,29 +155,21 @@ function normalizeDetailsResponse(
     '12': 'Dec',
   };
 
+  // Build the trend from the actual (date-range-filtered) history — one point per month with data,
+  // in chronological order. No hardcoded months, so it always reflects the selected range.
   const monthlySums: { [key: string]: number } = {};
-  const baseMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  baseMonths.forEach((m) => {
-    monthlySums[m] = 0;
-  });
-
   productionHistory.forEach((item) => {
     if (item.date && item.date.length >= 7) {
-      const monthNum = item.date.substring(5, 7);
-      const mName = numToMonth[monthNum];
-      if (mName) {
-        monthlySums[mName] = (monthlySums[mName] || 0) + item.earnings;
-      }
+      const key = item.date.substring(0, 7); // YYYY-MM
+      monthlySums[key] = (monthlySums[key] || 0) + item.earnings;
     }
   });
-
-  const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyEarnings = allMonths
-    .filter((m) => baseMonths.includes(m) || (monthlySums[m] && monthlySums[m] > 0))
-    .map((m) => ({
-      month: m,
-      earnings: monthlySums[m] || 0,
-    }));
+  const monthlyEarnings = Object.keys(monthlySums)
+    .sort()
+    .map((key) => {
+      const [year, monthNum] = key.split('-');
+      return { month: `${numToMonth[monthNum]} ${year}`, earnings: monthlySums[key] };
+    });
 
   // 6. Normalize current month product summary
   const rawCurrentMonthProd = Array.isArray(rawData.currentMonthProductSummary) ? rawData.currentMonthProductSummary : [];

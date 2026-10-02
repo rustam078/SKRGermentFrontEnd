@@ -1,4 +1,5 @@
 import axiosInstance from '../../../services/axios';
+import { downloadReport, periodToken } from '../../../utils/reportDownload';
 
 const salesService = {
   getDashboard: async () => {
@@ -62,6 +63,12 @@ const salesService = {
     link.download = `invoice-${saleId}.pdf`;
     link.click();
     URL.revokeObjectURL(url);
+  },
+
+  /** Date-range sales report (PDF or Excel). GET /api/sales/report/{format} */
+  downloadSalesReport: async (format, fromDate, toDate) => {
+    await downloadReport(`/sales/report/${format}`, { fromDate, toDate },
+      `sales_${periodToken(fromDate, toDate)}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
   },
 };
 

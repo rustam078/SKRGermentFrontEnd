@@ -17,13 +17,20 @@ import {
   Empty,
   Divider,
   Spin,
+  Dropdown,
+  notification,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   FilterOutlined,
+  DownloadOutlined,
+  FilePdfOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import { Box } from '@mui/material';
 import dayjs from 'dayjs';
+import { employeeDetailsService } from '../../services/employee-details.service';
+import { currentMonthRange } from '../../utils/reportDownload';
 
 import { useEmployeeDetails, useEmployeeCalendar } from '../../hooks/useEmployeeDetails';
 import { EmployeeInfoCard } from './EmployeeInfoCard';
@@ -152,6 +159,19 @@ const EmployeeDetailsPage: React.FC = () => {
   // Determine final calendar query dates (Global filter overrides calendar's local filters)
   const calendarFromDate = filterRange.fromDate || localCalendarDates.fromDate;
   const calendarToDate = filterRange.toDate || localCalendarDates.toDate;
+
+  // Download this employee's report for the selected range (defaults to the current month).
+  const handleDownloadReport = async (format: 'pdf' | 'excel') => {
+    if (!employeeId) return;
+    const range = filterRange.fromDate && filterRange.toDate
+      ? { fromDate: filterRange.fromDate, toDate: filterRange.toDate }
+      : currentMonthRange();
+    try {
+      await employeeDetailsService.downloadEmployeeReport(format, employeeId, range.fromDate, range.toDate);
+    } catch (e: any) {
+      notification.error({ message: 'Report download failed', description: e.message, placement: 'topRight' });
+    }
+  };
 
   // Update calendar month focus when the query range changes
   useEffect(() => {
@@ -464,6 +484,19 @@ const EmployeeDetailsPage: React.FC = () => {
               >
                 Back
               </Button>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadReport('pdf') },
+                    { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadReport('excel') },
+                  ],
+                }}
+              >
+                <Button icon={<DownloadOutlined />} style={{ borderRadius: 6, fontWeight: 600 }}>
+                  Download report
+                </Button>
+              </Dropdown>
             </div>
 
             {/* Right: Date Filters */}

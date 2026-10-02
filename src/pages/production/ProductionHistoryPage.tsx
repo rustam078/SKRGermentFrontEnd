@@ -34,11 +34,13 @@ import {
   MoreOutlined,
   DeleteOutlined,
   ExclamationCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { Box, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
 import { productionService } from '../../services/productionService';
+import ReportDownloadDialog from '../../components/common/ReportDownloadDialog';
 import { employeeService } from '../../services/employee.service';
 import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
@@ -85,6 +87,9 @@ const ProductionHistoryPage: React.FC = () => {
       notification.error({ message: 'Excel download failed', description: e.message, placement: 'topRight' });
     }
   };
+  // Report download uses its own range picker (dialog), independent of the table filters.
+  const [reportOpen, setReportOpen] = useState(false);
+
   const handleDelete = (record: IProductionEntry) => {
     Modal.confirm({
       title: 'Delete production entry?',
@@ -128,13 +133,11 @@ const ProductionHistoryPage: React.FC = () => {
   const productionEntries = pageResponse?.content || [];
   const totalElements = pageResponse?.totalElements || 0;
 
-  // Query 3b: Fetch ALL filtered entries (untruncated) purely to compute the KPI
-  // totals below — the paged query above only returns the current page.
-  const { data: allEntriesResponse, refetch: refetchTotals } = useQuery({
+  // Query 3b: aggregate KPIs for the cards (cheap SQL — not the whole dataset).
+  const { data: stats, refetch: refetchTotals } = useQuery({
     queryKey: ['productionHistoryTotals', filters],
-    queryFn: () => productionService.getProduction(filters),
+    queryFn: () => productionService.getProductionStats(filters),
   });
-  const allEntries = allEntriesResponse || [];
 
   // Refresh both the paged rows and the totals aggregate.
   const refreshAll = () => {
@@ -168,22 +171,11 @@ const ProductionHistoryPage: React.FC = () => {
     setFilters({});
   };
 
-  // Dynamic KPI aggregates calculation
-  const todayStr = dayjs().format('YYYY-MM-DD');
-  
-  // Today Quantity Produced (computed over ALL filtered entries, not just the page)
-  const todayQuantity = allEntries
-    .filter((e) => e.productionDate === todayStr)
-    .reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
-
-  // This Month Quantity Produced (Current month: 2026-06)
-  const thisMonthQuantity = allEntries
-    .filter((e) => e.productionDate && e.productionDate.startsWith('2026-06'))
-    .reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
-
-  // Global totals from list
-  const totalQuantity = allEntries.reduce((sum, e) => sum + (e.totalQuantity || 0), 0);
-  const totalAmount = allEntries.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+  // KPI aggregates (from the server stats endpoint; month is computed dynamically there).
+  const todayQuantity = stats?.todayQuantity ?? 0;
+  const thisMonthQuantity = stats?.monthQuantity ?? 0;
+  const totalQuantity = stats?.totalQuantity ?? 0;
+  const totalAmount = stats?.totalAmount ?? 0;
 
   const cardStyle = {
     borderRadius: 12,
@@ -363,15 +355,27 @@ const ProductionHistoryPage: React.FC = () => {
               <HeadingInfo text="Review and audit historic enterprise garment production entries." />
             </Typography>
           </div>
-          <Button
-            type="default"
-            icon={<ReloadOutlined />}
-            onClick={refreshAll}
-            style={{ borderRadius: 6, fontWeight: 600 }}
-          >
-            Refresh
-          </Button>
+          <Space>
+            <Button icon={<DownloadOutlined />} onClick={() => setReportOpen(true)} style={{ borderRadius: 6, fontWeight: 600 }}>
+              Download report
+            </Button>
+            <Button
+              type="default"
+              icon={<ReloadOutlined />}
+              onClick={refreshAll}
+              style={{ borderRadius: 6, fontWeight: 600 }}
+            >
+              Refresh
+            </Button>
+          </Space>
         </div>
+
+        <ReportDownloadDialog
+          open={reportOpen}
+          title="Download production report"
+          onClose={() => setReportOpen(false)}
+          onDownload={(format, from, to) => productionService.downloadProductionReport(format, from, to)}
+        />
 
         {/* ==================================================
             TOP SUMMARY CARDS (4 KPI Panels)

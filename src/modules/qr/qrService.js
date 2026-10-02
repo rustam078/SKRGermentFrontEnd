@@ -15,18 +15,32 @@ const qrService = {
     return res.data;
   },
 
+  // Cheap label counts for a batch (so the dialog never loads every unit).
+  getSummary: async (batchNumber) => {
+    const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units/summary`);
+    return res.data;
+  },
+
+  // Existing labels in the serial range [from, to] (to print/reprint a specific chunk).
+  getUnitsRange: async (batchNumber, from, to) => {
+    const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units/range`, {
+      params: { from, to },
+    });
+    return res.data;
+  },
+
   // All units for a batch (for the print sheet / reprint) — full, unpaged list.
   getUnits: async (batchNumber) => {
     const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units`);
     return res.data;
   },
 
-  // A single page of units for a batch (server-side pagination).
+  // A single page of units for a batch (server-side pagination), optional serial filter.
   // Returns the CommonResponse envelope; caller reads
   // `.data` = { content, page, size, totalElements, totalPages, last }.
-  getUnitsPage: async (batchNumber, page = 0, size = 20) => {
+  getUnitsPage: async (batchNumber, page = 0, size = 20, serial) => {
     const res = await axiosInstance.get(`/qr/batches/${batchNumber}/units/page`, {
-      params: { page, size },
+      params: serial ? { page, size, serial } : { page, size },
     });
     return res.data;
   },

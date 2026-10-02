@@ -41,7 +41,7 @@ import productService from '../services/productService';
 import ScanBar from '../../qr/components/ScanBar';
 import { mergeScannedUnit } from '../../qr/scanCart';
 import { getCurrencySymbol } from '../../../utils/currency';
-import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useGstConfig } from '../../../contexts/AppSettingsContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 
 // Profit % / amount for one line, based on unit cost vs selling price (after discount).
@@ -99,10 +99,8 @@ const EditableNumber = ({ value, onCommit, prefix = '', disabled, min = 0, width
 const CreateSale = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { gstEnabled, gstPercent } = useAppSettings();
+  const { gstEnabled, gstPercent } = useGstConfig();
   const { can } = usePermissions();
-  // Always pull the latest GST/settings when the sale form opens (no need to visit Settings first).
-  useEffect(() => { queryClient.invalidateQueries({ queryKey: ['appSettings'] }); }, [queryClient]);
   const [formValues, setFormValues] = useState({
     customerName: '',
     customerMobile: '',

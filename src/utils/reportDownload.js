@@ -1,4 +1,16 @@
 import axiosInstance from '../services/axios';
+import dayjs from 'dayjs';
+
+// Report file-name token: "Jan_2026" for a full calendar month, else "01Jan2026_to_15Jan2026".
+export function periodToken(from, to) {
+  const f = dayjs(from);
+  const t = dayjs(to);
+  if (!f.isValid() || !t.isValid()) return 'report';
+  if (f.date() === 1 && t.isSame(f.endOf('month'), 'day')) {
+    return f.format('MMM_YYYY');
+  }
+  return `${f.format('DDMMMYYYY')}_to_${t.format('DDMMMYYYY')}`;
+}
 
 // Current calendar month, used when the page has no date range selected.
 export function currentMonthRange() {

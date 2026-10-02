@@ -8,9 +8,11 @@ import {
 import ReplayIcon from '@mui/icons-material/Replay';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
+import DownloadIcon from '@mui/icons-material/Download';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import salesService from '../services/salesService';
+import ReportDownloadDialog from '../../../components/common/ReportDownloadDialog';
 import SalesTable from '../components/SalesTable';
 import HeadingInfo from '../../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../../utils/currency';
@@ -42,6 +44,7 @@ const SalesList = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filterAnchor, setFilterAnchor] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false); // report has its own range picker (dialog)
 
   // Shared filter → query params (used by both the list and the summary).
   const filterParams = useMemo(() => {
@@ -126,6 +129,14 @@ const SalesList = () => {
               Filters
             </Button>
           </Badge>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => setReportOpen(true)}
+            sx={{ borderColor: 'divider', color: '#334155' }}
+          >
+            Download
+          </Button>
           {can('sales', 'write') && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/sales/new')}>
               New Sale
@@ -184,6 +195,13 @@ const SalesList = () => {
           </Stack>
         </Stack>
       </Popover>
+
+      <ReportDownloadDialog
+        open={reportOpen}
+        title="Download sales report"
+        onClose={() => setReportOpen(false)}
+        onDownload={(format, from, to) => salesService.downloadSalesReport(format, from, to)}
+      />
 
       <SalesTable
         rows={rows}

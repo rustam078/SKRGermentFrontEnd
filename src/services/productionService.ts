@@ -1,5 +1,6 @@
 import axiosInstance from './axios';
 import { IProductionEntry, IProductionFilter, IProductionPage } from '../types/production';
+import { downloadReport, periodToken } from '../utils/reportDownload';
 
 /**
  * Service to handle Production API endpoints.
@@ -24,6 +25,20 @@ export const productionService = {
 
     const response = await axiosInstance.get('/production', { params });
     return response.data?.data?.content ?? [];
+  },
+
+  /**
+   * Aggregate KPIs for the summary cards (so the list can paginate server-side).
+   * GET /api/production/stats
+   */
+  getProductionStats: async (filters: IProductionFilter = {}) => {
+    const params: any = {};
+    if (filters.employeeId) params.employeeId = filters.employeeId;
+    if (filters.fromDate) params.fromDate = filters.fromDate;
+    if (filters.toDate) params.toDate = filters.toDate;
+    if (filters.productId) params.productId = filters.productId;
+    const response = await axiosInstance.get('/production/stats', { params });
+    return response.data?.data ?? {};
   },
 
   /**
@@ -106,6 +121,12 @@ export const productionService = {
    * Download production report as a backend-generated Excel file.
    * GET /api/production/{id}/excel
    */
+  /** Date-range production report (PDF or Excel). GET /api/production/report/{format} */
+  downloadProductionReport: async (format: 'pdf' | 'excel', fromDate: string, toDate: string) => {
+    await downloadReport(`/production/report/${format}`, { fromDate, toDate },
+      `production_${periodToken(fromDate, toDate)}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
+  },
+
   downloadProductionExcel: async (id: string) => {
     const response = await axiosInstance.get(`/production/${id}/excel`, {
       responseType: 'blob',

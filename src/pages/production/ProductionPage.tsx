@@ -40,11 +40,13 @@ import {
   FilePdfOutlined,
   FileExcelOutlined,
   MoreOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { Box, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
 import { productionService } from '../../services/productionService';
+import ReportDownloadDialog from '../../components/common/ReportDownloadDialog';
 import { employeeService } from '../../services/employee.service';
 import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
@@ -129,12 +131,23 @@ const ProductionPage: React.FC = () => {
   });
   const products = productsData?.data || [];
 
-  // Query 3: Fetch filtered production history entries
-  const { data: productionResponse, isLoading: listLoading } = useQuery({
-    queryKey: ['productionRecent', historyFilters],
-    queryFn: () => productionService.getProduction(historyFilters),
+  // Server-side pagination state (backend page is 0-indexed; table default size 10).
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Query 3: one page of production entries (server-side) for the table.
+  const { data: productionPage, isLoading: listLoading } = useQuery({
+    queryKey: ['productionRecent', historyFilters, page, pageSize],
+    queryFn: () => productionService.getProductionPage({ ...historyFilters, page, size: pageSize }),
   });
-  const entries = productionResponse || [];
+  const entries = productionPage?.content || [];
+  const totalEntriesCount = productionPage?.totalElements ?? 0;
+
+  // Query 3b: aggregate KPIs for the summary cards (not tied to the current page).
+  const { data: productionStats } = useQuery({
+    queryKey: ['productionStats', historyFilters],
+    queryFn: () => productionService.getProductionStats(historyFilters),
+  });
 
   const quickFilter = Form.useWatch('quickFilter', filterForm) || 'Custom Range';
   const isCustom = quickFilter === 'Custom Range';
@@ -348,6 +361,7 @@ const ProductionPage: React.FC = () => {
   // ── Filter handlers ─────────────────────────────────────
 
   const handleSearchHistory = (values: any) => {
+    setPage(0); // new filter → back to the first page
     setHistoryFilters({
       fromDate: values.fromDate ? values.fromDate.format('YYYY-MM-DD') : undefined,
       toDate: values.toDate ? values.toDate.format('YYYY-MM-DD') : undefined,
@@ -359,12 +373,16 @@ const ProductionPage: React.FC = () => {
 
   const handleResetHistoryFilters = () => {
     filterForm.resetFields();
+    setPage(0);
     setHistoryFilters({});
     setFilterOpen(false);
   };
 
   // Count of active filters (for the badge on the Filter button)
   const activeFilterCount = Object.values(historyFilters).filter(Boolean).length;
+
+  // Report download uses its own range picker (dialog below), not the table filters.
+  const [reportOpen, setReportOpen] = useState(false);
 
   const handleQuickFilterChange = (val: string) => {
     if (val && val !== 'Custom Range') {
@@ -418,16 +436,11 @@ const ProductionPage: React.FC = () => {
 
   // ── Table summary stats ─────────────────────────────────
 
-  const statsTotalEntries = entries.length;
-  const todayStr = dayjs().format('YYYY-MM-DD');
-  const statsTodayQty = entries
-    .filter((e: any) => e.productionDate === todayStr)
-    .reduce((sum: number, e: any) => sum + (e.totalQuantity || 0), 0);
-  const statsTodayAmount = entries
-    .filter((e: any) => e.productionDate === todayStr)
-    .reduce((sum: number, e: any) => sum + (e.totalAmount || 0), 0);
-  const statsTotalQty = entries.reduce((sum: number, e: any) => sum + (e.totalQuantity || 0), 0);
-  const statsTotalAmount = entries.reduce((sum: number, e: any) => sum + (e.totalAmount || 0), 0);
+  const statsTotalEntries = productionStats?.totalEntries ?? 0;
+  const statsTodayQty = productionStats?.todayQuantity ?? 0;
+  const statsTodayAmount = productionStats?.todayAmount ?? 0;
+  const statsTotalQty = productionStats?.totalQuantity ?? 0;
+  const statsTotalAmount = productionStats?.totalAmount ?? 0;
 
   const cardStyle = {
     borderRadius: 12,
@@ -688,6 +701,15 @@ const ProductionPage: React.FC = () => {
               </Badge>
             </Popover>
 
+            <Button
+              icon={<DownloadOutlined />}
+              size="large"
+              onClick={() => setReportOpen(true)}
+              style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
+            >
+              Download report
+            </Button>
+
             {can('production', 'write') && (
               <Button
                 type="primary"
@@ -734,10 +756,13 @@ const ProductionPage: React.FC = () => {
             rowKey="id"
             size="middle"
             pagination={{
-              defaultPageSize: 10,
+              current: page + 1,
+              pageSize,
+              total: totalEntriesCount,
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50'],
+              pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} entries`,
+              onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); },
             }}
             loading={listLoading}
             scroll={{ x: 'max-content' }}
@@ -754,6 +779,13 @@ const ProductionPage: React.FC = () => {
             style={{ borderRadius: 8, overflow: 'hidden' }}
           />
         </Card>
+
+        <ReportDownloadDialog
+          open={reportOpen}
+          title="Download production report"
+          onClose={() => setReportOpen(false)}
+          onDownload={(format, from, to) => productionService.downloadProductionReport(format, from, to)}
+        />
 
         {/* ── Right-Side Production Form Drawer ── */}
         <Drawer

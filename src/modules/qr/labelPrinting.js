@@ -63,22 +63,9 @@ export async function toQrDataUrl(unit) {
   return QRCode.toDataURL(unit.qrPayload || unit.serial, { margin: 1, width: 240 });
 }
 
-/**
- * Render a QR label sheet for the given units and open the print dialog.
- * Opens a separate window so it prints cleanly without the app's chrome.
- */
-export async function printLabels(units, { batchNumber, config = DEFAULT_LABEL_CONFIG } = {}) {
-  if (!units || units.length === 0) return;
-
-  const withQr = await Promise.all(
-    units.map(async (u) => ({ ...u, qrDataUrl: await toQrDataUrl(u) }))
-  );
-
-  const cards = withQr
-    .map((u) => `<div class="${labelClass(config)}">${labelInnerHtml(u, config)}</div>`)
-    .join('');
-
-  const html = `<!doctype html>
+/** Full print-sheet HTML for the given label cards (shared by iframe print + preview). */
+export function labelSheetHtml(cards, batchNumber) {
+  return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
@@ -93,16 +80,51 @@ export async function printLabels(units, { batchNumber, config = DEFAULT_LABEL_C
 </head>
 <body>
   <div class="sheet">${cards}</div>
-  <script>window.onload = function () { window.focus(); window.print(); };</script>
 </body>
 </html>`;
+}
 
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) {
-    alert('Please allow pop-ups to print QR labels.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+/**
+ * Render a QR label sheet for the given units and open the print dialog.
+ * Prints through a hidden iframe so no pop-up window (and no pop-up blocker) is involved.
+ */
+export async function printLabels(units, { batchNumber, config = DEFAULT_LABEL_CONFIG } = {}) {
+  if (!units || units.length === 0) return;
+
+  const withQr = await Promise.all(
+    units.map(async (u) => ({ ...u, qrDataUrl: await toQrDataUrl(u) }))
+  );
+
+  const cards = withQr
+    .map((u) => `<div class="${labelClass(config)}">${labelInnerHtml(u, config)}</div>`)
+    .join('');
+
+  const html = labelSheetHtml(cards, batchNumber);
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  await waitForImages(doc);
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
+  setTimeout(() => iframe.remove(), 1000);
+}
+
+/** Resolve once every image in the doc has loaded (QR data URLs are near-instant; 2s safety cap). */
+function waitForImages(doc) {
+  return new Promise((resolve) => {
+    const imgs = Array.from(doc.images || []);
+    if (imgs.length === 0) return resolve();
+    let left = imgs.length;
+    const done = () => { if (--left <= 0) resolve(); };
+    imgs.forEach((img) => (img.complete ? done() : (img.onload = img.onerror = done)));
+    setTimeout(resolve, 2000);
+  });
 }
