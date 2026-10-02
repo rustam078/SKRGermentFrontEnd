@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -28,6 +28,7 @@ import {
   TrendingUpOutlined as SalesIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import axiosInstance from '../../services/axios';
 import loginHero from '../../assets/login_hero.png';
 
 const LoginPage = () => {
@@ -37,6 +38,14 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companyName, setCompanyName] = useState('SKR Garment');
+
+  // Company name comes from settings (public endpoint) so the login page shows the real brand.
+  useEffect(() => {
+    axiosInstance.get('/settings/COMPANY_NAME')
+      .then((res) => { const v = res.data?.value; if (v) setCompanyName(v); })
+      .catch(() => {});
+  }, []);
 
   const {
     register,
@@ -162,7 +171,7 @@ const LoginPage = () => {
               <CheckroomIcon sx={{ fontSize: 26 }} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '0.5px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-              SKR Garments
+              {companyName}
             </Typography>
           </Stack>
         </Box>
@@ -238,7 +247,7 @@ const LoginPage = () => {
               </Box>
               
               <Typography variant="h4" component="h1" align="center" sx={{ fontWeight: 800, mb: 0.5, color: '#0F172A' }}>
-                SKR Garment ERP
+                {companyName}
               </Typography>
               
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -381,7 +390,7 @@ const LoginPage = () => {
             fontWeight: 500,
           }}
         >
-          Version 1.0
+          Version 1.4
         </Typography>
       </Box>
     </Box>

@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { authService } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -39,6 +40,7 @@ import axiosInstance from '../../services/axios';
 const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
   const { companyName } = useAppSettings();
+  const { isAdmin } = usePermissions();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -224,12 +226,14 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
             </Typography>
           </Box>
           <Divider />
-          <MenuItem onClick={openChangePassword}>
-            <ListItemIcon>
-              <LockResetIcon fontSize="small" />
-            </ListItemIcon>
-            Change Password
-          </MenuItem>
+          {isAdmin && (
+            <MenuItem onClick={openChangePassword}>
+              <ListItemIcon>
+                <LockResetIcon fontSize="small" />
+              </ListItemIcon>
+              Change Password
+            </MenuItem>
+          )}
           <MenuItem onClick={handleProfileSettings}>
             <ListItemIcon>
               <SettingsIcon fontSize="small" />

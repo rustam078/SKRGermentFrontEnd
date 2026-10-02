@@ -69,7 +69,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
   const navigate = useNavigate();
 
   const [salesOpen, setSalesOpen] = useState(true);
-  const { menuOrder } = useAppSettings();
+  const { menuOrder, companyName } = useAppSettings();
   const { can } = usePermissions();
   // Only show modules the current role can view (ADMIN sees all).
   const orderedItems = useMemo(
@@ -239,7 +239,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
       
       <Box sx={{ p: 2.5, textAlign: 'center' }}>
         <Typography variant="caption" display="block" sx={{ color: '#64748B', opacity: open ? 1 : 0, display: open ? 'block' : 'none' }}>
-          SKR Garment ERP v1.0.0
+          {companyName || 'SKR Garment'} v1.4
         </Typography>
       </Box>
     </Box>
