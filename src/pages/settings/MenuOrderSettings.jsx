@@ -50,8 +50,12 @@ const MenuOrderSettings = () => {
     setError('');
     setSaved(false);
     try {
-      await settingsService.update('MENU_ORDER', JSON.stringify(items.map((i) => i.key)));
+      const order = JSON.stringify(items.map((i) => i.key));
+      await settingsService.update('MENU_ORDER', order);
       setSaved(true);
+      // Update the shared cache right away so the sidebar reorders instantly,
+      // then invalidate to stay in sync with the server.
+      queryClient.setQueryData(['appSettings'], (old) => ({ ...(old || {}), MENU_ORDER: order }));
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to save menu order.');

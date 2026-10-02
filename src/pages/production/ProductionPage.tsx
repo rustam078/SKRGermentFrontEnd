@@ -166,6 +166,7 @@ const ProductionPage: React.FC = () => {
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['productionRecent'] });
+      queryClient.invalidateQueries({ queryKey: ['productionStats'] });
       queryClient.invalidateQueries({ queryKey: ['employeeDetails'] });
       queryClient.invalidateQueries({ queryKey: ['employeeCalendar'] });
       // Also refresh the cross-page views a production entry feeds into.
@@ -194,6 +195,7 @@ const ProductionPage: React.FC = () => {
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['productionRecent'] });
+      queryClient.invalidateQueries({ queryKey: ['productionStats'] });
       queryClient.invalidateQueries({ queryKey: ['employeeDetails'] });
       queryClient.invalidateQueries({ queryKey: ['employeeCalendar'] });
       // Also refresh the cross-page views a production entry feeds into.
