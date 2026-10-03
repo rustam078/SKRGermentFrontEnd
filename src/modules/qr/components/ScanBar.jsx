@@ -122,11 +122,12 @@ const ScanBar = ({ onUnit, onError }) => {
       />
       <Button
         variant="outlined"
-        startIcon={<PhotoCameraIcon />}
         onClick={() => setCameraOpen(true)}
-        sx={{ whiteSpace: 'nowrap' }}
+        aria-label="Open camera scanner"
+        title="Open camera scanner"
+        sx={{ minWidth: 44, px: 1 }}
       >
-        Camera
+        <PhotoCameraIcon />
       </Button>
 
       <CameraScanner
