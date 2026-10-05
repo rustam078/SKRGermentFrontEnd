@@ -19,6 +19,12 @@ const productService = {
     // return list of products (content) or whole response as fallback
     return response.data?.content || response.data;
   },
+
+  // FIFO-ordered available batches with their effective selling price (for live sale pricing).
+  getSaleBatches: async (productId) => {
+    const response = await axiosInstance.get(`/inventory/product/${productId}/sale-batches`);
+    return response.data || [];
+  },
 };
 
 export default productService;

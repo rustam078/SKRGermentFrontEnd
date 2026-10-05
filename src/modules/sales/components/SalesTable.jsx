@@ -1,10 +1,14 @@
 import React from 'react';
-import { Box, Button, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Typography, Paper, Skeleton, Alert, Stack } from '@mui/material';
+import { Box, Card, CardContent, Chip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Tooltip, Typography, Paper, Skeleton, Alert, Stack } from '@mui/material';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { getCurrencySymbol } from '../../../utils/currency';
 
-const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onView, onRowClick }) => {
-  const emptyRows = rowsPerPage - Math.min(rowsPerPage, rows.length - page * rowsPerPage);
+const STATUS_COLOR = { PAID: 'success', CREDIT: 'warning', PENDING: 'warning', PARTIALLY_PAID: 'info', FAILED: 'error', REFUNDED: 'default' };
+
+const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onDownload, onRowClick }) => {
+  // Server-side paging: `rows` is only the current page, so fill up to the page size by its length.
+  const emptyRows = Math.max(0, rowsPerPage - rows.length);
 
   return (
     <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', minHeight: 520, display: 'flex', flexDirection: 'column' }}>
@@ -14,7 +18,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
             <Table>
               <TableHead>
                 <TableRow>
-                  {['Invoice No', 'Date', 'Customer', 'Mobile', 'Grand Total', 'Payment Mode', 'Payment Status', 'Actions'].map((label) => (
+                  {['Invoice No', 'Date', 'Customer', 'Mobile', 'Grand Total', 'Received', 'Payment Mode', 'Payment Status', 'Actions'].map((label) => (
                     <TableCell key={label}>{label}</TableCell>
                   ))}
                 </TableRow>
@@ -22,7 +26,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
               <TableBody>
                 {Array.from({ length: 8 }).map((_, index) => (
                   <TableRow key={index}>
-                    {Array.from({ length: 8 }).map((__, cellIndex) => (
+                    {Array.from({ length: 9 }).map((__, cellIndex) => (
                       <TableCell key={cellIndex}>
                         <Skeleton variant="text" />
                       </TableCell>
@@ -53,6 +57,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                     <TableCell>Customer</TableCell>
                     <TableCell>Mobile</TableCell>
                     <TableCell>Grand Total</TableCell>
+                    <TableCell>Received</TableCell>
                     <TableCell>Payment Mode</TableCell>
                     <TableCell>Payment Status</TableCell>
                     <TableCell align="center">Actions</TableCell>
@@ -68,19 +73,31 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                         <TableCell>{sale.customerName || sale.customer || '-'}</TableCell>
                         <TableCell>{sale.customerMobile || sale.mobile || '-'}</TableCell>
                         <TableCell>{sale.grandTotal != null ? `${getCurrencySymbol()}${Number(sale.grandTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
+                        <TableCell sx={{ color: '#047857', fontWeight: 600 }}>{sale.amountReceived != null ? `${getCurrencySymbol()}${Number(sale.amountReceived).toLocaleString('en-IN')}` : '-'}</TableCell>
                         <TableCell>{sale.paymentMode || '-'}</TableCell>
-                        <TableCell>{sale.paymentStatus || '-'}</TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip size="small" label={(sale.paymentStatus || '-').replace(/_/g, ' ')} color={STATUS_COLOR[sale.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />
+                            {Number(sale.amountDue) > 0 && (
+                              <Typography variant="caption" sx={{ color: '#B91C1C', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                Due {getCurrencySymbol()}{Number(sale.amountDue).toLocaleString('en-IN')}
+                              </Typography>
+                            )}
+                          </Stack>
+                        </TableCell>
                         <TableCell align="center" onClick={(event) => event.stopPropagation()}>
-                          <Button size="small" variant="outlined" onClick={() => onView(saleId)}>
-                            View
-                          </Button>
+                          <Tooltip title="Download invoice">
+                            <IconButton size="small" color="primary" onClick={() => onDownload(saleId)}>
+                              <FileDownloadOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                   {emptyRows > 0 && (
                     <TableRow style={{ height: 64 * emptyRows }}>
-                      <TableCell colSpan={8} />
+                      <TableCell colSpan={9} />
                     </TableRow>
                   )}
                 </TableBody>

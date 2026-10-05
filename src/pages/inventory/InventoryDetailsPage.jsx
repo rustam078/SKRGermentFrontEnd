@@ -383,6 +383,7 @@ const InventoryDetailsPage = () => {
                       <TableCell sx={{ fontWeight: 700 }}>Sold</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Available</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Unit Cost</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Selling Price</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Batch Value</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="center">Actions</TableCell>
@@ -415,6 +416,9 @@ const InventoryDetailsPage = () => {
                             </TableCell>
                             <TableCell>
                               {formatCurrency(batch.unitCost)}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 700, color: '#059669' }}>
+                              {batch.sellingPrice != null ? formatCurrency(batch.sellingPrice) : '—'}
                             </TableCell>
                             <TableCell>
                               {formatCurrency(batch.batchValue)}
@@ -476,7 +480,7 @@ const InventoryDetailsPage = () => {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                        <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
                             No batches found for the selected filters.
                           </Typography>

@@ -3,9 +3,7 @@ import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
 import {
   Alert,
-  Autocomplete,
   Box,
-  Badge,
   Button,
   Card,
   CardContent,
@@ -15,11 +13,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Drawer,
-  Grid,
   IconButton,
-  MenuItem,
   Paper,
   Snackbar,
   Stack,
@@ -35,50 +30,22 @@ import {
   InputAdornment,
   Typography,
 } from '@mui/material';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import PersonSearchOutlinedIcon from '@mui/icons-material/PersonSearchOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../services/axios';
-import ScanBar from '../../modules/qr/components/ScanBar';
-import { mergeScannedUnit } from '../../modules/qr/scanCart';
 import { usePermissions } from '../../hooks/usePermissions';
-import { useGstConfig } from '../../contexts/AppSettingsContext';
-import { useQueryClient } from '@tanstack/react-query';
-
-const createEmptyItem = () => ({
-  productId: '',
-  productName: '',
-  quantity: 1,
-  sellingPrice: '',
-  quantityAvailable: null,
-  averageCost: null,
-  loading: false,
-  error: '',
-});
 
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
-  const { gstEnabled, gstPercent } = useGstConfig();
-  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [inventoryData, setInventoryData] = useState({ content: [], totalElements: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [saleDrawerOpen, setSaleDrawerOpen] = useState(false);
-  const [inventoryOptions, setInventoryOptions] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [submitSuccess, setSubmitSuccess] = useState('');
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   const [alerts, setAlerts] = useState([]);
   const [threshold, setThreshold] = useState(0);
@@ -88,18 +55,6 @@ const InventoryPage = () => {
   const [thresholdInput, setThresholdInput] = useState('0');
   const [thresholdError, setThresholdError] = useState('');
   const [savingThreshold, setSavingThreshold] = useState(false);
-  const [saleForm, setSaleForm] = useState({
-    customerName: '',
-    customerMobile: '',
-    customerEmail: '',
-    paymentMode: 'UPI',
-    paymentProvider: 'GPAY',
-    remarks: '',
-    items: [createEmptyItem()],
-  });
-  const [customerResults, setCustomerResults] = useState([]);
-  const [customerLoading, setCustomerLoading] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -219,280 +174,9 @@ const InventoryPage = () => {
     }
   };
 
-  const resetSaleForm = () => {
-    setSaleForm({
-      customerName: '',
-      customerMobile: '',
-      customerEmail: '',
-      paymentMode: 'UPI',
-      paymentProvider: 'GPAY',
-      remarks: '',
-      items: [createEmptyItem()],
-    });
-    setSelectedCustomer(null);
-    setCustomerResults([]);
-    setSubmitError('');
-    setSubmitSuccess('');
-  };
-
-  // Search existing customers by mobile (debounced) while the sale drawer is open.
-  useEffect(() => {
-    if (!saleDrawerOpen) return undefined;
-    const mobile = saleForm.customerMobile.trim();
-    if (!mobile) {
-      setCustomerResults([]);
-      return undefined;
-    }
-    let active = true;
-    setCustomerLoading(true);
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await axiosInstance.get('/customers', { params: { mobile } });
-        if (active) setCustomerResults(res.data?.content || []);
-      } catch (err) {
-        if (active) setCustomerResults([]);
-      } finally {
-        if (active) setCustomerLoading(false);
-      }
-    }, 400);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [saleForm.customerMobile, saleDrawerOpen]);
-
-  const handleSelectCustomer = (customer) => {
-    if (!customer) return;
-    setSelectedCustomer(customer);
-    setSaleForm((prev) => ({
-      ...prev,
-      customerName: customer.name || '',
-      customerMobile: customer.mobile || '',
-      customerEmail: customer.email || '',
-    }));
-  };
-
   const showToast = (message, severity = 'success') => {
     setToast({ open: true, message, severity });
   };
-
-  const handleOpenSaleDrawer = async () => {
-    setSaleDrawerOpen(true);
-    queryClient.invalidateQueries({ queryKey: ['appSettings'] }); // fresh GST each time the drawer opens
-    setSubmitError('');
-    setSubmitSuccess('');
-    setToast({ open: false, message: '', severity: 'success' });
-    setLoadingProducts(true);
-
-    try {
-      const response = await axiosInstance.get('/inventory', { params: { page: 0, size: 100 } });
-      setInventoryOptions(response.data?.content || []);
-    } catch (err) {
-      setSubmitError(err.message || 'Unable to load products for sale.');
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
-
-  const updateSaleItem = (index, updates) => {
-    setSaleForm((prev) => ({
-      ...prev,
-      items: prev.items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...updates } : item)),
-    }));
-  };
-
-  const handleSelectProduct = async (index, selectedOption) => {
-    const productId = selectedOption?.productId || '';
-    const productName = selectedOption?.productName || '';
-
-    // Prefer the configured selling price; fall back to cost only when none is set.
-    const configuredPrice = Number(selectedOption?.sellingPrice);
-    const hasConfigured = selectedOption?.sellingPrice != null && configuredPrice > 0;
-
-    updateSaleItem(index, {
-      productId,
-      productName,
-      quantityAvailable: null,
-      averageCost: selectedOption?.averageCost ?? null,
-      sellingPrice: hasConfigured ? configuredPrice : (selectedOption?.averageCost ?? ''),
-      loading: Boolean(productId),
-      error: '',
-    });
-
-    if (!productId) {
-      return;
-    }
-
-    try {
-      const response = await axiosInstance.get(`/inventory/product/${productId}/batches`);
-      const details = response.data || {};
-      const quantityAvailable = Number(details.quantityAvailable ?? details.totalStock ?? 0);
-      const averageCost = Number(details.averageCost ?? selectedOption?.averageCost ?? 0);
-      const currentItem = saleForm.items[index];
-      const quantity = currentItem?.quantity || 1;
-      const nextError = quantity > quantityAvailable ? `Only ${quantityAvailable} available in stock.` : '';
-
-      updateSaleItem(index, {
-        quantityAvailable,
-        averageCost,
-        sellingPrice: hasConfigured ? configuredPrice : (currentItem?.sellingPrice || averageCost),
-        loading: false,
-        error: nextError,
-      });
-    } catch (err) {
-      updateSaleItem(index, {
-        loading: false,
-        error: err.message || 'Unable to load stock information.',
-      });
-    }
-  };
-
-  // A scanned QR unit → add/merge a batch-bound line at its frozen price.
-  const handleScannedUnit = (unit) => {
-    const makeNewItem = (u) => ({
-      productId: u.productId,
-      productName: u.productName,
-      quantity: 1,
-      sellingPrice: Number(u.printedPrice),
-      quantityAvailable: null,
-      averageCost: Number(u.unitCost) || null,
-      loading: false,
-      error: '',
-      batchNumber: u.batchNumber,
-      serials: [u.serial],
-    });
-    const real = saleForm.items.filter((it) => it.productId);
-    const { items, error } = mergeScannedUnit(real, unit, makeNewItem);
-    if (error) {
-      showToast(error, 'error');
-      return;
-    }
-    setSaleForm((prev) => ({ ...prev, items }));
-    showToast(`Added ${unit.serial}`, 'success');
-  };
-
-  const handleAddItem = () => {
-    setSaleForm((prev) => ({ ...prev, items: [...prev.items, createEmptyItem()] }));
-  };
-
-  const handleRemoveItem = (index) => {
-    setSaleForm((prev) => ({
-      ...prev,
-      items: prev.items.filter((_, itemIndex) => itemIndex !== index),
-    }));
-  };
-
-  const handleSaleFieldChange = (field, value) => {
-    setSaleForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleItemFieldChange = (index, field, value) => {
-    const updatedItem = { ...saleForm.items[index], [field]: field === 'quantity' ? Number(value) : value };
-
-    if (field === 'quantity' && updatedItem.quantityAvailable != null) {
-      updatedItem.error = Number(value) > updatedItem.quantityAvailable ? `Only ${updatedItem.quantityAvailable} available in stock.` : '';
-    }
-
-    updateSaleItem(index, updatedItem);
-  };
-
-  const validateSaleForm = () => {
-    if (!saleForm.customerName.trim()) {
-      return 'Customer name is required.';
-    }
-    if (!saleForm.customerMobile.trim()) {
-      return 'Customer mobile is required.';
-    }
-    if (!saleForm.items.length) {
-      return 'Please add at least one product.';
-    }
-
-    for (const item of saleForm.items) {
-      if (!item.productId) {
-        return 'Please select a product for every row.';
-      }
-      if (!item.quantity || item.quantity <= 0) {
-        return 'Quantity must be greater than zero.';
-      }
-      if (item.quantityAvailable != null && item.quantity > item.quantityAvailable) {
-        return `Quantity for ${item.productName || 'selected product'} exceeds available stock.`;
-      }
-      if (!item.sellingPrice || Number(item.sellingPrice) <= 0) {
-        return 'Selling price must be greater than zero.';
-      }
-    }
-
-    return '';
-  };
-
-  const handleSaveSale = async () => {
-    const validationError = validateSaleForm();
-    if (validationError) {
-      setSubmitError(validationError);
-      showToast(validationError, 'error');
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmitError('');
-    setSubmitSuccess('');
-
-    try {
-      const payload = {
-        customerName: saleForm.customerName.trim(),
-        customerMobile: saleForm.customerMobile.trim(),
-        customerEmail: saleForm.customerEmail.trim() || undefined,
-        paymentMode: saleForm.paymentMode,
-        paymentProvider: saleForm.paymentProvider.trim(),
-        remarks: saleForm.remarks.trim(),
-        items: saleForm.items.map((item) => ({
-          productId: item.productId,
-          quantity: Number(item.quantity),
-          sellingPrice: Number(item.sellingPrice),
-          batchNumber: item.batchNumber || undefined,
-          serials: item.serials && item.serials.length ? item.serials : undefined,
-        })),
-      };
-
-      await axiosInstance.post('/sales', payload);
-      const totalItems = payload.items.reduce((sum, item) => sum + item.quantity, 0);
-      const net = payload.items.reduce((sum, item) => sum + item.quantity * item.sellingPrice, 0);
-      const totalValue = net + (gstEnabled && net > 0 ? (net * (Number(gstPercent) || 0)) / 100 : 0);
-      setSubmitSuccess(`Sale saved successfully for ${totalItems} item(s) totaling ${getCurrencySymbol()}${totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}.`);
-      showToast(`Sale saved successfully for ${totalItems} item(s).`, 'success');
-      resetSaleForm();
-      // A sale reduces stock, which can trip low-stock thresholds — refresh both
-      // the inventory table and the low-stock alerts so the badge/drawer stay accurate.
-      await Promise.all([loadInventory(), loadAlerts()]);
-      setSaleDrawerOpen(false);
-    } catch (err) {
-      const errorMessage = err.message || 'Unable to save sale.';
-      setSubmitError(errorMessage);
-      showToast(errorMessage, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const selectedItems = saleForm.items.filter((item) => item.productId && item.quantity > 0);
-  const totalSummaryQty = selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  const totalSummaryValue = selectedItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.sellingPrice || 0), 0);
-  const gstAmount = gstEnabled && totalSummaryValue > 0 ? (totalSummaryValue * (Number(gstPercent) || 0)) / 100 : 0;
-  const payableWithGst = totalSummaryValue + gstAmount;
-  const lowStockCount = useMemo(() => alerts.length, [alerts]);
-
-  // Line profit vs unit cost (averageCost): amount over the whole quantity + %.
-  const lineProfit = (item) => {
-    const qty = Number(item.quantity) || 0;
-    const price = Number(item.sellingPrice) || 0;
-    const cost = Number(item.averageCost) || 0;
-    const amount = (price - cost) * qty;
-    const pct = cost > 0 ? ((price - cost) / cost) * 100 : null;
-    return { amount, pct, hasCost: cost > 0 };
-  };
-  const totalCostBasis = selectedItems.reduce((sum, item) => sum + Number(item.averageCost || 0) * Number(item.quantity || 0), 0);
-  const totalProfit = totalSummaryValue - totalCostBasis;
-  const totalProfitPct = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : null;
 
   return (
     <Box>
@@ -506,7 +190,7 @@ const InventoryPage = () => {
 
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {can('inventory', 'write') && (
-            <Button variant="contained" onClick={handleOpenSaleDrawer}>
+            <Button variant="contained" onClick={() => navigate('/sales/new')}>
               Sale
             </Button>
           )}
@@ -612,306 +296,6 @@ const InventoryPage = () => {
           )}
         </CardContent>
       </Card>
-
-      <Drawer
-        anchor="right"
-        open={saleDrawerOpen}
-        onClose={() => {
-          setSaleDrawerOpen(false);
-          resetSaleForm();
-        }}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 680 }, px: 3, pb: 3, pt: '80px' } }}
-      >
-        <Stack spacing={2.5} sx={{ height: '100%' }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              New Sale
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'normal' }}>
-              Capture a quick counter sale, validate stock, and review the summary before saving.
-            </Typography>
-          </Box>
-
-          {submitError ? <Alert severity="error">{submitError}</Alert> : null}
-          {submitSuccess ? <Alert severity="success">{submitSuccess}</Alert> : null}
-
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 0, bgcolor: '#FAFBFF' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Customer Details
-            </Typography>
-            <Grid container spacing={2}>
-              {/* Row 1: Mobile (search existing) + Name */}
-              <Grid item xs={12} sm={6}>
-                <Autocomplete
-                  freeSolo
-                  autoHighlight
-                  options={customerResults}
-                  loading={customerLoading}
-                  filterOptions={(x) => x}
-                  value={selectedCustomer && selectedCustomer.mobile === saleForm.customerMobile ? selectedCustomer : null}
-                  inputValue={saleForm.customerMobile || ''}
-                  getOptionLabel={(option) => (typeof option === 'string' ? option : (option?.mobile || ''))}
-                  isOptionEqualToValue={(option, value) => option?.id === value?.id}
-                  onInputChange={(event, value, reason) => {
-                    if (reason === 'input' || reason === 'clear') {
-                      handleSaleFieldChange('customerMobile', value);
-                    }
-                  }}
-                  onChange={(event, value) => {
-                    if (value && typeof value === 'object') handleSelectCustomer(value);
-                  }}
-                  noOptionsText={saleForm.customerMobile?.trim() ? 'No existing customer — a new one will be created' : 'Type a mobile number to search'}
-                  renderOption={(props, option) => (
-                    <li {...props} key={option.id}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{option.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.mobile}{option.email ? ` • ${option.email}` : ''}
-                        </Typography>
-                      </Box>
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Customer Mobile"
-                      required
-                      fullWidth
-                      size="small"
-                      inputProps={{ ...params.inputProps, inputMode: 'numeric' }}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: <PersonSearchOutlinedIcon sx={{ color: 'text.disabled', mr: 1 }} fontSize="small" />,
-                        endAdornment: (
-                          <>
-                            {customerLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Customer Name"
-                  fullWidth
-                  required
-                  size="small"
-                  value={saleForm.customerName}
-                  onChange={(event) => handleSaleFieldChange('customerName', event.target.value)}
-                />
-              </Grid>
-
-              {/* Row 2: Email (full width) */}
-              <Grid item xs={12}>
-                <TextField
-                  label="Customer Email"
-                  fullWidth
-                  size="small"
-                  type="email"
-                  value={saleForm.customerEmail}
-                  onChange={(event) => handleSaleFieldChange('customerEmail', event.target.value)}
-                />
-              </Grid>
-
-              {/* Row 3: Payment mode + provider */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  label="Payment Mode"
-                  fullWidth
-                  size="small"
-                  value={saleForm.paymentMode}
-                  onChange={(event) => handleSaleFieldChange('paymentMode', event.target.value)}
-                >
-                  <MenuItem value="CASH">Cash</MenuItem>
-                  <MenuItem value="UPI">UPI</MenuItem>
-                  <MenuItem value="CARD">Card</MenuItem>
-                  <MenuItem value="BANK_TRANSFER">Bank Transfer</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Payment Provider"
-                  fullWidth
-                  size="small"
-                  value={saleForm.paymentProvider}
-                  onChange={(event) => handleSaleFieldChange('paymentProvider', event.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-              Products
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <ScanBar onUnit={handleScannedUnit} onError={(m) => showToast(m, 'error')} />
-            </Box>
-            <Stack spacing={2}>
-              {saleForm.items.map((item, index) => (
-                <Paper key={`${item.productId || 'new'}-${index}`} variant="outlined" sx={{ borderRadius: 0, p: 2, bgcolor: '#fff' }}>
-                  <Stack spacing={1}>
-                    {/* Item label + Product + Quantity + Selling Price + delete — all on one row */}
-                    <Grid container spacing={1.5} alignItems="flex-start">
-                      <Grid item xs={12} sm={2}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#475569', whiteSpace: 'nowrap', mt: { sm: '8px' } }}>
-                          Item {index + 1}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <Autocomplete
-                          options={inventoryOptions}
-                          loading={loadingProducts}
-                          size="small"
-                          disabled={Boolean(item.serials && item.serials.length)}
-                          value={inventoryOptions.find((option) => option.productId === item.productId)
-                            || (item.productId ? { productId: item.productId, productName: item.productName } : null)}
-                          onChange={(event, value) => handleSelectProduct(index, value)}
-                          getOptionLabel={(option) => option?.productName || ''}
-                          isOptionEqualToValue={(option, value) => option?.productId === value?.productId}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Select Product"
-                              helperText={item.serials && item.serials.length ? `${item.batchNumber} · ${item.serials.length} scanned` : ''}
-                              InputProps={{
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <>
-                                    {loadingProducts ? <CircularProgress color="inherit" size={16} /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </>
-                                ),
-                              }}
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid item xs={6} sm={2}>
-                        <TextField
-                          label="Quantity"
-                          type="number"
-                          fullWidth
-                          size="small"
-                          value={item.quantity}
-                          onChange={(event) => handleItemFieldChange(index, 'quantity', event.target.value)}
-                          inputProps={{ min: 1 }}
-                          disabled={Boolean(item.serials && item.serials.length)}
-                          error={Boolean(item.error)}
-                          helperText={item.error || (item.serials && item.serials.length ? 'scan-managed' : (item.quantityAvailable != null ? `Avail: ${item.quantityAvailable}` : ''))}
-                        />
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <TextField
-                          label="Selling Price"
-                          type="number"
-                          fullWidth
-                          size="small"
-                          value={item.sellingPrice}
-                          onChange={(event) => handleItemFieldChange(index, 'sellingPrice', event.target.value)}
-                          inputProps={{ min: 0 }}
-                          helperText={item.averageCost != null ? `Cost: ${getCurrencySymbol()}${Number(item.averageCost).toLocaleString('en-IN')}` : ''}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={1} sx={{ display: 'flex', justifyContent: { xs: 'flex-end', sm: 'center' }, mt: { sm: '2px' } }}>
-                        {saleForm.items.length > 1 ? (
-                          <Tooltip title="Remove item">
-                            <IconButton color="error" size="small" onClick={() => handleRemoveItem(index)}>
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : null}
-                      </Grid>
-                    </Grid>
-
-                    {item.productId && lineProfit(item).hasCost ? (
-                      (() => {
-                        const p = lineProfit(item);
-                        const positive = p.amount >= 0;
-                        return (
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, color: positive ? '#047857' : '#B91C1C' }}>
-                            {positive ? <TrendingUpIcon sx={{ fontSize: 18 }} /> : <TrendingDownIcon sx={{ fontSize: 18 }} />}
-                            <Typography sx={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                              {p.pct != null ? `${positive ? '+' : ''}${p.pct.toFixed(1)}%` : '—'} profit
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.8rem', opacity: 0.85 }}>
-                              ({positive ? '+' : '−'}{getCurrencySymbol()}{Math.abs(p.amount).toLocaleString('en-IN', { maximumFractionDigits: 2 })})
-                            </Typography>
-                          </Box>
-                        );
-                      })()
-                    ) : null}
-                  </Stack>
-                </Paper>
-              ))}
-            </Stack>
-          </Box>
-
-          <Button startIcon={<AddCircleOutlineIcon />} onClick={handleAddItem} sx={{ alignSelf: 'flex-start' }}>
-            Add Product
-          </Button>
-
-          {selectedItems.length > 0 ? (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 0, bgcolor: '#F8FAFC' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Sale Summary
-              </Typography>
-              <Stack spacing={1} divider={<Divider flexItem />}>
-                {selectedItems.map((item) => (
-                  <Box key={item.productId} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                    <Typography variant="body2">{item.productName}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.quantity} × {getCurrencySymbol()}{Number(item.sellingPrice || 0).toLocaleString('en-IN')}
-                    </Typography>
-                  </Box>
-                ))}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                  <Typography variant="body2">{getCurrencySymbol()}{totalSummaryValue.toLocaleString('en-IN')}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">GST ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
-                  <Typography variant="body2">{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                  <Typography variant="body2">Total</Typography>
-                  <Typography variant="body2">
-                    {totalSummaryQty} item(s) • {getCurrencySymbol()}{payableWithGst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                  </Typography>
-                </Box>
-                {totalCostBasis > 0 ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">Estimated Profit</Typography>
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: totalProfit >= 0 ? '#047857' : '#B91C1C' }}>
-                      {totalProfit >= 0 ? <TrendingUpIcon sx={{ fontSize: 18 }} /> : <TrendingDownIcon sx={{ fontSize: 18 }} />}
-                      <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                        {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                        {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ) : null}
-              </Stack>
-            </Paper>
-          ) : null}
-
-          <Stack direction="row" spacing={2} sx={{ mt: 'auto', pt: 2, pb: 3 }}>
-            <Button variant="outlined" onClick={() => {
-              setSaleDrawerOpen(false);
-              resetSaleForm();
-            }}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={handleSaveSale} disabled={submitting} sx={{ minWidth: 130 }}>
-              {submitting ? 'Saving...' : 'Save Sale'}
-            </Button>
-          </Stack>
-        </Stack>
-      </Drawer>
 
       <Drawer
         anchor="right"

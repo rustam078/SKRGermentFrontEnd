@@ -113,12 +113,6 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
                 <Typography variant="body2" color="text.secondary">Payment Provider</Typography>
                 <Typography sx={{ fontWeight: 700 }}>{invoice.paymentProvider || '-'}</Typography>
               </Box>
-              {invoice.remarks && (
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Remarks</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>{invoice.remarks}</Typography>
-                </Box>
-              )}
             </Stack>
           </Paper>
         </Box>

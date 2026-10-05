@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Box } from '@mui/material';
-import { Skeleton, ConfigProvider, Breadcrumb, Modal, notification } from 'antd';
+import { Skeleton, ConfigProvider, Breadcrumb, Modal, notification, Tabs } from 'antd';
 import { vendorService } from '../../services/investmentService';
 
 import VendorProfileCard from './components/VendorProfileCard';
 import VendorPurchaseHistory from './components/VendorPurchaseHistory';
+import VendorPaymentHistory from './components/VendorPaymentHistory';
 
 const VendorDetailsPage = () => {
   const { id } = useParams();
@@ -61,12 +62,30 @@ const VendorDetailsPage = () => {
                 totalInvoices: vendor.totalInvoices,
                 totalPurchaseAmount: vendor.totalPurchaseAmount,
                 lastPurchaseDate: vendor.lastPurchaseDate,
+                // Total outstanding (overdue) across this vendor's invoices.
+                totalOverdue: (vendor.purchases || []).reduce((sum, inv) => sum + (Number(inv.amountDue) || 0), 0),
               }}
             />
 
-            <VendorPurchaseHistory
-              invoices={vendor.purchases || []} 
-              onAddInvestment={handleCreateInvestment}
+            <Tabs
+              defaultActiveKey="purchases"
+              items={[
+                {
+                  key: 'purchases',
+                  label: 'Purchase History',
+                  children: (
+                    <VendorPurchaseHistory
+                      invoices={vendor.purchases || []}
+                      onAddInvestment={handleCreateInvestment}
+                    />
+                  ),
+                },
+                {
+                  key: 'payments',
+                  label: 'Payment History',
+                  children: <VendorPaymentHistory vendorId={id} />,
+                },
+              ]}
             />
           </>
         ) : (

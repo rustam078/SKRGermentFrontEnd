@@ -4,7 +4,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
 
 const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'WALLET'];
-const paymentStatuses = ['All', 'PAID', 'PENDING', 'PARTIALLY_PAID', 'FAILED', 'REFUNDED'];
+const paymentStatuses = ['All', 'PAID', 'CREDIT'];
 
 const SalesFilter = ({ filters, onChange, onReset, onRefresh }) => {
   return (

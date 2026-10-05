@@ -41,14 +41,6 @@ const InvoiceSummary = ({ invoice }) => {
             </Typography>
             <Typography sx={{ fontWeight: 700 }}>{invoice.paymentProvider || '-'}</Typography>
           </Box>
-          {invoice.remarks ? (
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Remarks
-              </Typography>
-              <Typography sx={{ fontWeight: 700 }}>{invoice.remarks}</Typography>
-            </Box>
-          ) : null}
         </Stack>
       </CardContent>
     </Card>

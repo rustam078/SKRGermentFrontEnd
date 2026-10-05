@@ -72,6 +72,7 @@ const ITEM_TYPES = [
 ];
 
 const UNIT_OPTIONS = [
+  { key: 'NOS', label: 'Nos' },
   { key: 'PIECE', label: 'Piece' },
   { key: 'METER', label: 'Meter' },
   { key: 'KG', label: 'Kilogram' },
@@ -83,7 +84,6 @@ const UNIT_OPTIONS = [
   { key: 'DOZEN', label: 'Dozen' },
   { key: 'PACKET', label: 'Packet' },
   { key: 'PAIR', label: 'Pair' },
-  { key: 'NOS', label: 'Nos' },
 ];
 
 const getTypeConfig = (type) =>
@@ -194,12 +194,13 @@ const SummaryCard = ({ title, value, icon, iconBg, valueColor = '#0F172A', loadi
 // ─────────────────────────────────────────
 const makeEmptyRow = (id) => ({
   id,
-  itemType: 'MATERIAL',
+  itemType: 'PRODUCT',
   itemName: '',
   productId: undefined,
   quantity: 0,
-  unit: 'PIECE',
+  unit: 'NOS',
   rate: 0,
+  mrp: undefined,
   amount: 0,
 });
 
@@ -252,21 +253,22 @@ const InvestmentPage = () => {
   const [overheadRows, setOverheadRows] = useState([makeEmptyOverheadRow(1)]);
   const [subtotal, setSubtotal] = useState(0);
   const [gst, setGst] = useState(0);
-  const [gstManual, setGstManual] = useState(false); // true once the user edits GST by hand
+  const [gstManual, setGstManual] = useState(false); // true once the user edits GST % by hand
+  const [gstRate, setGstRate] = useState(null); // user-overridden GST percent
   const [discount, setDiscount] = useState(0);
   const [otherCharges, setOtherCharges] = useState(0);
 
   // Default GST % from system settings; auto-applied to new PURCHASE invoices.
   const { gstPercent } = useAppSettings();
 
-  // Auto-calc GST from the default % whenever the subtotal changes, unless the user
-  // has manually overridden it. Snapshotted into the invoice on save.
+  // GST is entered as a percent. Use the user's override % once edited, else the default %.
+  // The rupee amount is derived from the subtotal and snapshotted into the invoice on save.
+  const effectiveGstRate = gstManual ? (gstRate || 0) : (gstPercent || 0);
   useEffect(() => {
     if (selectedType === 'OVERHEAD') return;
-    if (gstManual) return;
-    const auto = Math.round((subtotal * (gstPercent || 0) / 100) * 100) / 100;
+    const auto = Math.round((subtotal * effectiveGstRate / 100) * 100) / 100;
     setGst(auto);
-  }, [subtotal, gstPercent, gstManual, selectedType]);
+  }, [subtotal, effectiveGstRate, selectedType]);
 
   // ── Vendor states ──────────────────────
   const [vendorModalVisible, setVendorModalVisible] = useState(false);
@@ -282,6 +284,7 @@ const InvestmentPage = () => {
       investmentForm.setFieldsValue({
         type: 'PURCHASE',
         vendorId: queryVendorId,
+        purchaseDate: dayjs(),
       });
     }
   }, [queryAdd, queryVendorId, investmentForm]);
@@ -326,12 +329,31 @@ const InvestmentPage = () => {
   const [createPayAmount, setCreatePayAmount] = useState(null);
   const [createPayMode, setCreatePayMode] = useState('CASH');
 
+  // Selected vendor's outstanding (for the create-time payment allocation preview).
+  const watchedVendorId = Form.useWatch('vendorId', investmentForm);
+  const { data: vendorDetailData } = useQuery({
+    queryKey: ['vendorForInvestment', watchedVendorId],
+    queryFn: () => vendorService.getVendorById(watchedVendorId),
+    enabled: !!watchedVendorId && addModalVisible && selectedType === 'PURCHASE',
+  });
+  const vendorUnpaid = useMemo(() => {
+    const purchases = vendorDetailData?.data?.purchases || [];
+    return purchases
+      .filter((p) => Number(p.amountDue) > 0)
+      .sort((a, b) => (a.purchaseDate || '').localeCompare(b.purchaseDate || ''));
+  }, [vendorDetailData]);
+  const vendorOverdue = useMemo(
+    () => vendorUnpaid.reduce((s, p) => s + Number(p.amountDue || 0), 0),
+    [vendorUnpaid]
+  );
+
   const addPaymentMutation = useMutation({
     mutationFn: ({ id, data }) => investmentService.addPayment(id, data),
     onSuccess: () => {
       notification.success({ message: 'Payment Recorded', placement: 'topRight', duration: 3 });
       queryClient.invalidateQueries({ queryKey: ['investment', selectedInvestment?.id] });
       queryClient.invalidateQueries({ queryKey: ['investments'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorPayments'] });
       if (selectedInvestment?.vendorId) {
         queryClient.invalidateQueries({ queryKey: ['vendor', selectedInvestment.vendorId] });
       }
@@ -405,6 +427,15 @@ const InvestmentPage = () => {
         .reduce((s, i) => s + (i.grandTotal || 0), 0),
     [investments]
   );
+  // Total outstanding across the currently listed (filtered) invoices.
+  const totalDue = useMemo(
+    () =>
+      investments.reduce(
+        (s, i) => s + Math.max(0, (Number(i.grandTotal) || 0) - (Number(i.amountPaid) || 0)),
+        0
+      ),
+    [investments]
+  );
 
   // ── Vendor summary computations ────────
   const totalVendors = vendors.length;
@@ -426,6 +457,33 @@ const InvestmentPage = () => {
 
   // ── Grand total calculation ────────────
   const grandTotal = subtotal + gst - discount + otherCharges;
+
+  // Live oldest-first allocation of the create-time payment: old dues first, then this invoice.
+  const payNow = Number(createPayAmount) || 0;
+  const paymentAllocation = useMemo(() => {
+    let remaining = payNow;
+    const rows = [];
+    for (const inv of vendorUnpaid) {
+      const due = Number(inv.amountDue) || 0;
+      const pay = Math.min(remaining, due);
+      if (pay > 0) rows.push({ key: inv.id, label: inv.invoiceNumber || 'Invoice', old: true, pay, due });
+      remaining -= pay;
+    }
+    const thisPay = Math.min(remaining, grandTotal);
+    if (thisPay > 0) rows.push({ key: 'new', label: 'This invoice', old: false, pay: thisPay, due: grandTotal });
+    remaining -= thisPay;
+    return { rows, leftover: Math.max(0, remaining) };
+  }, [payNow, vendorUnpaid, grandTotal]);
+
+  // Max payable now = this invoice + vendor's overdue (just this invoice for overhead).
+  const maxPayable = selectedType === 'PURCHASE' ? (grandTotal + vendorOverdue) : grandTotal;
+
+  // Keep the entered amount within the outstanding balance if totals change.
+  useEffect(() => {
+    if (createPayAmount != null && Number(createPayAmount) > maxPayable) {
+      setCreatePayAmount(Number(maxPayable.toFixed(2)));
+    }
+  }, [maxPayable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recalcSubtotal = (rows, type) => {
     if (type === 'OVERHEAD') {
@@ -455,6 +513,8 @@ const InvestmentPage = () => {
         queryClient.invalidateQueries({ queryKey: ['vendor', affectedVendorId] });
       }
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorForInvestment'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorPayments'] });
       handleCloseAddModal();
     },
     onError: (err) => {
@@ -585,6 +645,7 @@ const InvestmentPage = () => {
     setSubtotal(0);
     setGst(0);
     setGstManual(false);
+    setGstRate(null);
     setDiscount(0);
     setOtherCharges(0);
     setCreateFullPayment(false);
@@ -595,12 +656,19 @@ const InvestmentPage = () => {
     }
   };
 
+  // Open the Add Investment modal with the purchase date defaulted to today.
+  const handleOpenAddInvestment = () => {
+    setAddModalVisible(true);
+    investmentForm.setFieldsValue({ purchaseDate: dayjs() });
+  };
+
   const handleTypeChange = (val) => {
     setSelectedType(val);
     setItemRows([makeEmptyRow(1)]);
     setOverheadRows([makeEmptyOverheadRow(1)]);
     setSubtotal(0);
     setGstManual(false);
+    setGstRate(null);
     if (val === 'OVERHEAD') {
       setGst(0);
       setDiscount(0);
@@ -701,6 +769,9 @@ const InvestmentPage = () => {
             quantity: Number(r.quantity) || 0,
             unit: r.unit || 'PIECE',
             rate: Number(r.rate) || 0,
+            // MRP (selling price) for products only; blank → product's default price is used.
+            sellingPrice: (r.itemType === 'PRODUCT' && r.mrp != null && r.mrp !== '')
+              ? Number(r.mrp) : undefined,
           }));
       }
 
@@ -721,11 +792,11 @@ const InvestmentPage = () => {
           otherCharge: otherCharges,
         } : {}),
         grandTotal: computedGrandTotal,
-        // Optional payment captured at creation
-        fullPayment: createFullPayment,
-        paymentAmount: createFullPayment ? undefined : (createPayAmount ? Number(createPayAmount) : undefined),
+        // Optional payment captured at creation (allocated oldest-dues-first on the backend).
+        fullPayment: false,
+        paymentAmount: createPayAmount ? Number(createPayAmount) : undefined,
         paymentMode: createPayMode,
-        // No payment date at creation — backend defaults it to the purchase date.
+        // Payment is recorded as of today by the backend.
       };
 
       createInvestmentMutation.mutate(payload);
@@ -800,8 +871,14 @@ const InvestmentPage = () => {
       title: 'Vendor',
       dataIndex: 'vendorName',
       key: 'vendorName',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: '#0F172A' }}>{val || '—'}</span>
+      render: (val, record) => (
+        record.vendorId ? (
+          <a onClick={() => navigate(`/vendors/${record.vendorId}`)} style={{ fontWeight: 600, color: '#2563EB', cursor: 'pointer' }}>
+            {val || '—'}
+          </a>
+        ) : (
+          <span style={{ fontWeight: 600, color: '#0F172A' }}>{val || '—'}</span>
+        )
       ),
     },
     {
@@ -1164,6 +1241,28 @@ const InvestmentPage = () => {
       ),
     },
     {
+      title: (
+        <Tooltip title="Selling price (MRP) for this stock. Leave blank to use the product's default selling price.">
+          <span>MRP ({getCurrencySymbol()})</span>
+        </Tooltip>
+      ),
+      width: 110,
+      render: (_, record) =>
+        record.itemType === 'PRODUCT' ? (
+          <InputNumber
+            min={0}
+            precision={2}
+            value={record.mrp}
+            onChange={(val) => updateItemRow(record.id, 'mrp', val)}
+            placeholder="Selling price"
+            style={{ width: '100%', borderRadius: 6, fontSize: '0.82rem' }}
+            size="small"
+          />
+        ) : (
+          <span style={{ color: '#CBD5E1', fontSize: '0.8rem' }}>—</span>
+        ),
+    },
+    {
       title: `Amount (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
@@ -1485,7 +1584,7 @@ const InvestmentPage = () => {
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    onClick={() => setAddModalVisible(true)}
+                    onClick={handleOpenAddInvestment}
                     style={{
                       borderRadius: 8,
                       fontWeight: 700,
@@ -1547,6 +1646,11 @@ const InvestmentPage = () => {
                 <span>
                   <span style={{ color: '#B45309' }}>Overhead:</span>
                   <span style={{ marginLeft: 6, color: '#92400E' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
+                </span>
+                <span style={{ color: '#CBD5E1' }}>|</span>
+                <span>
+                  <span style={{ color: '#B91C1C' }}>Due:</span>
+                  <span style={{ marginLeft: 6, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
                 </span>
               </div>
 
@@ -1751,7 +1855,17 @@ const InvestmentPage = () => {
               <Row gutter={[16, 16]}>
                 {[
                   { label: 'Invoice Number', value: investmentDetail.invoiceNumber || '—' },
-                  { label: 'Vendor', value: investmentDetail.vendorName || '—' },
+                  {
+                    label: 'Vendor',
+                    value: investmentDetail.vendorId ? (
+                      <a
+                        onClick={() => navigate(`/vendors/${investmentDetail.vendorId}`)}
+                        style={{ color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {investmentDetail.vendorName || '—'}
+                      </a>
+                    ) : (investmentDetail.vendorName || '—'),
+                  },
                   {
                     label: 'Purchase Date',
                     value: investmentDetail.purchaseDate
@@ -1859,18 +1973,13 @@ const InvestmentPage = () => {
               {/* Add payment form (hidden once fully paid) */}
               {investmentDetail.paymentStatus !== 'PAID' && (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottom: '1px dashed #E2E8F0' }}>
-                  <DatePicker
-                    value={payDate}
-                    onChange={setPayDate}
-                    format="DD-MMM-YYYY"
-                    placeholder="Payment date"
-                    style={{ width: 150 }}
-                    disabledDate={(d) =>
-                      d && (
-                        d.isAfter(dayjs(), 'day') ||
-                        (investmentDetail.purchaseDate && d.isBefore(dayjs(investmentDetail.purchaseDate), 'day'))
-                      )
-                    }
+                  <InputNumber
+                    value={payAmount}
+                    onChange={setPayAmount}
+                    min={0}
+                    placeholder="Amount"
+                    prefix={getCurrencySymbol()}
+                    style={{ width: 130 }}
                   />
                   <Select value={payMode} onChange={setPayMode} style={{ width: 130 }}>
                     <Option value="CASH">Cash</Option>
@@ -1880,13 +1989,19 @@ const InvestmentPage = () => {
                     <Option value="NET_BANKING">Net Banking</Option>
                     <Option value="WALLET">Wallet</Option>
                   </Select>
-                  <InputNumber
-                    value={payAmount}
-                    onChange={setPayAmount}
-                    min={0}
-                    placeholder="Amount"
-                    prefix={getCurrencySymbol()}
-                    style={{ width: 130 }}
+                  <DatePicker
+                    value={payDate || dayjs()}
+                    onChange={setPayDate}
+                    format="DD-MMM-YYYY"
+                    allowClear={false}
+                    placeholder="Payment date"
+                    style={{ width: 150 }}
+                    disabledDate={(d) =>
+                      d && (
+                        d.isAfter(dayjs(), 'day') ||
+                        (investmentDetail.purchaseDate && d.isBefore(dayjs(investmentDetail.purchaseDate), 'day'))
+                      )
+                    }
                   />
                   <Button type="primary" icon={<PlusOutlined />} loading={addPaymentMutation.isPending} onClick={handleAddPayment} style={{ borderRadius: 8 }}>
                     Add
@@ -2019,20 +2134,21 @@ const InvestmentPage = () => {
                 <>
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
-                      name="gstAmount"
                       label={<span style={{ fontWeight: 700, color: '#374151' }}>
-                        GST Amount ({getCurrencySymbol()})
-                        {gstPercent ? <span style={{ fontWeight: 500, color: '#6B7280' }}> · {gstPercent}% default</span> : null}
+                        GST %
+                        <span style={{ fontWeight: 500, color: '#6B7280' }}> = {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </span>}
                     >
                       <InputNumber
                         min={0}
+                        max={100}
                         precision={2}
-                        value={gst}
-                        onChange={(v) => { setGst(v || 0); setGstManual(true); }}
+                        value={gstManual ? gstRate : gstPercent}
+                        onChange={(v) => { setGstRate(v ?? 0); setGstManual(true); }}
+                        addonAfter="%"
                         style={{ width: '100%', borderRadius: 8 }}
                         size="middle"
-                        placeholder="0.00"
+                        placeholder="0"
                       />
                     </Form.Item>
                   </Col>
@@ -2163,25 +2279,42 @@ const InvestmentPage = () => {
             </div>
           </Card>
 
-          {/* Payment (optional) captured at creation */}
+          {/* Payment (optional) captured at creation — clears oldest vendor dues first */}
           <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginTop: 12 }} bodyStyle={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 700, color: '#374151' }}>Payment</span>
-              <Checkbox
-                checked={createFullPayment}
-                onChange={(e) => { setCreateFullPayment(e.target.checked); if (e.target.checked) setCreatePayAmount(null); }}
-              >
-                Fully paid
-              </Checkbox>
-              {!createFullPayment && (
-                <InputNumber
-                  value={createPayAmount}
-                  onChange={setCreatePayAmount}
-                  min={0}
-                  prefix={getCurrencySymbol()}
-                  placeholder="Amount paid (optional)"
-                  style={{ width: 200 }}
-                />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, color: '#374151' }}>Payment</div>
+              {selectedType === 'PURCHASE' && (
+                <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 700 }}>This invoice</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A' }}>{getCurrencySymbol()}{grandTotal.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', color: vendorOverdue > 0 ? '#991B1B' : '#64748B', fontWeight: 700 }}>Previous overdue</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: vendorOverdue > 0 ? '#DC2626' : '#0F172A' }}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', color: '#1D4ED8', fontWeight: 700 }}>Total outstanding</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1E40AF' }}>{getCurrencySymbol()}{(grandTotal + vendorOverdue).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <InputNumber
+                value={createPayAmount}
+                onChange={(v) => setCreatePayAmount(v == null ? null : Math.min(Number(v), maxPayable))}
+                min={0}
+                max={maxPayable}
+                prefix={getCurrencySymbol()}
+                placeholder="Amount paying now"
+                style={{ width: 200 }}
+              />
+              {selectedType === 'PURCHASE' && (grandTotal + vendorOverdue) > 0 && (
+                <Button onClick={() => setCreatePayAmount(Number((grandTotal + vendorOverdue).toFixed(2)))} style={{ borderRadius: 8 }}>
+                  Pay full ({getCurrencySymbol()}{(grandTotal + vendorOverdue).toLocaleString('en-IN')})
+                </Button>
               )}
               <Select value={createPayMode} onChange={setCreatePayMode} style={{ width: 140 }}>
                 <Option value="CASH">Cash</Option>
@@ -2191,9 +2324,36 @@ const InvestmentPage = () => {
                 <Option value="NET_BANKING">Net Banking</Option>
                 <Option value="WALLET">Wallet</Option>
               </Select>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                Uses the invoice date. Leave amount blank for no payment (Unpaid); add the balance later on the details page.
-              </span>
+            </div>
+
+            {selectedType === 'PURCHASE' && payNow > 0 && (
+              <div style={{ marginTop: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', marginBottom: 6 }}>
+                  How this payment applies (oldest dues first)
+                </div>
+                {paymentAllocation.rows.map((r) => (
+                  <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '2px 0' }}>
+                    <span style={{ color: r.old ? '#92400E' : '#0F172A', fontWeight: 600 }}>
+                      {r.label}{r.old ? ' (previous)' : ''}
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#059669' }}>
+                      {getCurrencySymbol()}{r.pay.toLocaleString('en-IN')}
+                      <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+                        {r.pay >= r.due ? ' · cleared' : ` · of ${getCurrencySymbol()}${r.due.toLocaleString('en-IN')}`}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+                {paymentAllocation.leftover > 0 && (
+                  <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: 6 }}>
+                    ⚠ {getCurrencySymbol()}{paymentAllocation.leftover.toLocaleString('en-IN')} is more than the total outstanding — reduce the amount.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 8 }}>
+              Recorded as of today. Leave the amount blank to keep it Unpaid; add payments later on the details page.
             </div>
           </Card>
 

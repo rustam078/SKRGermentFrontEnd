@@ -43,6 +43,24 @@ const salesService = {
     return response.data;
   },
 
+  // A customer's unpaid balance across all their sales (for the credit section).
+  getCustomerOutstanding: async (mobile) => {
+    const response = await axiosInstance.get('/sales/customer/outstanding', { params: { mobile } });
+    return response.data;
+  },
+
+  // A customer's recent sales (newest first) for the history tab.
+  getCustomerHistory: async (mobile, page = 0, size = 10) => {
+    const response = await axiosInstance.get('/sales/customer/history', { params: { mobile, page, size } });
+    return response.data;
+  },
+
+  // A customer's payments grouped by payment event (each split across the invoices it cleared).
+  getCustomerPaymentHistory: async (mobile) => {
+    const response = await axiosInstance.get('/sales/customer/payment-history', { params: { mobile } });
+    return response.data || [];
+  },
+
   getInvoicePreview: async (saleId) => {
     const response = await axiosInstance.get(`/sales/${saleId}/invoice`);
     return response.data;

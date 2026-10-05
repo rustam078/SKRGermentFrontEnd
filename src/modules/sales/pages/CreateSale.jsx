@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Drawer,
   Grid,
   IconButton,
   Paper,
@@ -24,17 +25,19 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RemoveIcon from '@mui/icons-material/Remove';
-import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import salesService from '../services/salesService';
 import customerService from '../services/customerService';
 import productService from '../services/productService';
@@ -44,56 +47,41 @@ import { getCurrencySymbol } from '../../../utils/currency';
 import { useGstConfig } from '../../../contexts/AppSettingsContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 
-// Profit % / amount for one line, based on unit cost vs selling price (after discount).
-const lineProfit = (item) => {
-  const qty = Number(item.quantity) || 0;
-  const price = Number(item.sellingPrice) || 0;
-  const cost = Number(item.cost) || 0;
-  const discount = Number(item.discount) || 0;
-  const revenue = price * qty - discount;
-  const totalCost = cost * qty;
-  const amount = revenue - totalCost;
-  const pct = totalCost > 0 ? (amount / totalCost) * 100 : null;
-  return { amount, pct, hasCost: cost > 0 };
+// Walk FIFO batches, pricing each drawn unit at its own batch selling price.
+// Returns the exact gross, total cost, weighted-average price and a per-batch breakdown.
+const fifoPricing = (batches, quantity) => {
+  const qty = Number(quantity) || 0;
+  if (!Array.isArray(batches) || !batches.length || qty <= 0) {
+    return { gross: 0, cost: 0, avgPrice: 0, breakdown: [] };
+  }
+  let remaining = qty;
+  let gross = 0;
+  let cost = 0;
+  const breakdown = [];
+  for (const b of batches) {
+    if (remaining <= 0) break;
+    const avail = Number(b.quantityAvailable) || 0;
+    if (avail <= 0) continue;
+    const take = Math.min(remaining, avail);
+    const price = Number(b.sellingPrice) || 0;
+    gross += take * price;
+    cost += take * (Number(b.unitCost) || 0);
+    breakdown.push({ qty: take, price });
+    remaining -= take;
+  }
+  return { gross, cost, avgPrice: qty > 0 ? gross / qty : 0, breakdown };
 };
 
-// Inline click-to-edit number cell: shows the value as text; click turns it into a
-// compact input. Commits on blur/Enter, cancels on Escape.
-const EditableNumber = ({ value, onCommit, prefix = '', disabled, min = 0, width = 92 }) => {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value ?? 0));
-  useEffect(() => { setDraft(String(value ?? 0)); }, [value]);
-
-  const commit = () => { setEditing(false); onCommit(Number(draft) || 0); };
-
-  if (!editing) {
-    return (
-      <Box
-        onClick={() => !disabled && setEditing(true)}
-        sx={{
-          display: 'inline-block', minWidth: width, textAlign: 'right', px: 1, py: 0.5, borderRadius: 1,
-          cursor: disabled ? 'default' : 'text', color: '#0F172A', fontWeight: 600, fontSize: '0.86rem',
-          '&:hover': disabled ? {} : { bgcolor: '#EFF3FB', outline: '1px dashed #BFDBFE' },
-        }}
-      >
-        {prefix}{Number(value || 0).toLocaleString('en-IN')}
-      </Box>
-    );
+// Per-line money for one cart row: scanned lines use their frozen price, typed lines use FIFO.
+const lineDerived = (item) => {
+  const qty = Number(item.quantity) || 0;
+  const scanned = Boolean(item.serials && item.serials.length);
+  if (scanned) {
+    const price = Number(item.sellingPrice) || 0;
+    const cost = Number(item.cost) || 0;
+    return { gross: price * qty, cost: cost * qty, avgPrice: price, breakdown: [{ qty, price }] };
   }
-  return (
-    <TextField
-      type="number" size="small" autoFocus value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onFocus={(e) => e.target.select()}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { e.preventDefault(); commit(); }
-        if (e.key === 'Escape') { setEditing(false); setDraft(String(value ?? 0)); }
-      }}
-      inputProps={{ min, style: { textAlign: 'right', padding: '4px 6px', fontWeight: 600 } }}
-      sx={{ width, '& .MuiInputBase-root': { bgcolor: '#fff' } }}
-    />
-  );
+  return fifoPricing(item.saleBatches, qty);
 };
 
 const CreateSale = () => {
@@ -107,7 +95,7 @@ const CreateSale = () => {
     customerEmail: '',
     paymentMode: 'CASH',
     paymentProvider: '',
-    remarks: '',
+    discount: 0,
     items: [],
   });
   const [customerResults, setCustomerResults] = useState([]);
@@ -117,6 +105,12 @@ const CreateSale = () => {
   const [productLoading, setProductLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [profitOpen, setProfitOpen] = useState(false); // profit summary side panel
+  const [discountText, setDiscountText] = useState('0'); // ₹ amount field text (stored truth = formValues.discount)
+  const [pctText, setPctText] = useState('0'); // % field text; the two fields convert into each other
+  const [previousDue, setPreviousDue] = useState(0); // this customer's outstanding from past sales
+  const [receivedText, setReceivedText] = useState('0'); // amount received now (text so no arrows/scroll)
+  const [receivedTouched, setReceivedTouched] = useState(false); // user edited received → stop auto-syncing to bill
 
   const anyProductSelected = formValues.items.length > 0;
   const hasValidationIssues = useMemo(() => {
@@ -127,7 +121,9 @@ const CreateSale = () => {
       if (!item.productId) return true;
       if (!item.quantity || Number(item.quantity) <= 0) return true;
       if (item.quantityAvailable != null && Number(item.quantity) > Number(item.quantityAvailable)) return true;
-      if (Number(item.sellingPrice) < 0) return true;
+      // Typed line must resolve a FIFO price once its batches are loaded.
+      const scanned = Boolean(item.serials && item.serials.length);
+      if (!scanned && Array.isArray(item.saleBatches) && lineDerived(item).avgPrice <= 0) return true;
     }
     return false;
   }, [formValues]);
@@ -169,25 +165,81 @@ const CreateSale = () => {
     createSaleMutation.mutate({ ...base, reconcileBatches: batchNumbers });
   };
 
-  // Final payable = sum of (price * qty - discount).
+  // Subtotal = sum of every line's FIFO gross (before the order-level discount).
   const subtotal = useMemo(
-    () => formValues.items.reduce((sum, item) => sum + ((Number(item.sellingPrice) || 0) * (Number(item.quantity) || 0) - (Number(item.discount) || 0)), 0),
-    [formValues.items]
-  );
-  const totalProfit = useMemo(
-    () => formValues.items.reduce((sum, item) => (item.productId ? sum + lineProfit(item).amount : sum), 0),
+    () => formValues.items.reduce((sum, item) => (item.productId ? sum + lineDerived(item).gross : sum), 0),
     [formValues.items]
   );
   const totalCostBasis = useMemo(
-    () => formValues.items.reduce((sum, item) => (item.productId ? sum + (Number(item.cost) || 0) * (Number(item.quantity) || 0) : sum), 0),
+    () => formValues.items.reduce((sum, item) => (item.productId ? sum + lineDerived(item).cost : sum), 0),
     [formValues.items]
   );
+  // One order-level discount, clamped to the subtotal.
+  const totalDiscount = Math.min(Math.max(0, Number(formValues.discount) || 0), subtotal);
+  const net = subtotal - totalDiscount; // taxable amount after discount
+  const totalProfit = net - totalCostBasis;
   const totalProfitPct = totalCostBasis > 0 ? (totalProfit / totalCostBasis) * 100 : null;
-  const totalDiscount = formValues.items.reduce((sum, item) => sum + (Number(item.discount) || 0), 0);
-  const itemsTotal = subtotal + totalDiscount; // gross before discount
-  // GST on the net amount (subtotal already = price*qty - discount), only when enabled in Settings.
-  const gstAmount = gstEnabled && subtotal > 0 ? (subtotal * (Number(gstPercent) || 0)) / 100 : 0;
-  const payable = subtotal + gstAmount;
+  const itemsTotal = subtotal; // gross before discount
+  // GST on the net amount (subtotal − discount), only when enabled in Settings.
+  const gstAmount = gstEnabled && net > 0 ? (net * (Number(gstPercent) || 0)) / 100 : 0;
+  const rawPayable = net + gstAmount;
+  // Grand total is always rounded to the nearest whole unit (retail round-off).
+  const payable = Math.round(rawPayable);
+  const roundOffAmount = payable - rawPayable;
+
+  // Total the customer owes now = this bill + their previous dues; what is left after payment.
+  const grandOwed = payable + previousDue;
+  const amountReceived = Math.min(Math.max(0, Number(receivedText) || 0), grandOwed);
+  const remainingDue = Math.max(0, grandOwed - amountReceived);
+
+  // Fetch the customer's previous outstanding once a full mobile is entered/selected.
+  useEffect(() => {
+    const mobile = formValues.customerMobile.trim();
+    if (mobile.length < 8) { setPreviousDue(0); return undefined; }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const data = await salesService.getCustomerOutstanding(mobile);
+        if (active) setPreviousDue(Number(data?.totalOutstanding) || 0);
+      } catch { if (active) setPreviousDue(0); }
+    }, 450);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [formValues.customerMobile]);
+
+  // Until the cashier edits it, "amount received" defaults to this bill (a normal fully-paid sale).
+  useEffect(() => {
+    if (!receivedTouched) setReceivedText(String(payable));
+  }, [payable, receivedTouched]);
+
+  // When items/quantities change: clamp the discount to the subtotal and resync both field texts.
+  useEffect(() => {
+    const amt = Math.min(Number(formValues.discount) || 0, subtotal);
+    setFormValues((prev) => ((Number(prev.discount) || 0) !== amt ? { ...prev, discount: amt } : prev));
+    setDiscountText(String(amt));
+    setPctText(subtotal > 0 ? String(Math.round((amt / subtotal) * 10000) / 100) : '0');
+  }, [subtotal]); // formValues.discount intentionally omitted — typing updates texts directly
+
+  // Allow only digits and a decimal point (no arrows / wheel: fields are type=text).
+  const sanitizeNum = (s) => s.replace(/[^0-9.]/g, '');
+
+  // Type the ₹ amount → derive the % field.
+  const handleDiscountAmount = (raw) => {
+    const clean = sanitizeNum(raw);
+    setDiscountText(clean);
+    const amt = Math.min(Math.max(0, Number(clean) || 0), subtotal);
+    setFormValues((prev) => ({ ...prev, discount: amt }));
+    setPctText(subtotal > 0 ? String(Math.round((amt / subtotal) * 10000) / 100) : '0');
+  };
+
+  // Type the % → derive the ₹ amount (amount stays the stored source of truth).
+  const handleDiscountPercent = (raw) => {
+    const clean = sanitizeNum(raw);
+    setPctText(clean);
+    const pct = Math.min(Math.max(0, Number(clean) || 0), 100);
+    const amt = Math.min(Math.round(subtotal * pct) / 100, subtotal);
+    setFormValues((prev) => ({ ...prev, discount: amt }));
+    setDiscountText(String(amt));
+  };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -222,7 +274,6 @@ const CreateSale = () => {
     formValues.items.forEach((item, index) => {
       if (!item.quantity || Number(item.quantity) <= 0) nextErrors[`quantity_${index}`] = 'Qty > 0';
       if (item.quantityAvailable != null && Number(item.quantity) > Number(item.quantityAvailable)) nextErrors[`quantity_${index}`] = 'Exceeds stock';
-      if (Number(item.sellingPrice) < 0) nextErrors[`sellingPrice_${index}`] = 'Invalid price';
     });
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -236,15 +287,19 @@ const CreateSale = () => {
       customerEmail: formValues.customerEmail,
       paymentMode: formValues.paymentMode,
       paymentProvider: formValues.paymentProvider,
-      remarks: formValues.remarks,
-      items: formValues.items.map((item) => ({
-        productId: item.productId,
-        quantity: Number(item.quantity),
-        sellingPrice: Number(item.sellingPrice),
-        discount: Number(item.discount),
-        batchNumber: item.batchNumber || undefined,
-        serials: item.serials && item.serials.length ? item.serials : undefined,
-      })),
+      discount: totalDiscount, // one order-level discount, split across lines by the backend
+      amountReceived, // paid now; shortfall vs (bill + previous due) becomes the customer's due
+      items: formValues.items.map((item) => {
+        const scanned = Boolean(item.serials && item.serials.length);
+        return {
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          // Scanned lines carry their frozen price; typed lines are priced by the backend (FIFO).
+          sellingPrice: scanned ? Number(item.sellingPrice) : undefined,
+          batchNumber: item.batchNumber || undefined,
+          serials: scanned ? item.serials : undefined,
+        };
+      }),
     };
     pendingPayloadRef.current = payload; // reused if reconciliation is needed
     createSaleMutation.mutate(payload);
@@ -294,6 +349,7 @@ const CreateSale = () => {
   const handleSelectCustomer = (customer) => {
     if (!customer) { setSelectedCustomer(null); return; }
     setSelectedCustomer(customer);
+    setReceivedTouched(false); // re-default "amount received" to the new customer's bill
     setFormValues((prev) => ({
       ...prev,
       customerName: customer.name,
@@ -321,8 +377,26 @@ const CreateSale = () => {
     setToast({ open: true, message: `Added ${unit.serial}`, severity: 'success' });
   };
 
-  // Add a product from the top search: append a new compact line, or if the product is
-  // already in the cart (typed line), just bump its quantity (respecting stock).
+  // Load a product's FIFO batches so the typed line can price itself; also sets the stock cap.
+  const loadSaleBatches = async (productId) => {
+    try {
+      const batches = await productService.getSaleBatches(productId);
+      const totalAvailable = batches.reduce((s, b) => s + (Number(b.quantityAvailable) || 0), 0);
+      setFormValues((prev) => ({
+        ...prev,
+        items: prev.items.map((it) => (
+          it.productId === productId && !(it.serials && it.serials.length)
+            ? { ...it, saleBatches: batches, quantityAvailable: totalAvailable }
+            : it
+        )),
+      }));
+    } catch (err) {
+      setToast({ open: true, message: err.message || 'Unable to load batch prices', severity: 'error' });
+    }
+  };
+
+  // Add a product from the top search: append a new line (FIFO-priced), or if it is already
+  // in the cart (typed line), just bump its quantity (respecting stock).
   const handleAddProduct = (product) => {
     if (!product) return;
     const existingIndex = formValues.items.findIndex(
@@ -334,10 +408,6 @@ const CreateSale = () => {
       updateItem(existingIndex, { quantity: Math.min((Number(it.quantity) || 0) + 1, max) });
       return;
     }
-    const quantityAvailable = product?.currentStock ?? product?.quantityAvailable ?? null;
-    const configuredSellingPrice = Number(product?.sellingPrice);
-    const avgCost = Number(product?.averageCost) || 0;
-    const price = product?.sellingPrice != null && configuredSellingPrice > 0 ? configuredSellingPrice : avgCost;
     setFormValues((prev) => ({
       ...prev,
       items: [
@@ -345,21 +415,21 @@ const CreateSale = () => {
         {
           productId: product.productId,
           productName: product.productName || product.name,
-          quantityAvailable,
+          quantityAvailable: product?.currentStock ?? product?.quantityAvailable ?? null,
           quantity: 1,
-          sellingPrice: price,
-          cost: avgCost,
-          discount: 0,
+          cost: Number(product?.averageCost) || 0,
+          saleBatches: null, // loading — FIFO price appears once batches arrive
         },
       ],
     }));
+    loadSaleBatches(product.productId);
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* Top bar: Back + inline customer fields (no card, one row) */}
       <Stack direction="row" alignItems="flex-start" spacing={1.5} flexWrap="wrap" sx={{ rowGap: 1.5 }}>
-        <Button startIcon={<ArrowBackIcon />} variant="text" sx={{ color: '#475569', mt: 0.5 }} onClick={() => navigate('/sales/list')}>
+        <Button startIcon={<ArrowBackIcon />} variant="text" sx={{ color: '#475569', mt: 0.5 }} onClick={() => navigate(-1)}>
           Back
         </Button>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
@@ -457,19 +527,17 @@ const CreateSale = () => {
                       <TableRow>
                         <TableCell sx={{ width: 26 }}>#</TableCell>
                         <TableCell>Product</TableCell>
-                        <TableCell align="center" sx={{ width: 116 }}>Qty</TableCell>
-                        <TableCell align="right" sx={{ width: 96 }}>Price</TableCell>
-                        <TableCell align="right" sx={{ width: 92 }}>Discount</TableCell>
+                        <TableCell align="center" sx={{ width: 140 }}>Qty</TableCell>
+                        <TableCell align="right" sx={{ width: 150 }}>Price (FIFO)</TableCell>
                         <TableCell align="right" sx={{ width: 100 }}>Total</TableCell>
-                        <TableCell align="right" sx={{ width: 72 }}>Profit</TableCell>
                         <TableCell sx={{ width: 40 }} />
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {formValues.items.map((item, index) => {
                         const scanned = Boolean(item.serials && item.serials.length);
-                        const lineTotal = (Number(item.sellingPrice) || 0) * (Number(item.quantity) || 0) - (Number(item.discount) || 0);
-                        const p = lineProfit(item);
+                        const d = lineDerived(item);
+                        const loading = !scanned && item.saleBatches == null;
                         const exceeded = isQuantityExceeded(item);
                         return (
                           <TableRow key={`${item.productId}-${index}`} hover>
@@ -488,49 +556,64 @@ const CreateSale = () => {
                               </Stack>
                             </TableCell>
                             <TableCell align="center">
-                              <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.25}>
-                                <IconButton
-                                  size="small" sx={{ p: 0.25 }}
-                                  disabled={(Number(item.quantity) || 0) <= 1}
-                                  onClick={() => {
-                                    const cur = Number(item.quantity) || 0;
-                                    if (cur <= 1) return;
-                                    if (scanned) {
+                              {scanned ? (
+                                // Scanned line: quantity is tied to serials, so only the minus stepper (drops a serial).
+                                <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.25}>
+                                  <IconButton
+                                    size="small" sx={{ p: 0.25 }}
+                                    disabled={(Number(item.quantity) || 0) <= 1}
+                                    onClick={() => {
+                                      const cur = Number(item.quantity) || 0;
+                                      if (cur <= 1) return;
                                       const serials = item.serials.slice(0, -1);
                                       updateItem(index, { quantity: serials.length, serials });
-                                    } else {
-                                      updateItem(index, { quantity: cur - 1 });
-                                    }
-                                  }}
-                                ><RemoveIcon fontSize="small" /></IconButton>
-                                <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 700, fontSize: '0.85rem', color: exceeded ? '#DC2626' : '#0F172A' }}>{item.quantity}</Typography>
-                                <IconButton size="small" sx={{ p: 0.25 }} disabled={scanned || (item.quantityAvailable != null && Number(item.quantity) >= Number(item.quantityAvailable))} onClick={() => { const cur = Number(item.quantity) || 0; const max = item.quantityAvailable != null ? Number(item.quantityAvailable) : cur + 1; updateItem(index, { quantity: Math.min(cur + 1, max) }); }}><AddIcon fontSize="small" /></IconButton>
-                              </Stack>
-                            </TableCell>
-                            <TableCell align="right">
-                              <EditableNumber value={item.sellingPrice} prefix={getCurrencySymbol()} onCommit={(v) => updateItem(index, { sellingPrice: v })} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <EditableNumber
-                                value={item.discount}
-                                prefix={getCurrencySymbol()}
-                                width={82}
-                                onCommit={(v) => {
-                                  // Discount can't exceed the line amount (i.e. max 100% off).
-                                  const gross = (Number(item.sellingPrice) || 0) * (Number(item.quantity) || 0);
-                                  updateItem(index, { discount: Math.min(Math.max(0, v), gross) });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#0F172A' }}>{getCurrencySymbol()}{lineTotal.toLocaleString('en-IN')}</Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              {!p.hasCost ? (
-                                <Typography variant="caption" color="text.secondary">—</Typography>
+                                    }}
+                                  ><RemoveIcon fontSize="small" /></IconButton>
+                                  <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 700, fontSize: '0.85rem', color: exceeded ? '#DC2626' : '#0F172A' }}>{item.quantity}</Typography>
+                                </Stack>
                               ) : (
-                                <Chip size="small" label={p.pct != null ? `${p.amount >= 0 ? '+' : ''}${p.pct.toFixed(0)}%` : '—'} sx={{ height: 20, fontWeight: 700, fontSize: '0.7rem', bgcolor: p.amount >= 0 ? '#ECFDF5' : '#FEF2F2', color: p.amount >= 0 ? '#047857' : '#B91C1C' }} />
+                                // Typed line: enter the quantity directly (clamped to available stock).
+                                <TextField
+                                  type="number" size="small"
+                                  value={item.quantity}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => {
+                                    const max = item.quantityAvailable != null ? Number(item.quantityAvailable) : Infinity;
+                                    const v = Math.max(1, Math.min(Number(e.target.value) || 1, max));
+                                    updateItem(index, { quantity: v });
+                                  }}
+                                  inputProps={{ min: 1, max: item.quantityAvailable ?? undefined, style: { textAlign: 'center', width: 70, fontWeight: 700, padding: '5px 6px', color: exceeded ? '#DC2626' : '#0F172A' } }}
+                                  sx={{ '& .MuiInputBase-root': { bgcolor: '#fff' } }}
+                                />
                               )}
+                            </TableCell>
+                            <TableCell align="right">
+                              {loading ? (
+                                <Typography variant="caption" color="text.secondary">Loading…</Typography>
+                              ) : (
+                                <Tooltip
+                                  arrow
+                                  placement="left"
+                                  disableHoverListener={d.breakdown.length <= 1}
+                                  title={
+                                    <Box sx={{ py: 0.5, minWidth: 120 }}>
+                                      {d.breakdown.map((s, i) => (
+                                        <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.15 }}>
+                                          <span>{s.qty} ×</span>
+                                          <span>{getCurrencySymbol()}{Number(s.price).toLocaleString('en-IN')}</span>
+                                        </Box>
+                                      ))}
+                                    </Box>
+                                  }
+                                >
+                                  <Typography sx={{ fontWeight: 700, fontSize: '0.86rem', color: '#0F172A', display: 'inline-block', borderBottom: d.breakdown.length > 1 ? '1px dotted #94A3B8' : 'none', cursor: d.breakdown.length > 1 ? 'help' : 'default' }}>
+                                    {getCurrencySymbol()}{Number(d.avgPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                  </Typography>
+                                </Tooltip>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', color: '#0F172A' }}>{getCurrencySymbol()}{Number(d.gross || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                             </TableCell>
                             <TableCell align="center">
                               <IconButton size="small" color="error" onClick={() => handleRemoveItem(index)}><DeleteOutlineIcon fontSize="small" /></IconButton>
@@ -557,39 +640,104 @@ const CreateSale = () => {
             </Stack>
 
             <Stack spacing={2}>
-              <Box sx={{ p: 2.25, borderRadius: 0, bgcolor: '#2e3647', color: '#fff' }}>
+              <Box
+                onClick={() => { if (totalCostBasis > 0 && anyProductSelected) setProfitOpen(true); }}
+                sx={{ p: 2.25, borderRadius: 0, bgcolor: '#2e3647', color: '#fff', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
+              >
                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 {totalDiscount > 0 && <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', mt: 0.25 }}>You saved {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>}
+                {totalCostBasis > 0 && anyProductSelected && (
+                  <Tooltip title="View profit summary">
+                    <InsightsOutlinedIcon sx={{ position: 'absolute', top: 12, right: 12, fontSize: 18, color: '#94A3B8' }} />
+                  </Tooltip>
+                )}
               </Box>
 
               <Stack spacing={1}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Items Total</Typography>
-                  <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{itemsTotal.toLocaleString('en-IN')}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography>
-                  <Typography sx={{ fontWeight: 600, color: totalDiscount > 0 ? '#DC2626' : 'inherit' }}>
-                    {totalDiscount > 0 ? '− ' : ''}{getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}
-                  </Typography>
+                  <Stack direction="row" spacing={1.25} alignItems="center">
+                    <TextField
+                      type="text" inputMode="decimal" size="small" variant="standard"
+                      value={discountText}
+                      disabled={!anyProductSelected}
+                      onChange={(e) => handleDiscountAmount(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      InputProps={{ startAdornment: <Typography sx={{ color: '#DC2626', mr: 0.5, fontSize: '0.9rem' }}>− {getCurrencySymbol()}</Typography> }}
+                      inputProps={{ style: { textAlign: 'right', width: 74, fontWeight: 700, color: '#DC2626' } }}
+                    />
+                    <TextField
+                      type="text" inputMode="decimal" size="small" variant="standard"
+                      value={pctText}
+                      disabled={!anyProductSelected}
+                      onChange={(e) => handleDiscountPercent(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      InputProps={{ endAdornment: <Typography sx={{ color: '#DC2626', ml: 0.25, fontSize: '0.9rem' }}>%</Typography> }}
+                      inputProps={{ style: { textAlign: 'right', width: 46, fontWeight: 700, color: '#DC2626' } }}
+                    />
+                  </Stack>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>GST ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
                   <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 </Box>
-                <Divider sx={{ my: 0.5 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Total Payable</Typography>
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
-                </Box>
-                {totalCostBasis > 0 && anyProductSelected && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Est. Profit</Typography>
-                    <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? '#047857' : '#B91C1C' }}>
-                      {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                      {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
+                {Math.abs(roundOffAmount) > 0.0001 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Round off</Typography>
+                    <Typography sx={{ fontWeight: 600, color: roundOffAmount < 0 ? '#DC2626' : '#047857' }}>
+                      {roundOffAmount >= 0 ? '+ ' : '− '}{getCurrencySymbol()}{Math.abs(roundOffAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </Typography>
+                  </Box>
+                )}
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Credit / udhaari: previous dues + amount received now; the rest stays due. */}
+                {previousDue > 0 && (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ color: '#B45309', fontSize: '0.9rem', fontWeight: 600 }}>Previous due</Typography>
+                      <Typography sx={{ fontWeight: 700, color: '#B45309' }}>{getCurrencySymbol()}{previousDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                    </Box>
+                    <Tooltip title="Click to receive the full amount (clear all)">
+                      <Box
+                        onClick={() => { setReceivedTouched(true); setReceivedText(String(grandOwed)); }}
+                        sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 1, px: 0.5, '&:hover': { bgcolor: '#F1F5F9' } }}
+                      >
+                        <Typography sx={{ color: '#0F172A', fontSize: '0.95rem', fontWeight: 800 }}>Total payable (incl. due)</Typography>
+                        <Typography sx={{ fontWeight: 800, color: '#0F172A', textDecoration: 'underline dotted' }}>{getCurrencySymbol()}{grandOwed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                      </Box>
+                    </Tooltip>
+                  </>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Amount received</Typography>
+                    <Button size="small" onClick={() => { setReceivedTouched(true); setReceivedText(String(grandOwed)); }}
+                      disabled={!anyProductSelected} sx={{ minWidth: 0, px: 0.75, py: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', color: '#047857' }}>
+                      Pay full
+                    </Button>
+                  </Stack>
+                  <TextField
+                    type="text" inputMode="decimal" size="small" variant="standard"
+                    value={receivedText}
+                    disabled={!anyProductSelected}
+                    onChange={(e) => {
+                      setReceivedTouched(true);
+                      const clean = sanitizeNum(e.target.value);
+                      // Can't receive more than the full amount owed — auto-correct to the max.
+                      setReceivedText((Number(clean) || 0) > grandOwed ? String(grandOwed) : clean);
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    InputProps={{ startAdornment: <Typography sx={{ color: '#047857', mr: 0.5, fontSize: '0.9rem' }}>{getCurrencySymbol()}</Typography> }}
+                    inputProps={{ style: { textAlign: 'right', width: 90, fontWeight: 700, color: '#047857' } }}
+                  />
+                </Box>
+                {remainingDue > 0.0001 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>Remaining due</Typography>
+                    <Chip size="small" label={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${amountReceived <= 0 ? 'CREDIT' : 'DUE'}`}
+                      sx={{ height: 22, fontWeight: 800, fontSize: '0.72rem', bgcolor: '#FEF2F2', color: '#B91C1C' }} />
                   </Box>
                 )}
               </Stack>
@@ -602,23 +750,72 @@ const CreateSale = () => {
                 <option value="CREDIT_CARD">Credit Card</option>
                 <option value="DEBIT_CARD">Debit Card</option>
                 <option value="NET_BANKING">Net Banking</option>
-                <option value="WALLET">Wallet</option>
               </TextField>
               {formValues.paymentMode !== 'CASH' ? (
                 <TextField label="Payment Provider" name="paymentProvider" value={formValues.paymentProvider} onChange={handleInputChange} fullWidth size="small" disabled={!anyProductSelected} />
               ) : null}
-              <TextField label="Remarks (optional)" name="remarks" value={formValues.remarks} onChange={handleInputChange} multiline minRows={2} fullWidth size="small" disabled={!anyProductSelected} />
 
               {can('sales', 'write') && (
                 <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleSave} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
                   {createSaleMutation.isLoading ? 'Saving…' : 'Complete Sale'}
                 </Button>
               )}
-              <Button variant="text" fullWidth onClick={() => navigate('/sales/list')} sx={{ color: '#64748B' }}>Cancel</Button>
+              <Button variant="text" fullWidth onClick={() => navigate(-1)} sx={{ color: '#64748B' }}>Cancel</Button>
             </Stack>
           </Box>
         </Grid>
       </Grid>
+
+      {/* Profit summary side panel — after-discount profit per line, for pricing/negotiation. */}
+      <Drawer anchor="right" open={profitOpen} onClose={() => setProfitOpen(false)}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 380 }, p: 2.5 } }}>
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
+          <InsightsOutlinedIcon sx={{ color: '#059669' }} />
+          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A', flexGrow: 1 }}>Profit Summary</Typography>
+          <IconButton size="small" onClick={() => setProfitOpen(false)}><CloseIcon fontSize="small" /></IconButton>
+        </Stack>
+        <Typography variant="caption" sx={{ color: '#94A3B8' }}>Discount is shared across lines by value; profit shown is after discount.</Typography>
+        <Stack spacing={1.25} sx={{ mt: 2 }}>
+          {formValues.items.filter((it) => it.productId).map((item, idx) => {
+            const d = lineDerived(item);
+            const share = subtotal > 0 ? (d.gross / subtotal) * totalDiscount : 0;
+            const net = d.gross - share;
+            const profit = net - d.cost;
+            const pct = d.cost > 0 ? (profit / d.cost) * 100 : null;
+            return (
+              <Box key={`${item.productId}-${idx}`} sx={{ border: '1px solid #F1F5F9', borderRadius: 2, p: 1.25 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A', mb: 0.5 }}>
+                  {item.productName} <span style={{ color: '#94A3B8', fontWeight: 500 }}>× {item.quantity}</span>
+                </Typography>
+                <Stack spacing={0.25}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">Revenue</Typography><Typography variant="caption">{getCurrencySymbol()}{net.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">Cost</Typography><Typography variant="caption">{getCurrencySymbol()}{d.cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700 }}>Profit</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: profit >= 0 ? '#047857' : '#B91C1C' }}>
+                      {profit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}{pct != null ? ` (${pct.toFixed(0)}%)` : ''}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            );
+          })}
+        </Stack>
+        <Divider sx={{ my: 2 }} />
+        <Stack spacing={0.75}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Subtotal</Typography><Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography><Typography sx={{ fontWeight: 600, color: '#DC2626' }}>− {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Total Cost</Typography><Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{totalCostBasis.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
+          <Divider sx={{ my: 0.5 }} />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Net Profit</Typography>
+            <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? '#047857' : '#B91C1C' }}>
+              {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
+            </Typography>
+          </Box>
+        </Stack>
+      </Drawer>
 
       <Dialog open={reconcile.open} onClose={() => setReconcile({ open: false, batches: [] })} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Reconcile physical stock?</DialogTitle>

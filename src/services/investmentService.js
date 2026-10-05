@@ -98,6 +98,12 @@ export const investmentService = {
     return response.data;
   },
 
+  // Vendor payment history: each payment grouped with its per-invoice allocation.
+  getVendorPaymentHistory: async (vendorId) => {
+    const response = await axiosInstance.get(`/investments/vendor/${vendorId}/payments`);
+    return response.data;
+  },
+
   deletePayment: async (investmentId, paymentId) => {
     const response = await axiosInstance.delete(`/investments/${investmentId}/payments/${paymentId}`);
     return response.data;

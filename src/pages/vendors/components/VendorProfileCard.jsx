@@ -11,6 +11,7 @@ import {
   FileTextOutlined,
   CalendarOutlined,
   LineChartOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -31,14 +32,14 @@ const ContactRow = ({ icon, iconBg, iconColor, label, value }) => (
   </div>
 );
 
-const Stat = ({ title, value, icon, iconBg, iconColor }) => (
+const Stat = ({ title, value, icon, iconBg, iconColor, valueColor = '#0F172A' }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 180px', minWidth: 150 }}>
     <div style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       {React.cloneElement(icon, { style: { color: iconColor, fontSize: '1.15rem' } })}
     </div>
     <div style={{ minWidth: 0 }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>{title}</div>
-      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: valueColor, lineHeight: 1.2 }}>{value}</div>
     </div>
   </div>
 );
@@ -47,7 +48,7 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
   const navigate = useNavigate();
   const { can } = usePermissions();
 
-  const { totalInvoices = 0, totalPurchaseAmount = 0, lastPurchaseDate } = summary || {};
+  const { totalInvoices = 0, totalPurchaseAmount = 0, lastPurchaseDate, totalOverdue = 0 } = summary || {};
   const avgInvoice = totalInvoices > 0 ? totalPurchaseAmount / totalInvoices : 0;
   const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN')}`;
   const lastPurchase = lastPurchaseDate ? dayjs(lastPurchaseDate).format('DD MMM YYYY') : 'No Purchases';
@@ -109,6 +110,9 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
               <Stat title="Total Invoices" value={totalInvoices} icon={<FileTextOutlined />} iconBg="#DCFCE7" iconColor="#059669" />
               <Stat title="Last Purchase" value={lastPurchase} icon={<CalendarOutlined />} iconBg="#FEF3C7" iconColor="#D97706" />
               <Stat title="Average Invoice" value={inr(avgInvoice)} icon={<LineChartOutlined />} iconBg="#F3E8FF" iconColor="#7C3AED" />
+              {Number(totalOverdue) > 0 && (
+                <Stat title="Total Overdue" value={inr(totalOverdue)} icon={<ExclamationCircleOutlined />} iconBg="#FEF2F2" iconColor="#DC2626" valueColor="#DC2626" />
+              )}
             </div>
           </div>
         </div>

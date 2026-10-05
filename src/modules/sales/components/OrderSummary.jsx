@@ -70,16 +70,6 @@ const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCanc
           />
         )}
 
-        <TextField
-          label="Remarks"
-          name="remarks"
-          value={values.remarks}
-          onChange={onChange}
-          multiline
-          minRows={4}
-          fullWidth
-        />
-
         <Stack spacing={2}>
           <Button variant="contained" color="primary" fullWidth onClick={onSave} disabled={loading}>
             {loading ? 'Saving...' : 'Save Sale'}

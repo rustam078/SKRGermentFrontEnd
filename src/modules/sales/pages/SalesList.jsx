@@ -20,8 +20,8 @@ import { usePermissions } from '../../../hooks/usePermissions';
 
 dayjs.extend(quarterOfYear);
 
-const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'WALLET'];
-const paymentStatuses = ['All', 'PAID', 'PENDING', 'PARTIALLY_PAID', 'FAILED', 'REFUNDED'];
+const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING'];
+const paymentStatuses = ['All', 'PAID', 'CREDIT'];
 const DEFAULT_FILTERS = { search: '', fromDate: '', toDate: '', paymentMode: 'All', paymentStatus: 'All' };
 
 // Quick date ranges (mirrors the dashboard) — each returns a full-period [from, to].
@@ -215,7 +215,7 @@ const SalesList = () => {
           setRowsPerPage(parseInt(event.target.value, 10));
           setPage(0);
         }}
-        onView={(saleId) => navigate(`/sales/${saleId}`)}
+        onDownload={(saleId) => salesService.downloadInvoicePdf(saleId)}
         onRowClick={(saleId) => navigate(`/sales/${saleId}`)}
       />
     </Box>
