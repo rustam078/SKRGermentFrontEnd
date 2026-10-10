@@ -377,7 +377,7 @@ const DashboardPage = () => {
     queryKey: ['dashProducts'], queryFn: productService.getProducts, enabled: board === 'overview' && can('products', 'view'), staleTime: 5 * 60 * 1000,
   });
   const { data: vendorsList } = useQuery({
-    queryKey: ['dashVendors'], queryFn: vendorService.getVendors, enabled: board === 'overview' && can('investment', 'view'), staleTime: 5 * 60 * 1000,
+    queryKey: ['dashVendors'], queryFn: vendorService.getVendors, enabled: board === 'overview' && can('investment', 'view'), staleTime: 0, refetchOnMount: 'always',
   });
   const productCount = (() => { const a = productsList?.data ?? productsList?.content ?? productsList; return Array.isArray(a) ? a.length : 0; })();
   const vendorCount = (() => { const a = vendorsList?.data ?? vendorsList?.content ?? vendorsList; return Array.isArray(a) ? a.length : 0; })();
@@ -418,6 +418,8 @@ const DashboardPage = () => {
     },
     enabled: board === 'expenses' && can('investment', 'view'),
     keepPreviousData: true,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const applyQuick = (key) => { setRange(QUICK[key]()); setFilterLabel(key); setFilterOpen(false); };
@@ -568,6 +570,7 @@ const DashboardPage = () => {
       kpi(<ShopOutlined />, '#F59E0B', 'Expenses', money(data.investmentTotal), `${num(data.investmentCount)} entries`),
       kpi(<ToolOutlined />, '#8B5CF6', 'Employee Earning', money(data.productionAmount), `${num(data.productionQty)} pcs`),
       kpi(<DollarCircleOutlined />, '#2563EB', 'Sales Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
+      kpi(<DollarCircleOutlined />, '#047857', 'Received', money(data.salesReceived), `${money(data.salesDue)} due`),
       kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Sales Profit', money(data.grossProfit), 'revenue − COGS'),
       kpi(<RiseOutlined />, (Number(data.netProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Net Cash Flow', money(data.netProfit), 'sales − spend'),
       // Row 2
@@ -576,7 +579,6 @@ const DashboardPage = () => {
       kpi(<WarningOutlined />, (data.lowStockCount || 0) > 0 ? '#EF4444' : '#10B981', 'Low Stock', num(data.lowStockCount), 'to reorder'),
       kpi(<TeamOutlined />, '#6366F1', 'Active Staff', num(data.activeEmployees), `of ${num(data.totalEmployees)} total`),
       kpi(<TeamOutlined />, '#8B5CF6', 'Total Vendors', num(vendorCount), 'registered'),
-      kpi(<FundOutlined />, '#64748B', 'Inventory Units', num(data.inventoryUnits), 'pcs in stock'),
     ];
   };
 
@@ -670,7 +672,7 @@ const DashboardPage = () => {
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <SectionCard title="Revenue by Payment Mode" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                    <SectionCard title="Received by Payment Mode (+ Due)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>
@@ -771,7 +773,7 @@ const DashboardPage = () => {
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <SectionCard title="Revenue by Payment Mode" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                    <SectionCard title="Received by Payment Mode (+ Due)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>

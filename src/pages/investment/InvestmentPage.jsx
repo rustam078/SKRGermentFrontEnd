@@ -307,6 +307,7 @@ const InvestmentPage = () => {
     queryFn: productService.getProducts,
   });
 
+  // Backend returns these already sorted: latest purchaseDate first, then latest createdAt.
   const investments = investmentsData?.data || [];
   const vendors = vendorsData?.data || [];
   const products = productsData?.data || [];
@@ -748,6 +749,16 @@ const InvestmentPage = () => {
   const handleSaveInvestment = async () => {
     try {
       const values = await investmentForm.validateFields();
+
+      // Selling price (MRP) is required for every product item.
+      if (selectedType !== 'OVERHEAD') {
+        const missingMrp = itemRows.some((r) => r.itemName && r.itemType === 'PRODUCT' && (r.mrp == null || r.mrp === ''));
+        if (missingMrp) {
+          notification.error({ message: 'Selling price (MRP) is required for every product item.', placement: 'topRight' });
+          return;
+        }
+      }
+
       let items = [];
 
       if (selectedType === 'OVERHEAD') {
@@ -1242,8 +1253,8 @@ const InvestmentPage = () => {
     },
     {
       title: (
-        <Tooltip title="Selling price (MRP) for this stock. Leave blank to use the product's default selling price.">
-          <span>MRP ({getCurrencySymbol()})</span>
+        <Tooltip title="Selling price (MRP) for this stock — required for every product.">
+          <span>MRP ({getCurrencySymbol()}) <span style={{ color: '#DC2626' }}>*</span></span>
         </Tooltip>
       ),
       width: 110,
@@ -1987,7 +1998,6 @@ const InvestmentPage = () => {
                     <Option value="CREDIT_CARD">Credit Card</Option>
                     <Option value="DEBIT_CARD">Debit Card</Option>
                     <Option value="NET_BANKING">Net Banking</Option>
-                    <Option value="WALLET">Wallet</Option>
                   </Select>
                   <DatePicker
                     value={payDate || dayjs()}
@@ -2322,7 +2332,6 @@ const InvestmentPage = () => {
                 <Option value="CREDIT_CARD">Credit Card</Option>
                 <Option value="DEBIT_CARD">Debit Card</Option>
                 <Option value="NET_BANKING">Net Banking</Option>
-                <Option value="WALLET">Wallet</Option>
               </Select>
             </div>
 

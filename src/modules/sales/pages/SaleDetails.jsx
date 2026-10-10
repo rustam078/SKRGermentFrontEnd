@@ -12,13 +12,14 @@ import { notification, Tabs, Collapse, Pagination, Tag } from 'antd';
 import dayjs from 'dayjs';
 import salesService from '../services/salesService';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { modeLabel } from '../../../utils/payment';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
 
 const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const STATUS_COLOR = {
   PAID: 'success',
-  CREDIT: 'warning',
+  DUE: 'warning',
   PENDING: 'warning',
   PARTIALLY_PAID: 'info',
   FAILED: 'error',
@@ -81,7 +82,7 @@ const SaleDetails = () => {
       label: (
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', fontSize: '0.85rem', borderBottom: '1px solid #F1F5F9', pb: 0.75 }}>
           <Box sx={{ flex: '1.4', fontWeight: 700, color: '#0F172A' }}>{grp.paymentDate ? dayjs(grp.paymentDate).format('DD MMM YYYY') : '—'}</Box>
-          <Box sx={{ flex: '1' }}><Tag style={{ borderRadius: 6, margin: 0 }}>{(grp.mode || '').replace(/_/g, ' ')}</Tag></Box>
+          <Box sx={{ flex: '1' }}><Tag style={{ borderRadius: 6, margin: 0 }}>{modeLabel(grp.mode)}</Tag></Box>
           <Box sx={{ flex: '0.8', color: '#64748B' }}>{(grp.allocations || []).length}</Box>
           <Box sx={{ flex: '1', textAlign: 'right', fontWeight: 800, color: '#059669' }}>{inr(grp.totalAmount)}</Box>
         </Box>
@@ -122,7 +123,7 @@ const SaleDetails = () => {
   const invoiceNo = inv.invoiceNo || inv.invoice || '-';
   const saleDate = inv.saleDate || inv.createdAt?.split('T')[0] || '-';
   const status = inv.paymentStatus ? inv.paymentStatus.replace(/_/g, ' ') : 'Unknown';
-  const paymentMode = inv.paymentMode ? inv.paymentMode.replace(/_/g, ' ') : '-';
+  const paymentMode = modeLabel(inv.paymentMode);
   const items = inv.items || [];
 
   return (
@@ -273,6 +274,20 @@ const SaleDetails = () => {
                     <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>{inr(inv.customerBalanceDue)}</Typography>
                   </Stack>
                 )}
+              </>
+            )}
+            {Array.isArray(inv.clearances) && inv.clearances.length > 0 && (
+              <>
+                <Divider sx={{ my: 0.5 }} />
+                <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.9rem' }}>Due cleared later</Typography>
+                {inv.clearances.map((c, i) => (
+                  <Stack key={i} direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>
+                      {dayjs(c.date).format('DD MMM YYYY')} · {modeLabel(c.mode)} · Ref: <b style={{ color: '#0F172A' }}>{c.referenceInvoiceNo}</b>
+                    </Typography>
+                    <Typography sx={{ fontWeight: 700, color: '#047857' }}>{inr(c.amount)}</Typography>
+                  </Stack>
+                ))}
               </>
             )}
           </Stack>

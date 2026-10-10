@@ -3,8 +3,9 @@ import { Box, Card, CardContent, Chip, IconButton, Table, TableBody, TableCell, 
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { modeLabel } from '../../../utils/payment';
 
-const STATUS_COLOR = { PAID: 'success', CREDIT: 'warning', PENDING: 'warning', PARTIALLY_PAID: 'info', FAILED: 'error', REFUNDED: 'default' };
+const STATUS_COLOR = { PAID: 'success', DUE: 'warning', PENDING: 'warning', PARTIALLY_PAID: 'info', FAILED: 'error', REFUNDED: 'default' };
 
 const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onDownload, onRowClick }) => {
   // Server-side paging: `rows` is only the current page, so fill up to the page size by its length.
@@ -74,7 +75,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                         <TableCell>{sale.customerMobile || sale.mobile || '-'}</TableCell>
                         <TableCell>{sale.grandTotal != null ? `${getCurrencySymbol()}${Number(sale.grandTotal).toLocaleString('en-IN')}` : '-'}</TableCell>
                         <TableCell sx={{ color: '#047857', fontWeight: 600 }}>{sale.amountReceived != null ? `${getCurrencySymbol()}${Number(sale.amountReceived).toLocaleString('en-IN')}` : '-'}</TableCell>
-                        <TableCell>{sale.paymentMode || '-'}</TableCell>
+                        <TableCell>{modeLabel(sale.paymentMode)}</TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Chip size="small" label={(sale.paymentStatus || '-').replace(/_/g, ' ')} color={STATUS_COLOR[sale.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />

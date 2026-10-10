@@ -110,7 +110,6 @@ const CreateSale = () => {
   const [pctText, setPctText] = useState('0'); // % field text; the two fields convert into each other
   const [previousDue, setPreviousDue] = useState(0); // this customer's outstanding from past sales
   const [receivedText, setReceivedText] = useState('0'); // amount received now (text so no arrows/scroll)
-  const [receivedTouched, setReceivedTouched] = useState(false); // user edited received → stop auto-syncing to bill
 
   const anyProductSelected = formValues.items.length > 0;
   const hasValidationIssues = useMemo(() => {
@@ -206,10 +205,7 @@ const CreateSale = () => {
     return () => { active = false; window.clearTimeout(timer); };
   }, [formValues.customerMobile]);
 
-  // Until the cashier edits it, "amount received" defaults to this bill (a normal fully-paid sale).
-  useEffect(() => {
-    if (!receivedTouched) setReceivedText(String(payable));
-  }, [payable, receivedTouched]);
+  // "Amount received" is not auto-filled — the cashier types it or clicks "Pay full".
 
   // When items/quantities change: clamp the discount to the subtotal and resync both field texts.
   useEffect(() => {
@@ -349,7 +345,7 @@ const CreateSale = () => {
   const handleSelectCustomer = (customer) => {
     if (!customer) { setSelectedCustomer(null); return; }
     setSelectedCustomer(customer);
-    setReceivedTouched(false); // re-default "amount received" to the new customer's bill
+    setReceivedText('0'); // amount received is manual — reset for the new customer
     setFormValues((prev) => ({
       ...prev,
       customerName: customer.name,
@@ -484,14 +480,21 @@ const CreateSale = () => {
                 onChange={(e, value) => handleAddProduct(value)}
                 getOptionLabel={formatProductLabel}
                 isOptionEqualToValue={(o, v) => o.productId === v?.productId}
-                renderOption={(props, option) => (
-                  <li {...props}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Typography sx={{ fontSize: '0.95rem' }}>{option.productName || option.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">{option.productCode || option.barcode || option.sku || option.productSKU || ''}</Typography>
-                    </Box>
-                  </li>
-                )}
+                renderOption={(props, option) => {
+                  const stock = Number(option.currentStock ?? option.quantityAvailable ?? 0);
+                  return (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, width: '100%' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <Typography sx={{ fontSize: '0.95rem' }}>{option.productName || option.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{option.productCode || option.barcode || option.sku || option.productSKU || ''}</Typography>
+                        </Box>
+                        <Chip size="small" label={`Stock: ${stock.toLocaleString('en-IN')}`}
+                          sx={{ flexShrink: 0, fontWeight: 700, bgcolor: stock <= 0 ? '#FEF2F2' : '#ECFDF5', color: stock <= 0 ? '#B91C1C' : '#047857' }} />
+                      </Box>
+                    </li>
+                  );
+                }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -701,7 +704,7 @@ const CreateSale = () => {
                     </Box>
                     <Tooltip title="Click to receive the full amount (clear all)">
                       <Box
-                        onClick={() => { setReceivedTouched(true); setReceivedText(String(grandOwed)); }}
+                        onClick={() => setReceivedText(String(grandOwed))}
                         sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 1, px: 0.5, '&:hover': { bgcolor: '#F1F5F9' } }}
                       >
                         <Typography sx={{ color: '#0F172A', fontSize: '0.95rem', fontWeight: 800 }}>Total payable (incl. due)</Typography>
@@ -713,7 +716,7 @@ const CreateSale = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Amount received</Typography>
-                    <Button size="small" onClick={() => { setReceivedTouched(true); setReceivedText(String(grandOwed)); }}
+                    <Button size="small" onClick={() => setReceivedText(String(grandOwed))}
                       disabled={!anyProductSelected} sx={{ minWidth: 0, px: 0.75, py: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', color: '#047857' }}>
                       Pay full
                     </Button>
@@ -723,7 +726,6 @@ const CreateSale = () => {
                     value={receivedText}
                     disabled={!anyProductSelected}
                     onChange={(e) => {
-                      setReceivedTouched(true);
                       const clean = sanitizeNum(e.target.value);
                       // Can't receive more than the full amount owed — auto-correct to the max.
                       setReceivedText((Number(clean) || 0) > grandOwed ? String(grandOwed) : clean);
@@ -736,7 +738,7 @@ const CreateSale = () => {
                 {remainingDue > 0.0001 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>Remaining due</Typography>
-                    <Chip size="small" label={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${amountReceived <= 0 ? 'CREDIT' : 'DUE'}`}
+                    <Chip size="small" label={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${amountReceived <= 0 ? 'UDHAAR' : 'DUE'}`}
                       sx={{ height: 22, fontWeight: 800, fontSize: '0.72rem', bgcolor: '#FEF2F2', color: '#B91C1C' }} />
                   </Box>
                 )}

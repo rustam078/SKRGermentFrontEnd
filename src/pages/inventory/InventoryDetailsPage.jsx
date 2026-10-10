@@ -19,6 +19,8 @@ import {
   Select,
   Snackbar,
   Stack,
+  Tabs,
+  Tab,
   Table,
   TableBody,
   TableCell,
@@ -79,6 +81,7 @@ const InventoryDetailsPage = () => {
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [batchStatus, setBatchStatus] = useState('ACTIVE'); // Batch History tab: ACTIVE / SOLD
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [quickRange, setQuickRange] = useState('All');
@@ -190,7 +193,7 @@ const InventoryDetailsPage = () => {
       setError('');
 
       try {
-        const params = { page, size: rowsPerPage };
+        const params = { page, size: rowsPerPage, status: batchStatus };
         if (appliedQuickRange !== 'All') {
           if (appliedFromDate) params.fromDate = appliedFromDate;
           if (appliedToDate) params.toDate = appliedToDate;
@@ -209,11 +212,11 @@ const InventoryDetailsPage = () => {
     if (productId) {
       fetchInventoryDetails();
     }
-  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate, refreshKey, page, rowsPerPage]);
+  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate, refreshKey, page, rowsPerPage, batchStatus]);
 
   useEffect(() => {
     setPage(0);
-  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate]);
+  }, [productId, appliedQuickRange, appliedFromDate, appliedToDate, batchStatus]);
 
   // `batches` is now a single server page of batches. Totals below stay accurate
   // because the backend computes them over ALL batches, not just this page.
@@ -371,6 +374,12 @@ const InventoryDetailsPage = () => {
                   Batch History
                 </Typography>
               </Box>
+
+              {/* Active = still has stock; Sold = depleted (quantity reached 0). Each tab fetches its own page. */}
+              <Tabs value={batchStatus} onChange={(e, v) => setBatchStatus(v)} sx={{ minHeight: 38, mb: 1, borderBottom: '1px solid #E2E8F0' }}>
+                <Tab value="ACTIVE" label="Active" sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
+                <Tab value="SOLD" label="Sold" sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
+              </Tabs>
 
               <TableContainer>
                 <Table size="small">

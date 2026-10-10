@@ -21,7 +21,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 dayjs.extend(quarterOfYear);
 
 const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING'];
-const paymentStatuses = ['All', 'PAID', 'CREDIT'];
+const paymentStatuses = ['All', 'PAID', 'DUE'];
 const DEFAULT_FILTERS = { search: '', fromDate: '', toDate: '', paymentMode: 'All', paymentStatus: 'All' };
 
 // Quick date ranges (mirrors the dashboard) — each returns a full-period [from, to].
@@ -113,7 +113,9 @@ const SalesList = () => {
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
               {money(summary.revenue)} revenue
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
-              {money(summary.discount)} discount
+              <Box component="span" sx={{ color: '#047857' }}>{money(summary.received)} received</Box>
+              <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
+              <Box component="span" sx={{ color: Number(summary.due) > 0 ? '#B91C1C' : '#475569' }}>{money(summary.due)} due</Box>
             </Typography>
           ) : null}
         </Stack>

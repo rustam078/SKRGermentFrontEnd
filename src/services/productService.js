@@ -38,6 +38,12 @@ export const productService = {
     return response.data;
   },
 
+  // Turn a purchased-only product into BOTH by adding piece codes + cost/selling price.
+  enableManufacturing: async (productId, body) => {
+    const response = await axiosInstance.post(`/products/${productId}/enable-manufacturing`, body);
+    return response.data;
+  },
+
   /**
    * Toggle product active/inactive status.
    * PATCH /api/products/{productId}/status
@@ -202,6 +208,18 @@ export const productService = {
   /** Public URL for the product image (usable directly in <img src>). */
   imageUrl: (productId, cacheBust) =>
     `${API_BASE}/products/${productId}/image${cacheBust ? `?t=${cacheBust}` : ''}`,
+
+  /** Per-source stock totals (purchase + production) for the detail cards. */
+  getStockSummary: async (productId) => {
+    const response = await axiosInstance.get(`/inventory/product/${productId}/stock-summary`);
+    return response.data;
+  },
+
+  /** Paged stock receipts (batches) for a product, with optional date/status filters. */
+  getProductBatches: async (productId, params) => {
+    const response = await axiosInstance.get(`/inventory/product/${productId}/batches`, { params });
+    return response.data;
+  },
 };
 
 export default productService;

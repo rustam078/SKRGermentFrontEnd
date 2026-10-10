@@ -23,6 +23,7 @@ import {
   Modal,
   Tabs,
   Upload,
+  InputNumber,
 } from 'antd';
 import {
   ShoppingOutlined,
@@ -38,6 +39,7 @@ import {
   StopOutlined,
   ReloadOutlined,
   BuildOutlined,
+  MinusCircleOutlined,
 } from '@ant-design/icons';
 import { Box } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -192,6 +194,8 @@ const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [form] = Form.useForm();
+  const [enableForm] = Form.useForm();
+  const [enableTarget, setEnableTarget] = useState(null); // purchased product being enabled for manufacturing
   const [searchText, setSearchText] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -292,6 +296,27 @@ const ProductsPage = () => {
       });
     },
   });
+
+  // Enable manufacturing on a purchased-only product (source → BOTH + piece codes + pricing).
+  const enableManufacturingMutation = useMutation({
+    mutationFn: ({ id, values }) => productService.enableManufacturing(id, values),
+    onSuccess: () => {
+      notification.success({ message: 'Manufacturing Enabled', description: 'Product can now be produced.', placement: 'topRight', duration: 3 });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventoryProducts'] });
+      refetchProducts();
+      setEnableTarget(null);
+      enableForm.resetFields();
+    },
+    onError: (err) => {
+      notification.error({ message: 'Could not enable manufacturing', description: err.message || 'An error occurred.', placement: 'topRight', duration: 4.5 });
+    },
+  });
+
+  const openEnableManufacturing = (product) => {
+    setEnableTarget(product);
+    enableForm.setFieldsValue({ pieceCodes: [{}], cost: undefined, sellingPrice: undefined });
+  };
 
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, active }) => productService.updateProductStatus(id, active),
@@ -399,7 +424,7 @@ const ProductsPage = () => {
     if (activeTab === 'manufacture') {
       sourceFiltered = products.filter((p) => p.source !== 'PURCHASED' && p.active);
     } else if (activeTab === 'purchase') {
-      sourceFiltered = products.filter((p) => p.source === 'PURCHASED' && p.active);
+      sourceFiltered = products.filter((p) => (p.source === 'PURCHASED' || p.source === 'BOTH') && p.active);
     } else if (activeTab === 'archive') {
       sourceFiltered = products.filter((p) => !p.active);
     } else {
@@ -531,6 +556,12 @@ const ProductsPage = () => {
 
               const dropdownMenu = {
                 items: [
+                  ...(product.source === 'PURCHASED' ? [{
+                    key: 'enable-manufacturing',
+                    label: 'Enable Manufacturing',
+                    icon: <BuildOutlined style={{ color: '#2563EB' }} />,
+                    onClick: () => openEnableManufacturing(product),
+                  }] : []),
                   {
                     key: 'toggle-status',
                     label: product.active ? 'Deactivate Product' : 'Activate Product',
@@ -638,13 +669,13 @@ const ProductsPage = () => {
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             fontSize: '0.68rem', fontWeight: 700,
-                            color: product.source === 'PURCHASED' ? '#6366F1' : '#0C4A6E',
-                            backgroundColor: product.source === 'PURCHASED' ? '#EEF2FF' : '#E0F2FE',
+                            color: product.source === 'PURCHASED' ? '#6366F1' : product.source === 'BOTH' ? '#9333EA' : '#0C4A6E',
+                            backgroundColor: product.source === 'PURCHASED' ? '#EEF2FF' : product.source === 'BOTH' ? '#F3E8FF' : '#E0F2FE',
                             padding: '2px 7px', borderRadius: 6,
                           }}
                         >
                           {product.source === 'PURCHASED' ? <ShoppingOutlined /> : <BuildOutlined />}
-                          {product.source === 'PURCHASED' ? 'Purchased' : 'Manufactured'}
+                          {product.source === 'PURCHASED' ? 'Purchased' : product.source === 'BOTH' ? 'Both' : 'Manufactured'}
                         </span>
                         {product.source !== 'PURCHASED' && (
                           <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6 }}>
@@ -738,6 +769,7 @@ const ProductsPage = () => {
             onFinish={onFinishProduct}
             autoComplete="off"
             requiredMark={false}
+            initialValues={{ pieceCodes: [{}] }}
           >
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: 20 }}>
               <Form.Item
@@ -763,6 +795,62 @@ const ProductsPage = () => {
               >
                 <IconPicker />
               </Form.Item>
+
+              {/* Costing + selling price (selling price becomes effective today in Pricing History). */}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Form.Item
+                  name="cost"
+                  style={{ flex: 1 }}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Cost Price *</span>}
+                  rules={[{ required: true, message: 'Cost price is mandatory.' }]}
+                >
+                  <InputNumber min={0} size="large" addonBefore={getCurrencySymbol()} placeholder="0" style={{ width: '100%' }} />
+                </Form.Item>
+                <Form.Item
+                  name="sellingPrice"
+                  style={{ flex: 1 }}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Selling Price *</span>}
+                  rules={[{ required: true, message: 'Selling price is mandatory.' }]}
+                >
+                  <InputNumber min={0} size="large" addonBefore={getCurrencySymbol()} placeholder="0" style={{ width: '100%' }} />
+                </Form.Item>
+              </div>
+
+              {/* One or more piece codes, each with its rate. */}
+              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 8 }}>Piece Codes *</div>
+              <Form.List name="pieceCodes">
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => (
+                      <div key={key} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'code']}
+                          style={{ flex: 2, marginBottom: 0 }}
+                          getValueFromEvent={(e) => (e.target.value || '').toUpperCase()}
+                          rules={[{ required: true, message: 'Code required' }, { whitespace: true, message: 'Code required' }]}
+                        >
+                          <Input placeholder="Piece code" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'rate']}
+                          style={{ flex: 1, marginBottom: 0 }}
+                          rules={[{ required: true, message: 'Rate required' }]}
+                        >
+                          <InputNumber min={0.01} placeholder="Rate" addonBefore={getCurrencySymbol()} style={{ width: '100%' }} />
+                        </Form.Item>
+                        {fields.length > 1 && (
+                          <Button type="text" danger icon={<MinusCircleOutlined />} onClick={() => remove(name)} style={{ marginTop: 2 }} />
+                        )}
+                      </div>
+                    ))}
+                    <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} style={{ borderRadius: 8, marginBottom: 16 }}>
+                      Add Piece Code
+                    </Button>
+                  </>
+                )}
+              </Form.List>
 
               <Form.Item
                 name="description"
@@ -822,6 +910,72 @@ const ProductsPage = () => {
             </Card>
           </Form>
         </Drawer>
+
+        {/* Enable Manufacturing: purchased product → BOTH, with piece codes + pricing. */}
+        <Modal
+          open={Boolean(enableTarget)}
+          title={`Enable Manufacturing${enableTarget ? ` — ${enableTarget.name}` : ''}`}
+          onCancel={() => { setEnableTarget(null); enableForm.resetFields(); }}
+          okText="Enable Manufacturing"
+          confirmLoading={enableManufacturingMutation.isPending}
+          onOk={() => enableForm.submit()}
+          destroyOnClose
+        >
+          <Form
+            form={enableForm}
+            layout="vertical"
+            requiredMark={false}
+            initialValues={{ pieceCodes: [{}] }}
+            onFinish={(values) => enableManufacturingMutation.mutate({ id: enableTarget.id, values })}
+          >
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Form.Item name="cost" style={{ flex: 1 }}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>Cost Price *</span>}
+                rules={[{ required: true, message: 'Cost price is mandatory.' }]}>
+                <InputNumber min={0} prefix={getCurrencySymbol()} placeholder="0" controls={false} style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+              <Form.Item name="sellingPrice" style={{ flex: 1 }}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>Selling Price *</span>}
+                rules={[{ required: true, message: 'Selling price is mandatory.' }]}>
+                <InputNumber min={0} prefix={getCurrencySymbol()} placeholder="0" controls={false} style={{ width: '100%', borderRadius: 8 }} />
+              </Form.Item>
+            </div>
+
+            <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>Piece Codes *</div>
+            <Form.List name="pieceCodes">
+              {(fields, { add, remove }) => (
+                <>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                    <div style={{ flex: 2, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>CODE</div>
+                    <div style={{ flex: 1, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>RATE</div>
+                    <div style={{ width: 32 }} />
+                  </div>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <div key={key} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                      <Form.Item {...restField} name={[name, 'code']} style={{ flex: 2, marginBottom: 0 }}
+                        getValueFromEvent={(e) => (e.target.value || '').toUpperCase()}
+                        rules={[{ required: true, message: 'Code required' }, { whitespace: true, message: 'Code required' }]}>
+                        <Input placeholder="e.g. SHIRT-01" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                      </Form.Item>
+                      <Form.Item {...restField} name={[name, 'rate']} style={{ flex: 1, marginBottom: 0 }}
+                        rules={[{ required: true, message: 'Rate required' }]}>
+                        <InputNumber min={0.01} placeholder="0" prefix={getCurrencySymbol()} controls={false} style={{ width: '100%', borderRadius: 8 }} />
+                      </Form.Item>
+                      <div style={{ width: 32, display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
+                        {fields.length > 1 && (
+                          <Button type="text" danger size="small" icon={<MinusCircleOutlined />} onClick={() => remove(name)} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} style={{ borderRadius: 8, marginTop: 2 }}>
+                    Add Piece Code
+                  </Button>
+                </>
+              )}
+            </Form.List>
+          </Form>
+        </Modal>
 
         {/* CSS Hover Transitions for Grid Cards */}
         <style>{`

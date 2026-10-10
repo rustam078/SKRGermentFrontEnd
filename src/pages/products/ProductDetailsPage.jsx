@@ -26,6 +26,9 @@ import {
   Empty,
   Alert,
   Dropdown,
+  Segmented,
+  Tag,
+  Tabs,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -142,6 +145,8 @@ const ProductDetailsPage = () => {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [productionDrawerVisible, setProductionDrawerVisible] = useState(false);
+  const [batchSource, setBatchSource] = useState('ALL'); // View All filter: ALL | PURCHASED | MANUFACTURED
+  const [batchStatus, setBatchStatus] = useState('ACTIVE'); // View All tab: ACTIVE | SOLD
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState([null, null]);
   const [previewCode, setPreviewCode] = useState('');
@@ -219,6 +224,24 @@ const ProductDetailsPage = () => {
     enabled: !!productId,
   });
 
+  // Purchase + production totals for the three KPI cards (from inventory batches).
+  const { data: stockSummary, isLoading: stockSummaryLoading } = useQuery({
+    queryKey: ['productStockSummary', productId],
+    queryFn: () => productService.getStockSummary(productId),
+    enabled: !!productId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  // Stock receipts (batches: purchase + production) for the "View All" drawer.
+  const { data: batchesResponse, isLoading: batchesLoading } = useQuery({
+    queryKey: ['productBatchReceipts', productId],
+    queryFn: () => productService.getProductBatches(productId, { page: 0, size: 500 }),
+    enabled: !!productId && productionDrawerVisible,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
 
   const materialCosts = materialCostResponse?.data || [];
   const product = productResponse?.data;
@@ -243,30 +266,22 @@ const ProductDetailsPage = () => {
     return items.sort((a, b) => new Date(b.productionDate) - new Date(a.productionDate));
   }, [productionEntries, productId]);
 
-  const filteredProductionItems = React.useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return productProductionItems.filter((item) => {
-      const matchesSearch = query
-        ? (item.employeeName || '').toLowerCase().includes(query) || (item.pieceCode || '').toLowerCase().includes(query)
-        : true;
-
-      if ((!dateRange || !dateRange[0]) && (!dateRange || !dateRange[1])) {
-        return matchesSearch;
-      }
-
-      const productionDay = dayjs(item.productionDate);
-      const start = dateRange && dateRange[0] ? dayjs(dateRange[0]) : null;
-      const end = dateRange && dateRange[1] ? dayjs(dateRange[1]) : null;
-      const matchesStart = start ? productionDay.isSame(start, 'day') || productionDay.isAfter(start, 'day') : true;
-      const matchesEnd = end ? productionDay.isSame(end, 'day') || productionDay.isBefore(end, 'day') : true;
-
-      return matchesSearch && matchesStart && matchesEnd;
+  // Stock receipts for the View All drawer, filtered by source + date + batch search.
+  const filteredReceipts = React.useMemo(() => {
+    const rows = batchesResponse?.batches || [];
+    const start = dateRange && dateRange[0] ? dayjs(dateRange[0]) : null;
+    const end = dateRange && dateRange[1] ? dayjs(dateRange[1]) : null;
+    // Backend already returns batches sorted latest-first (receivedDate, then batchNumber).
+    return rows.filter((b) => {
+      if (b.status !== batchStatus) return false;
+      if (batchSource !== 'ALL' && b.source !== batchSource) return false;
+      const day = dayjs(b.receivedDate);
+      if (start && day.isBefore(start, 'day')) return false;
+      if (end && day.isAfter(end, 'day')) return false;
+      return true;
     });
-  }, [productProductionItems, searchQuery, dateRange]);
+  }, [batchesResponse, batchSource, batchStatus, dateRange]);
 
-
-  const totalProductionQty = React.useMemo(() => productProductionItems.reduce((s, i) => s + (i.quantity || 0), 0), [productProductionItems]);
-  const totalInventoryAmount = React.useMemo(() => productProductionItems.reduce((s, i) => s + (i.amount || 0), 0), [productProductionItems]);
   const averageRate = React.useMemo(() => pieceCodes.length === 0 ? 0 : pieceCodes.reduce((a, pc) => a + (pc.rate || 0), 0) / pieceCodes.length, [pieceCodes]);
   const minRate = React.useMemo(() => pieceCodes.length === 0 ? 0 : Math.min(...pieceCodes.map((pc) => pc.rate)), [pieceCodes]);
   const maxRate = React.useMemo(() => pieceCodes.length === 0 ? 0 : Math.max(...pieceCodes.map((pc) => pc.rate)), [pieceCodes]);
@@ -1012,108 +1027,75 @@ const ProductDetailsPage = () => {
           </div>
         </Card>
 
-        {/* ── 4 KPI Metric Cards ── */}
+        {/* ── 3 KPI Metric Cards (all in one row) ── */}
         <Row gutter={[16, 16]}>
-          {/* Card 1: Total Production Qty */}
-          <Col xs={24} sm={12} xl={6}>
+          {/* Card 1: Total Qty = purchase + production (with breakdown) */}
+          <Col xs={24} sm={8}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Production Qty</div>
-                  {productionLoading ? <Skeleton.Input active size="small" style={{ width: 80 }} /> : (
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Qty</div>
+                  {stockSummaryLoading ? <Skeleton.Input active size="small" style={{ width: 80 }} /> : (
                     <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', lineHeight: 1 }}>
-                      {totalProductionQty.toLocaleString('en-IN')}
+                      {Number(stockSummary?.totalQty || 0).toLocaleString('en-IN')}
                     </div>
                   )}
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Pcs</div>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 2 }}>All time production</div>
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Pcs · in stock · Sold {Number(stockSummary?.soldQty || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 8, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <span><span style={{ color: '#94A3B8' }}>Purchase </span><b style={{ color: '#0F172A' }}>{Number(stockSummary?.purchasedQty || 0).toLocaleString('en-IN')}</b></span>
+                    <span><span style={{ color: '#94A3B8' }}>Production </span><b style={{ color: '#0F172A' }}>{Number(stockSummary?.manufacturedQty || 0).toLocaleString('en-IN')}</b></span>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ShoppingOutlined style={{ color: '#6366F1', fontSize: '1.1rem' }} />
                   </div>
-                  <Sparkline color="#6366F1" />
                   <Button type="link" size="small" onClick={handleOpenProductionDrawer} style={{ color: '#2563EB', fontWeight: 700, padding: 0 }}>View All</Button>
                 </div>
               </div>
             </Card>
           </Col>
 
-          {/* Card 2: Total Inventory Generated */}
-          <Col xs={24} sm={12} xl={6}>
+          {/* Card 2: Total Cost = Σ(qty × unit cost), purchase + production */}
+          <Col xs={24} sm={8}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Inventory Generated</div>
-                  {productionLoading ? <Skeleton.Input active size="small" style={{ width: 100 }} /> : (
-                    <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
-                      {getCurrencySymbol()}{totalInventoryAmount.toLocaleString('en-IN')}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Value</div>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 2 }}>From all production</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <DollarCircleOutlined style={{ color: '#059669', fontSize: '1.1rem' }} />
-                  </div>
-                  <Sparkline color="#10B981" />
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          {/* Card 3: Total Piece Codes */}
-          <Col xs={24} sm={12} xl={6}>
-            <Card style={cardStyle} bodyStyle={{ padding: '20px 24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Piece Codes</div>
-                  {pieceCodesLoading ? <Skeleton.Input active size="small" style={{ width: 60 }} /> : (
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Total Cost</div>
+                  {stockSummaryLoading ? <Skeleton.Input active size="small" style={{ width: 100 }} /> : (
                     <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', lineHeight: 1 }}>
-                      {totalPieceCodes}
+                      {getCurrencySymbol()}{Number(stockSummary?.totalCost || 0).toLocaleString('en-IN')}
                     </div>
                   )}
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Codes</div>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 2 }}>Across this product</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <BarcodeOutlined style={{ color: '#0284C7', fontSize: '1.1rem' }} />
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>Qty × cost</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 8, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <span><span style={{ color: '#94A3B8' }}>Purchase </span><b style={{ color: '#0F172A' }}>{getCurrencySymbol()}{Number(stockSummary?.purchasedCost || 0).toLocaleString('en-IN')}</b></span>
+                    <span><span style={{ color: '#94A3B8' }}>Production </span><b style={{ color: '#0F172A' }}>{getCurrencySymbol()}{Number(stockSummary?.manufacturedCost || 0).toLocaleString('en-IN')}</b></span>
                   </div>
-                  <Sparkline color="#0EA5E9" />
+                </div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DollarCircleOutlined style={{ color: '#D97706', fontSize: '1.1rem' }} />
                 </div>
               </div>
             </Card>
           </Col>
 
-          {/* Card 4: Current Sale Price (with cost + profit) */}
-          <Col xs={24} sm={12} xl={6}>
+          {/* Card 3: Stock Value = Σ(qty × selling price) */}
+          <Col xs={24} sm={8}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Current Sale Price</div>
-                  {materialCostLoading ? <Skeleton.Input active size="small" style={{ width: 80 }} /> : (
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Stock Value</div>
+                  {stockSummaryLoading ? <Skeleton.Input active size="small" style={{ width: 100 }} /> : (
                     <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
-                      {currentMaterialCost && (currentMaterialCost.salePrice || currentMaterialCost.salePrice === 0)
-                        ? `${getCurrencySymbol()}${Number(currentMaterialCost.salePrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : '—'}
+                      {getCurrencySymbol()}{Number(stockSummary?.stockValue || 0).toLocaleString('en-IN')}
                     </div>
                   )}
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    {currentMaterialCost ? (
-                      <>
-                        <span>Cost {getCurrencySymbol()}{Number(currentMaterialCost.cost).toLocaleString('en-IN')}</span>
-                        <ProfitBadge cost={currentMaterialCost.cost} salePrice={currentMaterialCost.salePrice} />
-                      </>
-                    ) : <span>No pricing set</span>}
-                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>At selling price</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 8 }}>Qty × sale price</div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <RiseOutlined style={{ color: '#059669', fontSize: '1.1rem' }} />
-                  </div>
-                  <Sparkline color="#10B981" />
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <RiseOutlined style={{ color: '#059669', fontSize: '1.1rem' }} />
                 </div>
               </div>
             </Card>
@@ -1121,7 +1103,7 @@ const ProductDetailsPage = () => {
         </Row>
 
         {/* ── Main 2-Column Layout ── */}
-        <Row gutter={[20, 20]}>
+        <Row gutter={[20, 20]} align="stretch">
           {/* Left Column: Piece Code Table */}
           <Col xs={24} lg={12}>
             <Card
@@ -1142,7 +1124,7 @@ const ProductDetailsPage = () => {
                       icon={<PlusOutlined />}
                       onClick={handleOpenDrawer}
                       disabled={isPurchasedProduct}
-                      style={{ borderRadius: 6, fontWeight: 600, height: 34 }}
+                      style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
                     >
                       Add Piece Code
                     </Button>
@@ -1150,7 +1132,8 @@ const ProductDetailsPage = () => {
                 </Space>
                 ) : null
               }
-              style={cardStyle}
+              style={{ ...cardStyle, height: '100%' }}
+              headStyle={{ padding: '14px 14px' }}
               bodyStyle={{ padding: 0 }}
             >
               <div style={{ backgroundColor: isPurchasedProduct ? '#FEF2F2' : '#FFFBEB', borderBottom: `1px solid ${isPurchasedProduct ? '#FECACA' : '#FDE68A'}`, padding: '9px 20px', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1169,6 +1152,7 @@ const ProductDetailsPage = () => {
                 loading={pieceCodesLoading}
                 dataSource={pieceCodes.map((pc) => ({ ...pc, key: pc.id }))}
                 columns={columns}
+                scroll={{ y: 150 }}
                 pagination={{
                   defaultPageSize: 5,
                   showSizeChanger: true,
@@ -1205,14 +1189,15 @@ const ProductDetailsPage = () => {
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={() => setMaterialCostModalOpen(true)}
-                    style={{ borderRadius: 6, fontWeight: 600, height: 34 }}
+                    style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
                   >
                     Add Pricing
                   </Button>
                 </Space>
                 ) : null
               }
-              style={cardStyle}
+              style={{ ...cardStyle, height: '100%' }}
+              headStyle={{ padding: '14px 14px' }}
               bodyStyle={{ padding: 0 }}
             >
               {/* Info Banner */}
@@ -1229,7 +1214,7 @@ const ProductDetailsPage = () => {
                 loading={materialCostLoading}
                 dataSource={materialCosts}
                 columns={materialcolumns}
-                scroll={{ x: 'max-content' }}
+                scroll={{ x: 'max-content', y: 150 }}
                 locale={{ emptyText: 'No pricing set yet. Add cost & sale price so production and New Sale use them.' }}
                 pagination={{
                   defaultPageSize: 5,
@@ -1364,80 +1349,104 @@ const ProductDetailsPage = () => {
               <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ShoppingCartOutlined style={{ color: '#0C4A6E', fontSize: '0.95rem' }} />
               </div>
-              Production Overview
+              Stock Receipts
             </span>
           }
           placement="right"
-          width={520}
+          width={560}
           onClose={handleCloseProductionDrawer}
           open={productionDrawerVisible}
           bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
         >
-          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>Production items</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748B' }}>{filteredProductionItems.length} matching rows</div>
-            </div>
-            <Button type="link" onClick={() => { setSearchQuery(''); setDateRange([null, null]); }} style={{ color: '#2563EB', fontWeight: 700, padding: 0 }}>Reset filters</Button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <Input.Search
-              placeholder="Search employee or piece code"
-              allowClear
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onSearch={(value) => setSearchQuery(value)}
-              style={{ width: '100%' }}
+          <Tabs
+            activeKey={batchStatus}
+            onChange={setBatchStatus}
+            items={[{ key: 'ACTIVE', label: 'Active' }, { key: 'SOLD', label: 'Sold' }]}
+            tabBarExtraContent={{
+              right: (
+                <DatePicker.RangePicker
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates || [null, null])}
+                  format="DD-MMM-YY"
+                  size="small"
+                  style={{ width: 230 }}
+                />
+              ),
+            }}
+            style={{ marginBottom: 8 }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <Segmented
+              size="small"
+              value={batchSource}
+              onChange={setBatchSource}
+              options={[{ label: 'All', value: 'ALL' }, { label: 'Purchase', value: 'PURCHASED' }, { label: 'Production', value: 'MANUFACTURED' }]}
             />
-            <DatePicker.RangePicker
-              value={dateRange}
-              onChange={(dates) => setDateRange(dates || [null, null])}
-              format="DD-MMM-YYYY"
-              style={{ width: '100%' }}
-            />
+            <Button type="link" size="small" onClick={() => { setDateRange([null, null]); setBatchSource('ALL'); }} style={{ color: '#2563EB', fontWeight: 700, padding: 0 }}>Reset</Button>
           </div>
           <Table
+            loading={batchesLoading}
             columns={[
               {
-                title: 'Employee Name',
-                dataIndex: 'employeeName',
-                key: 'employeeName',
-                render: (name) => name || 'Unknown',
-              },
-              {
-                title: 'Production Date',
-                dataIndex: 'productionDate',
-                key: 'productionDate',
+                title: 'Date',
+                dataIndex: 'receivedDate',
+                key: 'receivedDate',
                 render: (date) => dayjs(date).format('DD-MMM-YYYY'),
-                sorter: (a, b) => new Date(b.productionDate) - new Date(a.productionDate),
+                sorter: (a, b) => new Date(b.receivedDate) - new Date(a.receivedDate),
                 defaultSortOrder: 'descend',
               },
               {
-                title: 'Quantity',
-                dataIndex: 'quantity',
-                key: 'quantity',
-                align: 'right',
-                render: (quantity) => quantity?.toLocaleString('en-IN') ?? '-',
+                title: 'Source',
+                dataIndex: 'source',
+                key: 'source',
+                render: (source) => (
+                  <Tag color={source === 'PURCHASED' ? 'blue' : 'purple'} style={{ borderRadius: 6, margin: 0 }}>
+                    {source === 'PURCHASED' ? 'Purchase' : 'Production'}
+                  </Tag>
+                ),
               },
               {
-                title: `Rate (${getCurrencySymbol()})`,
-                dataIndex: 'rate',
-                key: 'rate',
+                title: 'Qty',
+                dataIndex: 'totalQuantity',
+                key: 'totalQuantity',
                 align: 'right',
-                render: (rate) => rate != null ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : '-',
+                render: (q) => q != null ? Number(q).toLocaleString('en-IN') : '-',
               },
               {
-                title: `Amount (${getCurrencySymbol()})`,
-                dataIndex: 'amount',
-                key: 'amount',
+                title: 'Sold',
+                key: 'sold',
                 align: 'right',
-                render: (amount) => amount != null ? `${getCurrencySymbol()}${Number(amount).toLocaleString('en-IN')}` : '-',
+                render: (_, r) => {
+                  const sold = (Number(r.totalQuantity) || 0) - (Number(r.quantityAvailable) || 0);
+                  return <span style={{ color: sold > 0 ? '#B45309' : '#94A3B8' }}>{sold.toLocaleString('en-IN')}</span>;
+                },
+              },
+              {
+                title: 'Left',
+                dataIndex: 'quantityAvailable',
+                key: 'quantityAvailable',
+                align: 'right',
+                render: (q) => <b style={{ color: '#047857' }}>{(Number(q) || 0).toLocaleString('en-IN')}</b>,
+              },
+              {
+                title: `Cost (${getCurrencySymbol()})`,
+                dataIndex: 'unitCost',
+                key: 'unitCost',
+                align: 'right',
+                render: (c) => c != null ? `${getCurrencySymbol()}${Number(c).toLocaleString('en-IN')}` : '-',
+              },
+              {
+                title: `Sale (${getCurrencySymbol()})`,
+                dataIndex: 'sellingPrice',
+                key: 'sellingPrice',
+                align: 'right',
+                render: (s) => s != null ? `${getCurrencySymbol()}${Number(s).toLocaleString('en-IN')}` : '-',
               },
             ]}
-            dataSource={filteredProductionItems}
-            rowKey={(item) => `${item.entryId}-${item.pieceCodeId}-${item.productId}-${item.productionDate}`}
+            dataSource={filteredReceipts}
+            rowKey={(item) => item.batchId}
             pagination={{ pageSize: 20, showSizeChanger: false, showQuickJumper: true, position: ['bottomRight'] }}
-            locale={{ emptyText: 'No production items for this product.' }}
+            locale={{ emptyText: 'No stock receipts for this product.' }}
             size="small"
           />
         </Drawer>
