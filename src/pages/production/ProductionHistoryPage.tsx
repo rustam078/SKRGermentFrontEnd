@@ -232,14 +232,14 @@ const ProductionHistoryPage: React.FC = () => {
                 style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px' }}
               >
                 {getProductIconAndLabel(item.iconName, item.productName || 'Product')}
-                <span style={{ color: '#2563EB', marginLeft: 4 }}>×{item.quantity}</span>
+                <span style={{ color: 'var(--theme-primary)', marginLeft: 4 }}>×{item.quantity}</span>
               </Tag>
             ))}
             {items.length === 0 && <span style={{ color: '#94A3B8' }}>—</span>}
             {extra > 0 && (
               <Tag
                 onClick={() => openItems(record)}
-                style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB', fontWeight: 700, padding: '1px 8px' }}
+                style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BFDBFE', color: 'var(--theme-primary)', fontWeight: 700, padding: '1px 8px' }}
               >
                 +{extra} more
               </Tag>
@@ -268,7 +268,7 @@ const ProductionHistoryPage: React.FC = () => {
       width: '12%',
       align: 'right' as const,
       render: (qty: number) => (
-        <span style={{ fontWeight: 700, color: '#2563EB' }}>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
           {(qty || 0).toLocaleString('en-IN')} Pcs
         </span>
       ),
@@ -282,33 +282,12 @@ const ProductionHistoryPage: React.FC = () => {
       width: '15%',
       align: 'right' as const,
       render: (amount: number) => (
-        <span style={{ fontWeight: 800, color: '#10B981' }}>
+        <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>
           {formatCurrency(amount || 0)}
         </span>
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         (a.totalAmount || 0) - (b.totalAmount || 0),
-    },
-    {
-      title: 'Remarks',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      width: '18%',
-      render: (remarks: string) => (
-        <span
-          style={{
-            color: '#64748B',
-            fontSize: '0.875rem',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            overflow: 'hidden',
-            display: 'block',
-            maxWidth: 180,
-          }}
-        >
-          {remarks || <span style={{ fontStyle: 'italic', color: '#94A3B8' }}>No Remarks</span>}
-        </span>
-      ),
     },
     {
       title: 'Action',
@@ -321,7 +300,7 @@ const ProductionHistoryPage: React.FC = () => {
           menu={{
             items: [
               { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
-              { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
+              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
               ...(can('production', 'delete') ? [
                 { type: 'divider' as const },
                 { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDelete(record) },
@@ -339,8 +318,7 @@ const ProductionHistoryPage: React.FC = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#2563EB',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
       }}
@@ -350,7 +328,7 @@ const ProductionHistoryPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <HistoryOutlined style={{ color: '#2563EB' }} />
+              <HistoryOutlined style={{ color: 'var(--theme-primary)' }} />
               Production History Log
               <HeadingInfo text="Review and audit historic enterprise garment production entries." />
             </Typography>
@@ -384,10 +362,10 @@ const ProductionHistoryPage: React.FC = () => {
           <Col xs={24} sm={12} md={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 8, backgroundColor: '#FFFBEB',
-                border: '1px solid #FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
+                width: 44, height: 44, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+                border: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
               }}>
-                <ClockCircleOutlined style={{ fontSize: '20px', color: '#D97706' }} />
+                <ClockCircleOutlined style={{ fontSize: '20px', color: 'var(--theme-primary)' }} />
               </div>
               <div>
                 <Statistic
@@ -403,10 +381,10 @@ const ProductionHistoryPage: React.FC = () => {
           <Col xs={24} sm={12} md={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 8, backgroundColor: '#EFF6FF',
+                width: 44, height: 44, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 border: '1px solid #DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
               }}>
-                <CalendarOutlined style={{ fontSize: '20px', color: '#2563EB' }} />
+                <CalendarOutlined style={{ fontSize: '20px', color: 'var(--theme-primary)' }} />
               </div>
               <div>
                 <Statistic
@@ -422,36 +400,36 @@ const ProductionHistoryPage: React.FC = () => {
           <Col xs={24} sm={12} md={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '20px 24px', display: 'flex', alignItems: 'center' }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 8, backgroundColor: '#F5F3FF',
-                border: '1px solid #EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
+                width: 44, height: 44, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+                border: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
               }}>
-                <InboxOutlined style={{ fontSize: '20px', color: '#8B5CF6' }} />
+                <InboxOutlined style={{ fontSize: '20px', color: 'var(--theme-primary)' }} />
               </div>
               <div>
                 <Statistic
                   title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>Total Quantity</span>}
                   value={totalQuantity}
                   suffix="Pcs"
-                  valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563EB' }}
+                  valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)' }}
                 />
               </div>
             </Card>
           </Col>
 
           <Col xs={24} sm={12} md={6}>
-            <Card style={cardStyle} bodyStyle={{ padding: '20px 24px', display: 'flex', alignItems: 'center', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+            <Card style={cardStyle} bodyStyle={{ padding: '20px 24px', display: 'flex', alignItems: 'center', backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #A7F3D0' }}>
               <div style={{
                 width: 44, height: 44, borderRadius: 8, backgroundColor: '#D1FAE5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 16
               }}>
-                <DollarCircleOutlined style={{ fontSize: '20px', color: '#059669' }} />
+                <DollarCircleOutlined style={{ fontSize: '20px', color: 'var(--theme-primary)' }} />
               </div>
               <div>
                 <Statistic
                   title={<span style={{ color: '#065F46', fontWeight: 700, fontSize: '0.8rem' }}>Total Amount</span>}
                   value={totalAmount}
                   formatter={(val) => formatCurrency(Number(val))}
-                  valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: '#047857' }}
+                  valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)' }}
                 />
               </div>
             </Card>
@@ -585,7 +563,7 @@ const ProductionHistoryPage: React.FC = () => {
           width={640}
           title={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A' }}>
-              <AppstoreOutlined style={{ color: '#2563EB' }} />
+              <AppstoreOutlined style={{ color: 'var(--theme-primary)' }} />
               Products Produced
               {itemsModal.record && (
                 <span style={{ fontWeight: 500, color: '#64748B', fontSize: '0.8rem' }}>
@@ -619,15 +597,15 @@ const ProductionHistoryPage: React.FC = () => {
                 },
                 { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
                 { title: 'Rate', dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
-                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: '#10B981' }}>{formatCurrency(a || 0)}</span> },
+                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
               ]}
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row style={{ background: '#F8FAFC' }}>
                     <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>Total</span></Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: '#2563EB' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={3} />
-                    <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: '#10B981' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: 'var(--theme-primary)' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>
                   </Table.Summary.Row>
                 </Table.Summary>
               )}

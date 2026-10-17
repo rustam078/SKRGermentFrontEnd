@@ -70,7 +70,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
                   {item.quantityProduced.toLocaleString('en-IN')} Pcs
                 </div>
               </div>
-              <div style={{ fontWeight: 800, color: '#10B981', fontSize: '1.15rem' }}>
+              <div style={{ fontWeight: 800, color: 'var(--theme-primary)', fontSize: '1.15rem' }}>
                 {formatCurrency(item.totalEarnings)}
               </div>
             </div>

@@ -220,7 +220,7 @@ const EmployeePage: React.FC = () => {
       key: 'email',
       width: '18%',
       render: (email?: string) => email ? (
-        <a href={`mailto:${email}`} style={{ color: '#2563EB', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
+        <a href={`mailto:${email}`} style={{ color: 'var(--theme-primary)', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
           {email}
         </a>
       ) : (
@@ -264,7 +264,7 @@ const EmployeePage: React.FC = () => {
       align: 'left' as const,
       sorter: (a: IEmployee, b: IEmployee) => (a.currentMonthEarning ?? 0) - (b.currentMonthEarning ?? 0),
       render: (val?: number) => (
-        <span style={{ color: '#10B981', fontWeight: 500 }}>
+        <span style={{ color: 'var(--theme-primary)', fontWeight: 500 }}>
           {formatIndianCurrency(val ?? 0)}
         </span>
       ),
@@ -277,7 +277,7 @@ const EmployeePage: React.FC = () => {
       align: 'left' as const,
       sorter: (a: IEmployee, b: IEmployee) => (a.totalEarning ?? 0) - (b.totalEarning ?? 0),
       render: (val?: number) => (
-        <span style={{ color: '#2563EB', fontWeight: 700 }}>
+        <span style={{ color: 'var(--theme-primary)', fontWeight: 700 }}>
           {formatIndianCurrency(val ?? 0)}
         </span>
       ),
@@ -300,7 +300,7 @@ const EmployeePage: React.FC = () => {
             <Tooltip title="Edit Employee">
               <Button
                 type="text"
-                icon={<EditOutlined style={{ color: '#2563EB' }} />}
+                icon={<EditOutlined style={{ color: 'var(--theme-primary)' }} />}
                 onClick={() => handleOpenEdit(record)}
                 style={{ minWidth: 32, padding: 0 }}
               />
@@ -326,8 +326,7 @@ const EmployeePage: React.FC = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#2563EB',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
       }}
@@ -352,7 +351,7 @@ const EmployeePage: React.FC = () => {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6, height: 40 }}
+                style={{ backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', fontWeight: 600, borderRadius: 6, height: 40 }}
                 onClick={handleOpenAdd}
               >
                 Add Employee
@@ -367,8 +366,8 @@ const EmployeePage: React.FC = () => {
             {
               title: 'Total Employees',
               value: stats?.totalEmployees ?? 0,
-              icon: <TeamOutlined style={{ fontSize: '22px', color: '#2563EB' }} />,
-              bgColor: '#EFF6FF',
+              icon: <TeamOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
+              bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
               borderColor: '#DBEAFE',
             },
             {
@@ -381,18 +380,18 @@ const EmployeePage: React.FC = () => {
             {
               title: 'Current Month Payroll',
               value: formatIndianCurrency(stats?.currentMonthTotalEarning ?? 0),
-              icon: <WalletOutlined style={{ fontSize: '22px', color: '#10B981' }} />,
-              bgColor: '#ECFDF5',
+              icon: <WalletOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
+              bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
               borderColor: '#D1FAE5',
-              valueColor: '#10B981',
+              valueColor: 'var(--theme-primary)',
             },
             {
               title: 'Overall Payroll',
               value: formatIndianCurrency(stats?.overallTotalEarning ?? 0),
-              icon: <DollarCircleOutlined style={{ fontSize: '22px', color: '#8B5CF6' }} />,
-              bgColor: '#F5F3FF',
-              borderColor: '#EDE9FE',
-              valueColor: '#8B5CF6',
+              icon: <DollarCircleOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
+              bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+              borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+              valueColor: 'var(--theme-primary)',
             },
           ].map((kpi, idx) => (
             <Col xs={24} sm={12} lg={6} key={idx} style={{ display: 'flex', flexDirection: 'column' }}>

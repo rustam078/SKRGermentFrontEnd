@@ -8,7 +8,7 @@ import {
   Stack,
 } from '@mui/material';
 
-const chartColors = ['#2563EB', '#22C55E', '#F59E0B', '#F97316', '#8B5CF6'];
+const chartColors = ['var(--theme-primary)', '#22C55E', 'var(--theme-primary)', '#F97316', 'var(--theme-primary)'];
 
 const TopProductsCard = ({ products, loading, error }) => {
   const topProducts = Array.isArray(products) ? products.slice(0, 5) : [];

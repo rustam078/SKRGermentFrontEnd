@@ -356,7 +356,7 @@ const InventoryPage = () => {
                           <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{Number(item.threshold ?? threshold ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                         </TableCell>
                         <TableCell sx={{ py: 0.5, px: 0.75, textAlign: 'center' }}>
-                          <Chip label="LOW STOCK" color="error" size="small" sx={{ fontSize: '0.75rem', px: 1 }} />
+                          <Chip label="LOW STOCK" size="small" sx={{ fontSize: '0.75rem', px: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
                         </TableCell>
                       </TableRow>
                     ))}

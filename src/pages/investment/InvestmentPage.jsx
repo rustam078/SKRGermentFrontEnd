@@ -26,9 +26,11 @@ import {
   Popover,
   Badge,
   Checkbox,
+  Segmented,
 } from 'antd';
 import {
   PlusOutlined,
+  ArrowLeftOutlined,
   EyeOutlined,
   EditOutlined,
   StopOutlined,
@@ -46,6 +48,8 @@ import {
   DollarCircleOutlined,
   FileTextOutlined,
   TagsOutlined,
+  LeftOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { Box, Typography } from '@mui/material';
 import dayjs from 'dayjs';
@@ -62,8 +66,8 @@ const { TextArea } = Input;
 // CONSTANTS
 // ─────────────────────────────────────────
 const INVESTMENT_TYPES = [
-  { value: 'PURCHASE', label: 'Purchase', color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' },
-  { value: 'OVERHEAD', label: 'Overhead', color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+  { value: 'PURCHASE', label: 'Purchase', color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '#BFDBFE' },
+  { value: 'OVERHEAD', label: 'Overhead', color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '#FDE68A' },
 ];
 
 const ITEM_TYPES = [
@@ -108,8 +112,8 @@ const StatusBadge = ({ active }) => (
       display: 'inline-flex',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: active ? '#DCFCE7' : '#FEF2F2',
-      color: active ? '#16A34A' : '#DC2626',
+      backgroundColor: active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2',
+      color: active ? 'var(--theme-primary)' : '#DC2626',
       fontSize: '0.72rem',
       fontWeight: 700,
       padding: '3px 10px',
@@ -122,7 +126,7 @@ const StatusBadge = ({ active }) => (
         width: 6,
         height: 6,
         borderRadius: '50%',
-        backgroundColor: active ? '#16A34A' : '#DC2626',
+        backgroundColor: active ? 'var(--theme-primary)' : '#DC2626',
       }}
     />
     {active ? 'Active' : 'Inactive'}
@@ -139,7 +143,7 @@ const TypeBadge = ({ type }) => {
       style={{
         display: 'inline-block',
         backgroundColor: cfg.bg,
-        color: cfg.color,
+        color: '#0F172A',
         border: `1px solid ${cfg.border}`,
         borderRadius: 6,
         fontSize: '0.72rem',
@@ -197,9 +201,9 @@ const makeEmptyRow = (id) => ({
   itemType: 'PRODUCT',
   itemName: '',
   productId: undefined,
-  quantity: 0,
+  quantity: undefined,
   unit: 'NOS',
-  rate: 0,
+  rate: undefined,
   mrp: undefined,
   amount: 0,
 });
@@ -207,7 +211,7 @@ const makeEmptyRow = (id) => ({
 const makeEmptyOverheadRow = (id) => ({
   id,
   expenseName: '',
-  amount: 0,
+  amount: undefined,
 });
 
 // ─────────────────────────────────────────
@@ -219,6 +223,7 @@ const InvestmentPage = () => {
   const location = useLocation();
   const { can } = usePermissions();
 
+  const isAddPage = location.pathname === '/investment/new'; // Add Investment opens as a full page
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const queryVendorId = queryParams.get('vendorId');
   const queryAdd = queryParams.get('add');
@@ -255,11 +260,18 @@ const InvestmentPage = () => {
   const [gst, setGst] = useState(0);
   const [gstManual, setGstManual] = useState(false); // true once the user edits GST % by hand
   const [gstRate, setGstRate] = useState(null); // user-overridden GST percent
-  const [discount, setDiscount] = useState(0);
-  const [otherCharges, setOtherCharges] = useState(0);
+  const [discount, setDiscount] = useState(0); // rupee amount — source of truth
+  const [discountMode, setDiscountMode] = useState('PERCENT'); // PERCENT (%) or AMOUNT (₹)
+  const [discountPct, setDiscountPct] = useState(null); // entered % when mode = PERCENT
 
   // Default GST % from system settings; auto-applied to new PURCHASE invoices.
   const { gstPercent } = useAppSettings();
+
+  // In % mode the rupee discount follows the subtotal automatically.
+  useEffect(() => {
+    if (discountMode !== 'PERCENT') return;
+    setDiscount(Math.round((subtotal * (Number(discountPct) || 0) / 100) * 100) / 100);
+  }, [subtotal, discountPct, discountMode]);
 
   // GST is entered as a percent. Use the user's override % once edited, else the default %.
   // The rupee amount is derived from the subtotal and snapshotted into the invoice on save.
@@ -275,19 +287,36 @@ const InvestmentPage = () => {
   const [vendorForm] = Form.useForm();
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [vendorSearch, setVendorSearch] = useState('');
+  // Inline "add new vendor" on the investment page (Purchase type).
+  const [vendorSearchText, setVendorSearchText] = useState('');
+  const [quickVendorOpen, setQuickVendorOpen] = useState(false);
+  const [qv, setQv] = useState({ name: '', mobile: '' });
+  const [qvSaving, setQvSaving] = useState(false);
 
   // ── Open modal from URL params ──────────
   useEffect(() => {
     if (queryAdd === 'true' && queryVendorId) {
-      setAddModalVisible(true);
-      setSelectedType('PURCHASE');
-      investmentForm.setFieldsValue({
-        type: 'PURCHASE',
-        vendorId: queryVendorId,
-        purchaseDate: dayjs(),
-      });
+      navigate(`/investment/new?vendorId=${queryVendorId}`, { replace: true });
     }
-  }, [queryAdd, queryVendorId, investmentForm]);
+  }, [queryAdd, queryVendorId, navigate]);
+
+  // ── Add-investment page: seed defaults once ──
+  useEffect(() => {
+    if (!isAddPage) return;
+    if (!investmentForm.getFieldValue('purchaseDate')) {
+      investmentForm.setFieldsValue({ purchaseDate: dayjs() });
+    }
+    // Purchase is the default type on the add page.
+    if (!investmentForm.getFieldValue('type')) {
+      setSelectedType('PURCHASE');
+      investmentForm.setFieldsValue({ type: 'PURCHASE' });
+    }
+    const vid = queryParams.get('vendorId');
+    if (vid && !investmentForm.getFieldValue('vendorId')) {
+      setSelectedType('PURCHASE');
+      investmentForm.setFieldsValue({ type: 'PURCHASE', vendorId: vid });
+    }
+  }, [isAddPage, investmentForm, queryParams]);
 
   // ── Queries ────────────────────────────
   const { data: investmentsData, isLoading: invLoading, refetch: refetchInvestments } = useQuery({
@@ -329,13 +358,14 @@ const InvestmentPage = () => {
   const [createFullPayment, setCreateFullPayment] = useState(false);
   const [createPayAmount, setCreatePayAmount] = useState(null);
   const [createPayMode, setCreatePayMode] = useState('CASH');
+  const [showDues, setShowDues] = useState(false); // slide-open the vendor's previous dues
 
   // Selected vendor's outstanding (for the create-time payment allocation preview).
   const watchedVendorId = Form.useWatch('vendorId', investmentForm);
   const { data: vendorDetailData } = useQuery({
     queryKey: ['vendorForInvestment', watchedVendorId],
     queryFn: () => vendorService.getVendorById(watchedVendorId),
-    enabled: !!watchedVendorId && addModalVisible && selectedType === 'PURCHASE',
+    enabled: !!watchedVendorId && (addModalVisible || isAddPage) && selectedType === 'PURCHASE',
   });
   const vendorUnpaid = useMemo(() => {
     const purchases = vendorDetailData?.data?.purchases || [];
@@ -388,9 +418,9 @@ const InvestmentPage = () => {
   };
 
   const PAYMENT_STATUS_META = {
-    PAID: { color: 'success', label: 'Paid' },
-    PARTIALLY_PAID: { color: 'warning', label: 'Partial' },
-    PENDING: { color: 'default', label: 'Unpaid' },
+    PAID: { color: 'success', label: 'Paid', border: '#86EFAC' },
+    PARTIALLY_PAID: { color: 'warning', label: 'Partial', border: '#FDE68A' },
+    PENDING: { color: 'default', label: 'Unpaid', border: '#FECACA' },
   };
 
   // ── Summary computations ───────────────
@@ -457,7 +487,7 @@ const InvestmentPage = () => {
   }, [vendors, vendorSearch]);
 
   // ── Grand total calculation ────────────
-  const grandTotal = subtotal + gst - discount + otherCharges;
+  const grandTotal = subtotal + gst - discount;
 
   // Live oldest-first allocation of the create-time payment: old dues first, then this invoice.
   const payNow = Number(createPayAmount) || 0;
@@ -476,8 +506,20 @@ const InvestmentPage = () => {
     return { rows, leftover: Math.max(0, remaining) };
   }, [payNow, vendorUnpaid, grandTotal]);
 
+  // Per-due status for the slider: how the entered amount clears oldest dues first.
+  const duesWithStatus = useMemo(() => {
+    let remaining = payNow;
+    return vendorUnpaid.map((inv) => {
+      const due = Number(inv.amountDue) || 0;
+      const pay = Math.min(remaining, due);
+      remaining -= pay;
+      const status = due > 0 && pay >= due ? 'cleared' : pay > 0 ? 'partial' : 'pending';
+      return { ...inv, due, pay, status };
+    });
+  }, [vendorUnpaid, payNow]);
+
   // Max payable now = this invoice + vendor's overdue (just this invoice for overhead).
-  const maxPayable = selectedType === 'PURCHASE' ? (grandTotal + vendorOverdue) : grandTotal;
+  const maxPayable = Math.round(selectedType === 'PURCHASE' ? (grandTotal + vendorOverdue) : grandTotal);
 
   // Keep the entered amount within the outstanding balance if totals change.
   useEffect(() => {
@@ -639,6 +681,7 @@ const InvestmentPage = () => {
 
   const handleCloseAddModal = () => {
     setAddModalVisible(false);
+    if (isAddPage) navigate('/investment');
     investmentForm.resetFields();
     setSelectedType(undefined);
     setItemRows([makeEmptyRow(1)]);
@@ -648,19 +691,56 @@ const InvestmentPage = () => {
     setGstManual(false);
     setGstRate(null);
     setDiscount(0);
-    setOtherCharges(0);
+    setDiscountMode('PERCENT');
+    setDiscountPct(null);
     setCreateFullPayment(false);
     setCreatePayAmount(null);
     setCreatePayMode('CASH');
+    setShowDues(false);
     if (queryAdd === 'true' && queryVendorId) {
       navigate(`/vendors/${queryVendorId}`, { replace: true });
     }
   };
 
-  // Open the Add Investment modal with the purchase date defaulted to today.
+  // Add Investment now opens as a full page.
   const handleOpenAddInvestment = () => {
-    setAddModalVisible(true);
-    investmentForm.setFieldsValue({ purchaseDate: dayjs() });
+    navigate('/investment/new');
+  };
+
+  // Open the inline vendor quick-add, prefilling the name from the current search.
+  const openQuickVendor = () => {
+    setQv({ name: vendorSearchText || '', mobile: '' });
+    setQuickVendorOpen(true);
+  };
+
+  // Validate quick-add fields: name + a unique 10-digit phone. Returns an error or null.
+  const quickVendorError = (name, mobile) => {
+    if (!name || !mobile) return 'Vendor name and phone are required.';
+    if (!/^\d{10}$/.test(mobile)) return 'Enter a valid 10-digit phone number.';
+    if (vendors.some((v) => (v.mobile || '').replace(/\D/g, '') === mobile)) return 'A vendor with this phone number already exists.';
+    return null;
+  };
+
+  // Create a vendor (active) right from the investment form and select it.
+  const saveQuickVendor = async () => {
+    const name = qv.name.trim();
+    const mobile = qv.mobile.trim();
+    const err = quickVendorError(name, mobile);
+    if (err) { notification.error({ message: 'Check details', description: err, placement: 'topRight' }); return; }
+    try {
+      setQvSaving(true);
+      const res = await vendorService.createVendor({ name, mobile, active: true });
+      const newId = res?.data?.id || res?.id;
+      await refetchVendors();
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      if (newId) investmentForm.setFieldsValue({ vendorId: newId });
+      setQuickVendorOpen(false);
+      notification.success({ message: 'Vendor added', description: `${name} added and selected.`, placement: 'topRight', duration: 3 });
+    } catch (e) {
+      notification.error({ message: 'Failed', description: e.response?.data?.message || e.message, placement: 'topRight', duration: 5 });
+    } finally {
+      setQvSaving(false);
+    }
   };
 
   const handleTypeChange = (val) => {
@@ -673,7 +753,8 @@ const InvestmentPage = () => {
     if (val === 'OVERHEAD') {
       setGst(0);
       setDiscount(0);
-      setOtherCharges(0);
+      setDiscountMode('PERCENT');
+      setDiscountPct(null);
     }
   };
 
@@ -788,7 +869,7 @@ const InvestmentPage = () => {
 
       const computedGrandTotal = selectedType === 'OVERHEAD'
         ? subtotal
-        : subtotal + gst - discount + otherCharges;
+        : subtotal + gst - discount;
 
       const payload = {
         ...(selectedType === 'PURCHASE' ? { vendorId: values.vendorId } : {}),
@@ -800,7 +881,6 @@ const InvestmentPage = () => {
         ...(selectedType === 'PURCHASE' ? {
           gstAmount: gst,
           discountAmount: discount,
-          otherCharge: otherCharges,
         } : {}),
         grandTotal: computedGrandTotal,
         // Optional payment captured at creation (allocated oldest-dues-first on the backend).
@@ -884,7 +964,7 @@ const InvestmentPage = () => {
       key: 'vendorName',
       render: (val, record) => (
         record.vendorId ? (
-          <a onClick={() => navigate(`/vendors/${record.vendorId}`)} style={{ fontWeight: 600, color: '#2563EB', cursor: 'pointer' }}>
+          <a onClick={() => navigate(`/vendors/${record.vendorId}`)} style={{ fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}>
             {val || '—'}
           </a>
         ) : (
@@ -934,7 +1014,7 @@ const InvestmentPage = () => {
       dataIndex: 'grandTotal',
       key: 'grandTotal',
       render: (val) => (
-        <span style={{ fontWeight: 800, color: '#059669', fontSize: '0.95rem' }}>
+        <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.88rem' }}>
           {getCurrencySymbol()}{Number(val || 0).toLocaleString('en-IN')}
         </span>
       ),
@@ -950,7 +1030,12 @@ const InvestmentPage = () => {
         const total = Number(record.grandTotal || 0);
         return (
           <Tooltip title={`Paid ${getCurrencySymbol()}${paid.toLocaleString('en-IN')} of ${getCurrencySymbol()}${total.toLocaleString('en-IN')}`}>
-            <Tag color={meta.color} style={{ fontWeight: 700, borderRadius: 6 }}>{meta.label}</Tag>
+            <Tag style={{
+              color: '#0F172A',
+              background: 'color-mix(in srgb, var(--theme-primary) 10%, white)',
+              border: `1px solid ${meta.border}`,
+              fontWeight: 700, borderRadius: 6,
+            }}>{meta.label}</Tag>
           </Tooltip>
         );
       },
@@ -969,8 +1054,8 @@ const InvestmentPage = () => {
               icon={<EyeOutlined />}
               onClick={() => handleViewInvestment(record)}
               style={{
-                color: '#2563EB',
-                backgroundColor: '#EFF6FF',
+                color: 'var(--theme-primary)',
+                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 border: '1px solid #BFDBFE',
                 borderRadius: 6,
                 width: 30,
@@ -995,9 +1080,9 @@ const InvestmentPage = () => {
                   })
                 )}
                 style={{
-                  color: '#0F766E',
-                  backgroundColor: '#F0FDFA',
-                  border: '1px solid #99F6E4',
+                  color: 'var(--theme-primary)',
+                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+                  border: '1px solid #FDE68A',
                   borderRadius: 6,
                   width: 30,
                   height: 30,
@@ -1056,7 +1141,7 @@ const InvestmentPage = () => {
         val ? (
           <a
             href={`mailto:${val}`}
-            style={{ color: '#2563EB', fontWeight: 500 }}
+            style={{ color: 'var(--theme-primary)', fontWeight: 500 }}
             onClick={(e) => e.stopPropagation()}
           >
             {val}
@@ -1089,8 +1174,8 @@ const InvestmentPage = () => {
               icon={<EyeOutlined />}
               onClick={() => handleOpenVendorDrawer(record)}
               style={{
-                color: '#2563EB',
-                backgroundColor: '#EFF6FF',
+                color: 'var(--theme-primary)',
+                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 border: '1px solid #BFDBFE',
                 borderRadius: 6,
                 width: 28,
@@ -1109,8 +1194,8 @@ const InvestmentPage = () => {
               icon={<EditOutlined />}
               onClick={() => handleOpenEditVendor(record)}
               style={{
-                color: '#7C3AED',
-                backgroundColor: '#F5F3FF',
+                color: 'var(--theme-primary)',
+                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 border: '1px solid #DDD6FE',
                 borderRadius: 6,
                 width: 28,
@@ -1152,8 +1237,8 @@ const InvestmentPage = () => {
                 onClick={() => toggleVendorStatusMutation.mutate({ id: record.id, active: true })}
                 loading={toggleVendorStatusMutation.isPending}
                 style={{
-                  color: '#16A34A',
-                  backgroundColor: '#F0FDF4',
+                  color: 'var(--theme-primary)',
+                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                   border: '1px solid #BBF7D0',
                   borderRadius: 6,
                   width: 28,
@@ -1188,6 +1273,7 @@ const InvestmentPage = () => {
           onChange={(val) => updateItemRow(record.id, 'itemType', val)}
           style={{ width: '100%' }}
           size="small"
+          variant="borderless"
         >
           {ITEM_TYPES.map((t) => (
             <Option key={t.value} value={t.value}>{t.label}</Option>
@@ -1203,8 +1289,9 @@ const InvestmentPage = () => {
           placeholder="Item name"
           value={record.itemName}
           onChange={(e) => updateItemRow(record.id, 'itemName', e.target.value)}
-          style={{ borderRadius: 6, fontSize: '0.82rem' }}
+          style={{ fontSize: '0.82rem' }}
           size="small"
+          variant="borderless"
         />
       ),
     },
@@ -1216,8 +1303,11 @@ const InvestmentPage = () => {
           min={0}
           value={record.quantity}
           onChange={(val) => updateItemRow(record.id, 'quantity', val)}
-          style={{ width: '100%', borderRadius: 6, fontSize: '0.82rem' }}
+          placeholder="0"
+          controls={false}
+          style={{ width: '100%', fontSize: '0.82rem' }}
           size="small"
+          variant="borderless"
         />
       ),
     },
@@ -1230,6 +1320,7 @@ const InvestmentPage = () => {
           onChange={(val) => updateItemRow(record.id, 'unit', val)}
           style={{ width: '100%' }}
           size="small"
+          variant="borderless"
         >
           {UNIT_OPTIONS.map((u) => (
             <Option key={u.key} value={u.key}>{u.label}</Option>
@@ -1246,8 +1337,11 @@ const InvestmentPage = () => {
           precision={2}
           value={record.rate}
           onChange={(val) => updateItemRow(record.id, 'rate', val)}
-          style={{ width: '100%', borderRadius: 6, fontSize: '0.82rem' }}
+          placeholder="0"
+          controls={false}
+          style={{ width: '100%', fontSize: '0.82rem' }}
           size="small"
+          variant="borderless"
         />
       ),
     },
@@ -1265,9 +1359,11 @@ const InvestmentPage = () => {
             precision={2}
             value={record.mrp}
             onChange={(val) => updateItemRow(record.id, 'mrp', val)}
-            placeholder="Selling price"
-            style={{ width: '100%', borderRadius: 6, fontSize: '0.82rem' }}
+            placeholder="0"
+            controls={false}
+            style={{ width: '100%', fontSize: '0.82rem' }}
             size="small"
+            variant="borderless"
           />
         ) : (
           <span style={{ color: '#CBD5E1', fontSize: '0.8rem' }}>—</span>
@@ -1277,7 +1373,7 @@ const InvestmentPage = () => {
       title: `Amount (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
-        <span style={{ fontWeight: 700, color: '#059669', fontSize: '0.85rem' }}>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)', fontSize: '0.85rem' }}>
           {Number(record.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </span>
       ),
@@ -1314,8 +1410,9 @@ const InvestmentPage = () => {
           placeholder="Expense name"
           value={record.expenseName}
           onChange={(e) => updateOverheadRow(record.id, 'expenseName', e.target.value)}
-          style={{ borderRadius: 6, fontSize: '0.82rem' }}
+          style={{ fontSize: '0.82rem' }}
           size="small"
+          variant="borderless"
         />
       ),
     },
@@ -1328,8 +1425,11 @@ const InvestmentPage = () => {
           precision={2}
           value={record.amount}
           onChange={(val) => updateOverheadRow(record.id, 'amount', val)}
-          style={{ width: '100%', borderRadius: 6, fontSize: '0.82rem' }}
+          placeholder="0"
+          controls={false}
+          style={{ width: '100%', fontSize: '0.82rem' }}
           size="small"
+          variant="borderless"
         />
       ),
     },
@@ -1385,7 +1485,7 @@ const InvestmentPage = () => {
       key: "totalAmount",
       width: 110,
       render: (v) => (
-        <span style={{ fontWeight: 700, color: "#059669" }}>
+        <span style={{ fontWeight: 700, color: "var(--theme-primary)" }}>
           {getCurrencySymbol()}{Number(v || 0).toLocaleString("en-IN")}
         </span>
       ),
@@ -1411,7 +1511,7 @@ const InvestmentPage = () => {
       dataIndex: 'grandTotal',
       key: 'grandTotal',
       render: (v) => (
-        <span style={{ fontWeight: 700, color: '#059669' }}>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
           {getCurrencySymbol()}{Number(v || 0).toLocaleString('en-IN')}
         </span>
       ),
@@ -1424,8 +1524,8 @@ const InvestmentPage = () => {
     cursor: 'pointer',
     fontSize: '0.9rem',
     fontWeight: activeTab === tab ? 700 : 500,
-    color: activeTab === tab ? '#2563EB' : '#64748B',
-    borderBottom: activeTab === tab ? '2px solid #2563EB' : '2px solid transparent',
+    color: activeTab === tab ? 'var(--theme-primary)' : '#64748B',
+    borderBottom: activeTab === tab ? '2px solid var(--theme-primary)' : '2px solid transparent',
     transition: 'all 0.2s ease',
     userSelect: 'none',
   });
@@ -1444,6 +1544,12 @@ const InvestmentPage = () => {
     display: 'block',
   };
 
+  // Bill-style rows for the totals / payment summary (right column).
+  const billRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.86rem' };
+  const billLabel = { color: '#64748B', fontWeight: 500 };
+  const billValue = { color: '#0F172A', fontWeight: 600, fontVariantNumeric: 'tabular-nums' };
+  const billDivider = { borderTop: '1px dashed #CBD5E1', margin: '8px 0' };
+
   // ─────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────
@@ -1451,8 +1557,7 @@ const InvestmentPage = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#2563EB',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
         components: {
@@ -1462,6 +1567,8 @@ const InvestmentPage = () => {
         },
       }}
     >
+      {!isAddPage && (
+      <>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px 0' }}>
 
         {/* ── Page Header ── */}
@@ -1475,7 +1582,7 @@ const InvestmentPage = () => {
         </div> */}
 
         {/* ── Tabs ── */}
-        <Card style={{ ...cardStyle, padding: 0 }} bodyStyle={{ padding: 0 }}>
+        <Card style={{ ...cardStyle, padding: 0, overflow: 'hidden' }} styles={{ body: { padding: 0 } }}>
           {/* Tab Bar */}
           <div
             style={{
@@ -1624,13 +1731,13 @@ const InvestmentPage = () => {
                 }}
               >
                 <span>
-                  <span style={{ color: '#0C4A6E' }}>Current Month:</span>
-                  <span style={{ marginLeft: 6, color: '#164E63' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--theme-primary)' }}>Current Month:</span>
+                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
                   <span
                     style={{
                       marginLeft: 10,
                       fontSize: '0.82rem',
-                      color: currentMonthInvestment >= previousMonthInvestment ? '#16A34A' : '#DC2626',
+                      color: currentMonthInvestment >= previousMonthInvestment ? 'var(--theme-primary)' : '#DC2626',
                       fontWeight: 700,
                     }}
                   >
@@ -1645,18 +1752,18 @@ const InvestmentPage = () => {
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
-                  <span style={{ color: '#1D4ED8' }}>Total Investment:</span>
-                  <span style={{ marginLeft: 6, color: '#1E40AF' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--theme-primary)' }}>Total Investment:</span>
+                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
-                  <span style={{ color: '#047857' }}>Purchase:</span>
-                  <span style={{ marginLeft: 6, color: '#065F46' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--theme-primary)' }}>Purchase:</span>
+                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
-                  <span style={{ color: '#B45309' }}>Overhead:</span>
-                  <span style={{ marginLeft: 6, color: '#92400E' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--theme-primary)' }}>Overhead:</span>
+                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
                 <span>
@@ -1665,8 +1772,8 @@ const InvestmentPage = () => {
                 </span>
               </div>
 
-              {/* Investments Table */}
-              <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+              {/* Investments Table — flush to the outer card (cancels the 24px wrapper padding) */}
+              <Card style={{ ...cardStyle, borderRadius: 0, border: 'none', boxShadow: 'none', margin: '0 -24px -24px -24px' }} styles={{ body: { padding: 0 } }}>
                 <Table
                   className="custom-table"
                   size="small"
@@ -1699,7 +1806,7 @@ const InvestmentPage = () => {
                       />
                     ),
                   }}
-                  style={{ borderRadius: 12, overflow: 'hidden' }}
+                  style={{ borderRadius: 0, overflow: 'hidden' }}
                   sticky
                 />
               </Card>
@@ -1729,9 +1836,9 @@ const InvestmentPage = () => {
                     <HeadingInfo text="Manage suppliers and vendor information." />
                   </div>
                   <div style={{ marginTop: 4, fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span><span style={{ color: '#2563EB' }}>Total:</span> {totalVendors}</span>
+                    <span><span style={{ color: 'var(--theme-primary)' }}>Total:</span> {totalVendors}</span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
-                    <span><span style={{ color: '#16A34A' }}>Active:</span> {activeVendors}</span>
+                    <span><span style={{ color: 'var(--theme-primary)' }}>Active:</span> {activeVendors}</span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span><span style={{ color: '#DC2626' }}>Inactive:</span> {inactiveVendors}</span>
                   </div>
@@ -1764,8 +1871,8 @@ const InvestmentPage = () => {
                 </Space>
               </div>
 
-              {/* Vendors Table */}
-              <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
+              {/* Vendors Table — flush to the outer card (cancels the 24px wrapper padding) */}
+              <Card style={{ ...cardStyle, borderRadius: 0, border: 'none', boxShadow: 'none', margin: '0 -24px -24px -24px' }} styles={{ body: { padding: 0 } }}>
                 <Table
                   className="custom-table"
                   size="small"
@@ -1798,7 +1905,7 @@ const InvestmentPage = () => {
                       />
                     ),
                   }}
-                  style={{ borderRadius: 12, overflow: 'hidden' }}
+                  style={{ borderRadius: 0, overflow: 'hidden' }}
                   sticky
                 />
               </Card>
@@ -1827,13 +1934,13 @@ const InvestmentPage = () => {
                 width: 30,
                 height: 30,
                 borderRadius: 8,
-                backgroundColor: '#EFF6FF',
+                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <FileTextOutlined style={{ color: '#2563EB', fontSize: '0.95rem' }} />
+              <FileTextOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.95rem' }} />
             </div>
             Investment Details
           </span>
@@ -1871,7 +1978,7 @@ const InvestmentPage = () => {
                     value: investmentDetail.vendorId ? (
                       <a
                         onClick={() => navigate(`/vendors/${investmentDetail.vendorId}`)}
-                        style={{ color: '#2563EB', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ color: 'var(--theme-primary)', fontWeight: 600, cursor: 'pointer' }}
                       >
                         {investmentDetail.vendorName || '—'}
                       </a>
@@ -1936,7 +2043,6 @@ const InvestmentPage = () => {
                 { label: 'Subtotal', value: investmentDetail.subtotal, color: '#0F172A' },
                 { label: 'GST', value: investmentDetail.gst, color: '#0F172A' },
                 { label: 'Discount', value: investmentDetail.discount, color: '#DC2626', prefix: '− ' },
-                { label: 'Other Charges', value: investmentDetail.otherCharges, color: '#0F172A' },
               ].map(({ label, value, color, prefix }) => (
                 <div
                   key={label}
@@ -1951,7 +2057,7 @@ const InvestmentPage = () => {
               <Divider style={{ margin: '10px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Grand Total</span>
-                <span style={{ fontWeight: 900, fontSize: '1.3rem', color: '#059669' }}>
+                <span style={{ fontWeight: 900, fontSize: '1.3rem', color: 'var(--theme-primary)' }}>
                   {getCurrencySymbol()}{Number(investmentDetail.grandTotal || 0).toLocaleString('en-IN')}
                 </span>
               </div>
@@ -1965,9 +2071,9 @@ const InvestmentPage = () => {
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '16px 20px' }}>
               {/* Summary row */}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-                <div style={{ flex: '1 1 120px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ flex: '1 1 120px', background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px' }}>
                   <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>Paid</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ flex: '1 1 120px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px' }}>
                   <div style={{ fontSize: '0.72rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
@@ -2029,7 +2135,7 @@ const InvestmentPage = () => {
                         <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
                         <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
                       </div>
-                      <span style={{ fontWeight: 800, color: '#059669' }}>{getCurrencySymbol()}{Number(p.amount).toLocaleString('en-IN')}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(p.amount).toLocaleString('en-IN')}</span>
                     </div>
                   ))}
                 </div>
@@ -2042,32 +2148,33 @@ const InvestmentPage = () => {
           <Empty description="No details available" />
         )}
       </Drawer>
+        </>
+        )}
 
       {/* ════════════════════════════════════
-          ADD INVESTMENT MODAL
+          ADD INVESTMENT — FULL PAGE
       ════════════════════════════════════ */}
-      <Modal
-        title={
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <WalletOutlined style={{ color: '#2563EB', fontSize: '0.95rem' }} />
+      {isAddPage && (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <Button onClick={handleCloseAddModal} icon={<ArrowLeftOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>Back</Button>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <WalletOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />
             </div>
             Add New Investment
           </span>
-        }
-        open={addModalVisible}
-        onCancel={handleCloseAddModal}
-        width={960}
-        footer={null}
-        destroyOnClose
-        bodyStyle={{ backgroundColor: '#F8FAFC', padding: '12px 16px' }}
-      >
+        </div>
         <Form
           form={investmentForm}
           layout="vertical"
           requiredMark={false}
           autoComplete="off"
         >
+          {/* Two columns: left = type + items, right = totals + payment */}
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* ── LEFT: Investment Type + Purchase Items ── */}
+          <Box sx={{ flex: '1 1 460px', minWidth: 0 }}>
           {/* Section 1: Header Fields */}
           <Card
             style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginBottom: 12 }}
@@ -2104,12 +2211,30 @@ const InvestmentPage = () => {
                     rules={[{ required: true, message: 'Please select a vendor.' }]}
                   >
                     <Select
-                      placeholder="Select Vendor"
+                      placeholder="Select or search vendor"
                       style={{ borderRadius: 8 }}
                       size="middle"
                       showSearch
                       optionFilterProp="children"
+                      onSearch={setVendorSearchText}
                       disabled={isFromVendorDetails}
+                      dropdownRender={(menu) => (
+                        <>
+                          {menu}
+                          <Divider style={{ margin: '6px 0' }} />
+                          <div style={{ padding: '2px 8px 6px' }}>
+                            <Button
+                              type="link"
+                              icon={<PlusOutlined />}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={openQuickVendor}
+                              style={{ padding: 0, fontWeight: 600 }}
+                            >
+                              Add {vendorSearchText ? `"${vendorSearchText}"` : 'new vendor'}
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     >
                       {vendors.map((v) => (
                         <Option key={v.id} value={v.id}>{v.name}</Option>
@@ -2155,7 +2280,6 @@ const InvestmentPage = () => {
                         precision={2}
                         value={gstManual ? gstRate : gstPercent}
                         onChange={(v) => { setGstRate(v ?? 0); setGstManual(true); }}
-                        addonAfter="%"
                         style={{ width: '100%', borderRadius: 8 }}
                         size="middle"
                         placeholder="0"
@@ -2164,33 +2288,32 @@ const InvestmentPage = () => {
                   </Col>
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
-                      name="discountAmount"
-                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Discount Amount ({getCurrencySymbol()})</span>}
+                      label={<span style={{ fontWeight: 700, color: '#374151' }}>
+                        Discount
+                        {discountMode === 'PERCENT' && (
+                          <span style={{ fontWeight: 500, color: '#6B7280' }}> = {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        )}
+                      </span>}
                     >
                       <InputNumber
                         min={0}
+                        max={discountMode === 'PERCENT' ? 100 : undefined}
                         precision={2}
-                        value={discount}
-                        onChange={(v) => setDiscount(v || 0)}
-                        style={{ width: '100%', borderRadius: 8 }}
+                        controls={false}
+                        value={discountMode === 'PERCENT' ? discountPct : discount}
+                        onChange={(v) => (discountMode === 'PERCENT' ? setDiscountPct(v ?? 0) : setDiscount(v || 0))}
+                        className="skr-discount-input"
+                        addonBefore={
+                          <Segmented
+                            size="small"
+                            value={discountMode}
+                            onChange={setDiscountMode}
+                            options={[{ label: '%', value: 'PERCENT' }, { label: getCurrencySymbol(), value: 'AMOUNT' }]}
+                          />
+                        }
+                        style={{ width: '100%' }}
                         size="middle"
-                        placeholder="0.00"
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8} lg={8}>
-                    <Form.Item
-                      name="otherCharge"
-                      label={<span style={{ fontWeight: 700, color: '#374151' }}>Other Charge ({getCurrencySymbol()})</span>}
-                    >
-                      <InputNumber
-                        min={0}
-                        precision={2}
-                        value={otherCharges}
-                        onChange={(v) => setOtherCharges(v || 0)}
-                        style={{ width: '100%', borderRadius: 8 }}
-                        size="middle"
-                        placeholder="0.00"
+                        placeholder={discountMode === 'PERCENT' ? '0' : '0.00'}
                       />
                     </Form.Item>
                   </Col>
@@ -2198,6 +2321,35 @@ const InvestmentPage = () => {
               )}
             </Row>
           </Card>
+
+          {/* Inline add-new-vendor panel (Purchase type) */}
+          {selectedType === 'PURCHASE' && quickVendorOpen && (
+            <Card style={{ borderRadius: 10, border: '1px solid var(--theme-primary)', marginBottom: 12 }} bodyStyle={{ padding: '12px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>Add new vendor</span>
+                <Button type="text" size="small" onClick={() => setQuickVendorOpen(false)}>Cancel</Button>
+              </div>
+              <Row gutter={[12, 8]}>
+                <Col xs={24} sm={12}>
+                  <div style={labelStyle}>Name *</div>
+                  <Input value={qv.name} onChange={(e) => setQv((p) => ({ ...p, name: e.target.value }))} placeholder="Vendor name" style={{ borderRadius: 8 }} />
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div style={labelStyle}>Phone *</div>
+                  <Input
+                    value={qv.mobile}
+                    onChange={(e) => setQv((p) => ({ ...p, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    placeholder="10-digit phone number"
+                    maxLength={10}
+                    style={{ borderRadius: 8 }}
+                  />
+                </Col>
+              </Row>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                <Button type="primary" loading={qvSaving} onClick={saveQuickVendor} style={{ borderRadius: 8, fontWeight: 700 }}>Add & select</Button>
+              </div>
+            </Card>
+          )}
 
           {/* Dynamic Items Section */}
           {selectedType && (
@@ -2219,6 +2371,7 @@ const InvestmentPage = () => {
                 columns={selectedType === 'OVERHEAD' ? overheadItemColumns : purchaseItemColumns}
                 pagination={false}
                 size="small"
+                className="skr-item-table"
                 style={{ overflow: 'hidden' }}
               />
               <div style={{ padding: '12px 16px 0' }}>
@@ -2227,8 +2380,8 @@ const InvestmentPage = () => {
                   onClick={selectedType === 'OVERHEAD' ? addOverheadRow : addItemRow}
                   style={{
                     borderRadius: 8,
-                    borderColor: '#2563EB',
-                    color: '#2563EB',
+                    borderColor: 'var(--theme-primary)',
+                    color: 'var(--theme-primary)',
                     fontWeight: 600,
                     fontSize: '0.82rem',
                   }}
@@ -2238,80 +2391,134 @@ const InvestmentPage = () => {
               </div>
             </Card>
           )}
-
-          {/* Summary Card */}
+          </Box>
+          {/* ── RIGHT: Totals + Payment ── */}
+          <Box sx={{ flex: '1 1 320px', minWidth: 300 }}>
+          {/* Bill summary */}
           <Card
             style={{
               borderRadius: 10,
-              border: '1px solid #E2E8F0',
-              background: 'linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)',
+              border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)',
               marginBottom: 12,
             }}
-            bodyStyle={{ padding: '12px 16px' }}
+            bodyStyle={{ padding: '14px 18px', background: 'color-mix(in srgb, var(--theme-primary) 10%, white)', borderRadius: 10 }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-              <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={labelStyle}>Subtotal ({getCurrencySymbol()})</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
-                    {getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
+            <div style={billRow}>
+              <span style={billLabel}>Subtotal</span>
+              <span style={billValue}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
+            {selectedType === 'PURCHASE' && (
+              <>
+                <div style={billRow}>
+                  <span style={billLabel}>GST</span>
+                  <span style={billValue}>+ {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
-                {selectedType === 'PURCHASE' && (
-                  <>
-                    <div>
-                      <div style={labelStyle}>GST</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569' }}>
-                        + {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={labelStyle}>Discount</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#DC2626' }}>
-                        − {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={labelStyle}>Other Charges</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569' }}>
-                        + {getCurrencySymbol()}{otherCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={labelStyle}>Grand Total</div>
-                <div style={{ fontWeight: 900, fontSize: '1.6rem', color: '#059669' }}>
-                  {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                <div style={billRow}>
+                  <span style={billLabel}>Discount</span>
+                  <span style={billValue}>− {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
-              </div>
+              </>
+            )}
+            <div style={billDivider} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.92rem' }}>Grand Total</span>
+              <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontSize: '1.1rem', fontVariantNumeric: 'tabular-nums' }}>
+                {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </Card>
 
-          {/* Payment (optional) captured at creation — clears oldest vendor dues first */}
-          <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginTop: 12 }} bodyStyle={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, color: '#374151' }}>Payment</div>
-              {selectedType === 'PURCHASE' && (
-                <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 700 }}>This invoice</div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0F172A' }}>{getCurrencySymbol()}{grandTotal.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.68rem', color: vendorOverdue > 0 ? '#991B1B' : '#64748B', fontWeight: 700 }}>Previous overdue</div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: vendorOverdue > 0 ? '#DC2626' : '#0F172A' }}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.68rem', color: '#1D4ED8', fontWeight: 700 }}>Total outstanding</div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1E40AF' }}>{getCurrencySymbol()}{(grandTotal + vendorOverdue).toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
+          {/* Payment — bill style, captured at creation (clears oldest vendor dues first) */}
+          <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', position: 'relative', overflow: 'hidden' }} bodyStyle={{ padding: '14px 18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.95rem' }}>Payment</span>
+              {selectedType === 'PURCHASE' && vendorOverdue > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDues((s) => !s)}
+                  style={{
+                    cursor: 'pointer', borderRadius: 999, padding: '2px 10px', fontSize: '0.74rem', fontWeight: 700,
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    color: 'var(--theme-primary)',
+                    background: 'color-mix(in srgb, var(--theme-primary) 10%, white)',
+                    border: '1px solid color-mix(in srgb, var(--theme-primary) 35%, white)',
+                  }}
+                >
+                  <LeftOutlined style={{ fontSize: 10, transform: showDues ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }} />
+                  Previous dues ({vendorUnpaid.length})
+                </button>
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {/* Previous dues — slides in from the right, over the payment form (half width, themed) */}
+            <div style={{
+              position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', zIndex: 20,
+              background: 'color-mix(in srgb, var(--theme-primary) 8%, white)',
+              borderLeft: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)',
+              boxShadow: '-6px 0 18px rgba(15,23,42,0.12)',
+              transform: showDues ? 'translateX(0)' : 'translateX(100%)',
+              transition: 'transform 0.4s ease',
+              padding: '14px 16px', display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontWeight: 700, color: 'var(--theme-primary)', fontSize: '0.86rem' }}>Previous dues · oldest first</span>
+                <CloseOutlined onClick={() => setShowDues(false)} style={{ cursor: 'pointer', color: 'var(--theme-primary)', fontSize: 13 }} />
+              </div>
+              {payNow > 0 && (
+                <div style={{ fontSize: '0.7rem', color: '#64748B', marginBottom: 8 }}>
+                  <CheckCircleOutlined style={{ color: '#16A34A' }} /> cleared · <span style={{ color: '#D97706', fontWeight: 700 }}>●</span> partial · <span style={{ color: '#C0C0C0', fontWeight: 700 }}>●</span> pending
+                </div>
+              )}
+              <div style={{ overflowY: 'auto' }}>
+                {duesWithStatus.map((inv) => {
+                  const cleared = inv.status === 'cleared';
+                  const partial = inv.status === 'partial';
+                  const rowColor = cleared ? '#16A34A' : partial ? '#D97706' : '#C0C0C0';
+                  return (
+                    <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '5px 0', borderBottom: '1px dashed #EEF2F7', opacity: payNow > 0 && inv.status === 'pending' ? 0.6 : 1 }}>
+                      <span style={{ color: '#0F172A', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {payNow > 0 && (cleared
+                          ? <CheckCircleOutlined style={{ color: '#16A34A', fontSize: 13 }} />
+                          : <span style={{ color: rowColor, fontSize: 11 }}>●</span>)}
+                        {inv.invoiceNumber || 'Invoice'}
+                        <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+                          {inv.purchaseDate ? dayjs(inv.purchaseDate).format('DD MMM YYYY') : ''}
+                        </span>
+                      </span>
+                      <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {getCurrencySymbol()}{inv.due.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 10, fontWeight: 800 }}>
+                <span style={{ color: '#0F172A' }}>Total overdue</span>
+                <span style={{ color: 'var(--theme-primary)', fontVariantNumeric: 'tabular-nums' }}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {selectedType === 'PURCHASE' && (
+              <>
+                <div style={billRow}>
+                  <span style={billLabel}>This invoice</span>
+                  <span style={billValue}>{getCurrencySymbol()}{grandTotal.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={billRow}>
+                  <span style={billLabel}>Previous overdue</span>
+                  <span style={billValue}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</span>
+                </div>
+                <div style={billDivider} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+                  <span style={{ color: '#0F172A', fontWeight: 700 }}>Total outstanding</span>
+                  <span style={{ color: 'var(--theme-primary)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                    {getCurrencySymbol()}{Math.round(grandTotal + vendorOverdue).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <InputNumber
                 value={createPayAmount}
                 onChange={(v) => setCreatePayAmount(v == null ? null : Math.min(Number(v), maxPayable))}
@@ -2319,14 +2526,11 @@ const InvestmentPage = () => {
                 max={maxPayable}
                 prefix={getCurrencySymbol()}
                 placeholder="Amount paying now"
-                style={{ width: 200 }}
+                controls={false}
+                variant="borderless"
+                style={{ flex: 1, minWidth: 150, borderBottom: '1px solid #E2E8F0', borderRadius: 0 }}
               />
-              {selectedType === 'PURCHASE' && (grandTotal + vendorOverdue) > 0 && (
-                <Button onClick={() => setCreatePayAmount(Number((grandTotal + vendorOverdue).toFixed(2)))} style={{ borderRadius: 8 }}>
-                  Pay full ({getCurrencySymbol()}{(grandTotal + vendorOverdue).toLocaleString('en-IN')})
-                </Button>
-              )}
-              <Select value={createPayMode} onChange={setCreatePayMode} style={{ width: 140 }}>
+              <Select value={createPayMode} onChange={setCreatePayMode} style={{ width: 130, borderBottom: '1px solid #E2E8F0' }} variant="borderless">
                 <Option value="CASH">Cash</Option>
                 <Option value="UPI">UPI</Option>
                 <Option value="CREDIT_CARD">Credit Card</Option>
@@ -2335,54 +2539,33 @@ const InvestmentPage = () => {
               </Select>
             </div>
 
-            {selectedType === 'PURCHASE' && payNow > 0 && (
-              <div style={{ marginTop: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', marginBottom: 6 }}>
-                  How this payment applies (oldest dues first)
-                </div>
-                {paymentAllocation.rows.map((r) => (
-                  <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '2px 0' }}>
-                    <span style={{ color: r.old ? '#92400E' : '#0F172A', fontWeight: 600 }}>
-                      {r.label}{r.old ? ' (previous)' : ''}
-                    </span>
-                    <span style={{ fontWeight: 700, color: '#059669' }}>
-                      {getCurrencySymbol()}{r.pay.toLocaleString('en-IN')}
-                      <span style={{ color: '#94A3B8', fontWeight: 500 }}>
-                        {r.pay >= r.due ? ' · cleared' : ` · of ${getCurrencySymbol()}${r.due.toLocaleString('en-IN')}`}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-                {paymentAllocation.leftover > 0 && (
-                  <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: 6 }}>
-                    ⚠ {getCurrencySymbol()}{paymentAllocation.leftover.toLocaleString('en-IN')} is more than the total outstanding — reduce the amount.
-                  </div>
-                )}
+            {selectedType === 'PURCHASE' && paymentAllocation.leftover > 0 && (
+              <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: 8 }}>
+                ⚠ {getCurrencySymbol()}{paymentAllocation.leftover.toLocaleString('en-IN')} is more than the total outstanding — reduce the amount.
               </div>
             )}
 
-            <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 8 }}>
-              Recorded as of today. Leave the amount blank to keep it Unpaid; add payments later on the details page.
+            {/* Action buttons live inside the payment card */}
+            <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 8, marginTop: 16 }}>
+              <Button onClick={handleCloseAddModal} style={{ borderRadius: 8, fontWeight: 600 }}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                loading={createInvestmentMutation.isPending}
+                onClick={handleSaveInvestment}
+                disabled={!isFormValid}
+                style={{ borderRadius: 8, fontWeight: 700 }}
+              >
+                Save Investment
+              </Button>
             </div>
           </Card>
-
-          {/* Footer Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <Button onClick={handleCloseAddModal} style={{ borderRadius: 8, fontWeight: 600, height: 40 }}>
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              loading={createInvestmentMutation.isPending}
-              onClick={handleSaveInvestment}
-              disabled={!isFormValid}
-              style={{ borderRadius: 8, fontWeight: 700, height: 40, paddingInline: 24 }}
-            >
-              Save Investment
-            </Button>
-          </div>
+          </Box>
+          </Box>
         </Form>
-      </Modal>
+      </Box>
+      )}
 
       {/* ════════════════════════════════════
           ADD / EDIT VENDOR MODAL
@@ -2390,8 +2573,8 @@ const InvestmentPage = () => {
       <Modal
         title={
           <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UserOutlined style={{ color: '#2563EB', fontSize: '0.95rem' }} />
+            <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UserOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.95rem' }} />
             </div>
             {selectedVendor ? 'Edit Vendor' : 'Add New Vendor'}
           </span>

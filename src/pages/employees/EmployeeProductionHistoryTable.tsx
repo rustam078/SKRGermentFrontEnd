@@ -90,7 +90,7 @@ export const EmployeeProductionHistoryTable: React.FC<EmployeeProductionHistoryT
       key: 'earnings',
       width: '20%',
       render: (earnings: number) => (
-        <span style={{ fontWeight: 700, color: '#10B981' }}>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
           {formatCurrency(earnings)}
         </span>
       ),

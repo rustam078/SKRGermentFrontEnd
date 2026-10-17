@@ -1,61 +1,121 @@
 import React from 'react';
-import { ColorPicker, Button, Space } from 'antd';
-import { Box, Typography } from '@mui/material';
-import { useThemeColor, DEFAULT_PRIMARY } from '../../contexts/ThemeColorContext';
+import { ColorPicker, Button } from 'antd';
+import { Box, Typography, Divider } from '@mui/material';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import { useThemeColor, DEFAULT_PRIMARY, DEFAULT_NAV } from '../../contexts/ThemeColorContext';
 
-// A few tasteful presets alongside the default; all are deep, button-friendly tones.
-const PRESETS = [DEFAULT_PRIMARY, '#1E293B', '#0F766E', '#7C3AED', '#B45309', '#BE123C'];
+// Common, widely-used theme colours (blue, teal, green, purple, orange, red).
+const COMMON = ['#2563EB', '#0F766E', '#16A34A', '#7C3AED', '#EA580C', '#DC2626'];
+const PRIMARY_PRESETS = [DEFAULT_PRIMARY, ...COMMON];
+const NAV_PRESETS = [DEFAULT_NAV, ...COMMON];
 
-// Lets the user pick the app's primary (theme) color. Saved on this device and
-// applied live to every button, accent and the Total Amount panels.
+// One-click themes: each sets both the primary (buttons/icons/accents) and the sidebar colour.
+const THEMES = [
+  { name: 'Midnight', primary: DEFAULT_PRIMARY, nav: DEFAULT_NAV },
+  { name: 'Ocean', primary: '#0369A1', nav: '#0C4A6E' },
+  { name: 'Forest', primary: '#15803D', nav: '#14532D' },
+  { name: 'Royal', primary: '#6D28D9', nav: '#2E1065' },
+  { name: 'Sunset', primary: '#C2410C', nav: '#7C2D12' },
+  { name: 'Charcoal', primary: '#334155', nav: '#111827' },
+  { name: 'Teal', primary: '#0F766E', nav: '#134E4A' },
+  { name: 'Wine', primary: '#9F1239', nav: '#4C0519' },
+  { name: 'Slate Blue', primary: '#3730A3', nav: '#1E1B4B' },
+  { name: 'Diwali', primary: '#B45309', nav: '#78350F' },
+  { name: 'Holi', primary: '#BE185D', nav: '#581C87' },
+  { name: 'New Year', primary: '#CA8A04', nav: '#111827' },
+];
+
+const eq = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase();
+
+// One colour row: picker + quick swatches + reset.
+const ColorRow = ({ label, help, value, onChange, presets, defaultValue }) => (
+  <Box>
+    <Typography sx={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>{label}</Typography>
+    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.25 }}>{help}</Typography>
+    <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
+      <ColorPicker value={value} onChangeComplete={(c) => onChange(c.toHexString())} showText size="large" />
+      {presets.map((c) => (
+        <button
+          key={c}
+          onClick={() => onChange(c)}
+          title={c}
+          style={{
+            width: 24, height: 24, borderRadius: 6, cursor: 'pointer', background: c,
+            border: eq(value, c) ? '2px solid #0F172A' : '2px solid #E2E8F0',
+          }}
+        />
+      ))}
+      <Button size="small" onClick={() => onChange(defaultValue)} disabled={eq(value, defaultValue)}>Reset</Button>
+    </Box>
+  </Box>
+);
+
+// A clickable preset card showing a mini sidebar+primary preview.
+const ThemeCard = ({ theme, active, onClick }) => (
+  <Box
+    onClick={onClick}
+    sx={{
+      cursor: 'pointer', borderRadius: 2, p: 1.25, display: 'flex', alignItems: 'center', gap: 1.25,
+      bgcolor: '#fff', position: 'relative',
+      border: active ? '2px solid' : '1px solid', borderColor: active ? 'primary.main' : 'divider',
+      transition: 'all 0.15s', '&:hover': { borderColor: 'primary.main', boxShadow: '0 2px 8px rgba(15,23,42,0.08)' },
+    }}
+  >
+    <Box sx={{ display: 'flex', width: 48, height: 32, borderRadius: 1, overflow: 'hidden', flexShrink: 0, border: '1px solid #E2E8F0' }}>
+      <Box sx={{ width: 16, bgcolor: theme.nav }} />
+      <Box sx={{ flex: 1, bgcolor: theme.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.9)' }} />
+      </Box>
+    </Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>{theme.name}</Typography>
+      <Typography variant="caption" sx={{ color: active ? 'primary.main' : 'text.disabled', fontWeight: 700 }}>
+        {active ? 'Active' : 'Apply'}
+      </Typography>
+    </Box>
+    {active && <CheckCircleRoundedIcon sx={{ position: 'absolute', top: 6, right: 6, fontSize: 16, color: 'primary.main' }} />}
+  </Box>
+);
+
+// Lets the user pick a ready-made theme, or fine-tune the primary + navigation colours.
 const ThemeSettings = () => {
-  const { primary, setPrimary } = useThemeColor();
+  const { primary, setPrimary, nav, setNav } = useThemeColor();
+  const applyTheme = (t) => { setPrimary(t.primary); setNav(t.nav); };
 
   return (
-    <Box>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-        Pick your primary colour — it applies to all buttons, highlights and the Total Amount panels.
-        Saved on this device.
-      </Typography>
-
-      <Space size={16} align="center" wrap>
-        <ColorPicker
-          value={primary}
-          onChangeComplete={(c) => setPrimary(c.toHexString())}
-          presets={[{ label: 'Suggested', colors: PRESETS }]}
-          showText
-          size="large"
+    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      {/* Left: custom colours + preview */}
+      <Box sx={{ flex: '1 1 320px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <ColorRow
+          label="Primary colour"
+          help="Buttons, icons, highlights and the Total Amount panels."
+          value={primary} onChange={setPrimary} presets={PRIMARY_PRESETS} defaultValue={DEFAULT_PRIMARY}
         />
-        <Button onClick={() => setPrimary(DEFAULT_PRIMARY)} disabled={primary?.toLowerCase() === DEFAULT_PRIMARY.toLowerCase()}>
-          Reset to default
-        </Button>
-      </Space>
-
-      <Box sx={{ mt: 2.5, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Typography variant="caption" sx={{ color: 'text.disabled', mr: 0.5 }}>Quick picks:</Typography>
-        {PRESETS.map((c) => (
-          <button
-            key={c}
-            onClick={() => setPrimary(c)}
-            title={c}
-            style={{
-              width: 26, height: 26, borderRadius: 6, cursor: 'pointer',
-              background: c,
-              border: primary?.toLowerCase() === c.toLowerCase() ? '2px solid #0F172A' : '2px solid #E2E8F0',
-            }}
-          />
-        ))}
+        <Divider />
+        <ColorRow
+          label="Navigation colour"
+          help="Left sidebar background. Text and icons adjust for contrast."
+          value={nav} onChange={setNav} presets={NAV_PRESETS} defaultValue={DEFAULT_NAV}
+        />
+        <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 }}>Preview</Typography>
+          <Box sx={{ mt: 1.25, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button type="primary">Primary Button</Button>
+            <Box sx={{ px: 2, py: 1, color: '#fff', fontWeight: 800, borderRadius: 1, bgcolor: 'primary.main' }}>Total Amount ₹0</Box>
+          </Box>
+        </Box>
       </Box>
 
-      <Box sx={{ mt: 3, p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="caption" sx={{ color: 'text.disabled', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 }}>
-          Preview
+      {/* Right: one-click suggested themes (fills the space) */}
+      <Box sx={{ flex: '1 1 320px', minWidth: 280 }}>
+        <Typography sx={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>Suggested themes</Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.25 }}>
+          One click sets both the primary and sidebar colours.
         </Typography>
-        <Box sx={{ mt: 1.25, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button type="primary">Primary Button</Button>
-          <Box sx={{ px: 2, py: 1, color: '#fff', fontWeight: 800, borderRadius: 1, bgcolor: 'primary.main' }}>
-            Total Amount ₹0
-          </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 1.25 }}>
+          {THEMES.map((t) => (
+            <ThemeCard key={t.name} theme={t} active={eq(primary, t.primary) && eq(nav, t.nav)} onClick={() => applyTheme(t)} />
+          ))}
         </Box>
       </Box>
     </Box>

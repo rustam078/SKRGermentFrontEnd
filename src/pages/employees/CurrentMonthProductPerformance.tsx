@@ -63,13 +63,13 @@ export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerform
               <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
-                  <span style={{ fontSize: '0.9rem', color: '#2563EB', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
                     {item.quantity.toLocaleString('en-IN')} Pcs
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
-                  <span style={{ fontSize: '1.1rem', color: '#10B981', fontWeight: 800 }}>
+                  <span style={{ fontSize: '1.1rem', color: 'var(--theme-primary)', fontWeight: 800 }}>
                     {formatCurrency(item.earnings)}
                   </span>
                 </div>

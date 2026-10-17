@@ -50,7 +50,6 @@ import {
   ClockCircleOutlined,
   ShoppingCartOutlined,
   BuildOutlined,
-  LoadingOutlined,
   EditOutlined,
   RightOutlined,
   FileTextOutlined,
@@ -66,7 +65,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 /* ─────────────────────────────────────────
    Mini Sparkline (CSS only, no library)
    ───────────────────────────────────────── */
-const Sparkline = ({ color = '#6366F1' }) => (
+const Sparkline = ({ color = 'var(--theme-primary)' }) => (
   <svg width="80" height="36" viewBox="0 0 80 36" fill="none" style={{ opacity: 0.8 }}>
     <polyline
       points="0,28 12,22 24,26 36,14 48,18 60,8 72,12 80,6"
@@ -95,7 +94,7 @@ const Sparkline = ({ color = '#6366F1' }) => (
 const PieceCodePreview = ({ code, rate, description }) => (
   <div
     style={{
-      background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+      background: 'linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 12%, white) 0%, #DBEAFE 100%)',
       border: '1.5px solid #93C5FD',
       borderRadius: 12,
       padding: '10px',
@@ -110,7 +109,7 @@ const PieceCodePreview = ({ code, rate, description }) => (
         backgroundColor: 'rgba(37,99,235,0.07)',
       }}
     />
-    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase', letterSpacing: 1 }}>
+    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--theme-primary)', textTransform: 'uppercase', letterSpacing: 1 }}>
       Live Preview
     </div>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -121,13 +120,13 @@ const PieceCodePreview = ({ code, rate, description }) => (
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#64748B', marginBottom: 2 }}>Fixed Rate</div>
-        <div style={{ fontWeight: 600, fontSize: '1.5rem', color: '#059669' }}>
+        <div style={{ fontWeight: 600, fontSize: '1.5rem', color: 'var(--theme-primary)' }}>
           {rate ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : <span style={{ color: '#94A3B8', fontSize: '1rem' }}>{getCurrencySymbol()} —</span>}
         </div>
       </div>
     </div>
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: '#DCFCE7', color: '#16A34A', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#16A34A', display: 'inline-block' }} />
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', color: 'var(--theme-primary)', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--theme-primary)', display: 'inline-block' }} />
       Active
     </div>
   </div>
@@ -360,15 +359,15 @@ const ProductDetailsPage = () => {
   const getActivityIcon = (type) => {
     switch (type) {
       case 'material_cost':
-        return { icon: <DollarOutlined style={{ color: '#2563EB', fontSize: '1rem' }} />, bg: '#DBEAFE' };
+        return { icon: <DollarOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />, bg: '#DBEAFE' };
       case 'piece_code':
-        return { icon: <BarcodeOutlined style={{ color: '#7C3AED', fontSize: '1rem' }} />, bg: '#EDE9FE' };
+        return { icon: <BarcodeOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />, bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)' };
       case 'production':
-        return { icon: <BuildOutlined style={{ color: '#059669', fontSize: '1rem' }} />, bg: '#D1FAE5' };
+        return { icon: <BuildOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />, bg: '#D1FAE5' };
       case 'inventory':
-        return { icon: <InboxOutlined style={{ color: '#0891B2', fontSize: '1rem' }} />, bg: '#CFFAFE' };
+        return { icon: <InboxOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />, bg: '#CFFAFE' };
       case 'product_update':
-        return { icon: <EditOutlined style={{ color: '#6366F1', fontSize: '1rem' }} />, bg: '#EEF2FF' };
+        return { icon: <EditOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />, bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)' };
       default:
         return { icon: <FileTextOutlined style={{ color: '#64748B', fontSize: '1rem' }} />, bg: '#F1F5F9' };
     }
@@ -466,7 +465,7 @@ const ProductDetailsPage = () => {
     mutationFn: (pieceCodeId) => productService.deletePieceCode(pieceCodeId),
     onSuccess: (res) => {
       if (res.success === false) {
-        Modal.warning({ title: 'Cannot Delete', icon: <InfoCircleOutlined style={{ color: '#F59E0B' }} />, content: res.message || 'This piece code has production history. Deactivate it instead.', okText: 'OK' });
+        Modal.warning({ title: 'Cannot Delete', icon: <InfoCircleOutlined style={{ color: 'var(--theme-primary)' }} />, content: res.message || 'This piece code has production history. Deactivate it instead.', okText: 'OK' });
         return;
       }
       notification.success({ message: 'Piece Code Deleted', description: res.message || 'Deleted successfully.', placement: 'topRight', duration: 4 });
@@ -477,7 +476,7 @@ const ProductDetailsPage = () => {
     onError: (err) => {
       const status = err.status || err.response?.status;
       if (status === 409 || status === 400) {
-        Modal.warning({ title: 'Cannot Delete', icon: <InfoCircleOutlined style={{ color: '#F59E0B' }} />, content: err.response?.data?.message || 'This piece code has production history. Deactivate it instead.', okText: 'OK' });
+        Modal.warning({ title: 'Cannot Delete', icon: <InfoCircleOutlined style={{ color: 'var(--theme-primary)' }} />, content: err.response?.data?.message || 'This piece code has production history. Deactivate it instead.', okText: 'OK' });
       } else {
         notification.error({ message: 'Delete Failed', description: err.response?.data?.message || err.message, placement: 'topRight', duration: 5 });
       }
@@ -557,7 +556,7 @@ const ProductDetailsPage = () => {
       dataIndex: 'code',
       key: 'code',
       // render: (code) => (
-      //   <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: '#6366F1', backgroundColor: '#EEF2FF', padding: '3px 10px', borderRadius: 6, letterSpacing: 0.5, border: '1px solid #C7D2FE' }}>
+      //   <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: 'var(--theme-primary)', backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', padding: '3px 10px', borderRadius: 6, letterSpacing: 0.5, border: '1px solid #C7D2FE' }}>
       //     {code}
       //   </span>
       // ),
@@ -567,7 +566,7 @@ const ProductDetailsPage = () => {
       title: 'Fixed Rate',
       dataIndex: 'rate',
       key: 'rate',
-      render: (rate) => <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#059669' }}>{getCurrencySymbol()}{Number(rate).toLocaleString('en-IN')}</span>,
+      render: (rate) => <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(rate).toLocaleString('en-IN')}</span>,
       sorter: (a, b) => (a.rate || 0) - (b.rate || 0),
     },
     {
@@ -584,7 +583,7 @@ const ProductDetailsPage = () => {
           fontSize: '0.78rem',
           fontWeight: 700,
           color: active ? '#166534' : '#991B1B',
-          backgroundColor: active ? '#DCFCE7' : '#FEE2E2',
+          backgroundColor: active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEE2E2',
         }}>
           {active ? 'Active' : 'Inactive'}
         </span>
@@ -653,8 +652,8 @@ const ProductDetailsPage = () => {
                   icon={record.active ? <StopOutlined /> : <CheckCircleOutlined />}
                   loading={updateStatusMutation.isLoading && togglingPieceCodeId === record.id}
                   style={{
-                    color: record.active ? '#B45309' : '#047857',
-                    backgroundColor: record.active ? '#FEF3C7' : '#DCFCE7',
+                    color: record.active ? 'var(--theme-primary)' : 'var(--theme-primary)',
+                    backgroundColor: record.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                     border: '1px solid',
                     borderColor: record.active ? '#FDE68A' : '#6EE7B7',
                     borderRadius: 6,
@@ -700,7 +699,7 @@ const ProductDetailsPage = () => {
       return <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>—</span>;
     }
     const positive = profit.amount >= 0;
-    const color = positive ? '#047857' : '#B91C1C';
+    const color = positive ? 'var(--theme-primary)' : '#B91C1C';
     // Plain text (no pill/badge) — just the arrow, %, amount and colour.
     return (
       <span style={{
@@ -737,7 +736,7 @@ const ProductDetailsPage = () => {
       dataIndex: 'cost',
       align: 'right',
       render: (value) => (
-        <span style={{ fontWeight: 600, color: '#D97706' }}>
+        <span style={{ fontWeight: 600, color: 'var(--theme-primary)' }}>
           {getCurrencySymbol()}{Number(value).toFixed(2)}
         </span>
       ),
@@ -748,7 +747,7 @@ const ProductDetailsPage = () => {
       align: 'right',
       render: (value) => (
         value || value === 0 ? (
-          <span style={{ fontWeight: 700, color: '#059669' }}>
+          <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
             {getCurrencySymbol()}{Number(value).toFixed(2)}
           </span>
         ) : <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Not set</span>
@@ -797,7 +796,7 @@ const ProductDetailsPage = () => {
   // ── Loading / Error States ───────────────────────
   if (productLoading) {
     return (
-      <ConfigProvider theme={{ token: { colorPrimary: '#6366F1', borderRadius: 8 } }}>
+      <ConfigProvider theme={{ token: { borderRadius: 8 } }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Card style={cardStyle}><Skeleton active paragraph={{ rows: 3 }} /></Card>
           <Row gutter={[16, 16]}>{[1, 2, 3, 4].map(i => <Col xs={24} sm={12} xl={6} key={i}><Card style={cardStyle}><Skeleton active paragraph={{ rows: 2 }} /></Card></Col>)}</Row>
@@ -808,7 +807,7 @@ const ProductDetailsPage = () => {
 
   if (productError || !product) {
     return (
-      <ConfigProvider theme={{ token: { colorPrimary: '#6366F1', borderRadius: 8 } }}>
+      <ConfigProvider theme={{ token: { borderRadius: 8 } }}>
         <Result status="error" title="Product Not Found" subTitle={productFetchError?.message || 'Could not retrieve this product.'}
           extra={[
             <Button key="back" icon={<ArrowLeftOutlined />} onClick={() => navigate('/products')}>Back to Products</Button>,
@@ -826,10 +825,15 @@ const ProductDetailsPage = () => {
       ? <ShoppingCartOutlined style={{ color: '#94A3B8', fontSize: '0.85rem' }} />
       : product.source === 'MANUFACTURED'
         ? <BuildOutlined style={{ color: '#94A3B8', fontSize: '0.85rem' }} />
-        : <LoadingOutlined style={{ color: '#94A3B8', fontSize: '0.85rem' }} />;
+        : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <ShoppingCartOutlined style={{ color: '#94A3B8', fontSize: '0.8rem' }} />
+            <BuildOutlined style={{ color: '#94A3B8', fontSize: '0.8rem' }} />
+          </span>
+        );
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: '#6366F1', borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
+    <ConfigProvider theme={{ token: { borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px 0' }}>
 
         {/* ── Breadcrumb bar ── */}
@@ -837,7 +841,7 @@ const ProductDetailsPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.88rem' }}>
             <span
               onClick={() => navigate(-1)}
-              style={{ color: '#6366F1', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ color: 'var(--theme-primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
             >
               <ArrowLeftOutlined />
               Back
@@ -845,7 +849,7 @@ const ProductDetailsPage = () => {
             <span style={{ color: '#CBD5E1', fontSize: '0.75rem' }}>›</span>
             <span
               onClick={() => navigate('/products')}
-              style={{ color: '#6366F1', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ color: 'var(--theme-primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
             >
               🏠 Products
             </span>
@@ -946,13 +950,13 @@ const ProductDetailsPage = () => {
                   </h1>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    backgroundColor: product.active ? '#DCFCE7' : '#FEF2F2',
-                    color: product.active ? '#16A34A' : '#DC2626',
+                    backgroundColor: product.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2',
+                    color: product.active ? 'var(--theme-primary)' : '#DC2626',
                     fontSize: '0.72rem', fontWeight: 700,
                     padding: '3px 10px', borderRadius: 20,
                     border: `1px solid ${product.active ? '#BBF7D0' : '#FCA5A5'}`,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: product.active ? '#16A34A' : '#DC2626' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: product.active ? 'var(--theme-primary)' : '#DC2626' }} />
                     {product.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -1047,10 +1051,10 @@ const ProductDetailsPage = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ShoppingOutlined style={{ color: '#6366F1', fontSize: '1.1rem' }} />
+                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShoppingOutlined style={{ color: 'var(--theme-primary)', fontSize: '1.1rem' }} />
                   </div>
-                  <Button type="link" size="small" onClick={handleOpenProductionDrawer} style={{ color: '#2563EB', fontWeight: 700, padding: 0 }}>View All</Button>
+                  <Button type="link" size="small" onClick={handleOpenProductionDrawer} style={{ color: 'var(--theme-primary)', fontWeight: 700, padding: 0 }}>View All</Button>
                 </div>
               </div>
             </Card>
@@ -1073,8 +1077,8 @@ const ProductDetailsPage = () => {
                     <span><span style={{ color: '#94A3B8' }}>Production </span><b style={{ color: '#0F172A' }}>{getCurrencySymbol()}{Number(stockSummary?.manufacturedCost || 0).toLocaleString('en-IN')}</b></span>
                   </div>
                 </div>
-                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <DollarCircleOutlined style={{ color: '#D97706', fontSize: '1.1rem' }} />
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DollarCircleOutlined style={{ color: 'var(--theme-primary)', fontSize: '1.1rem' }} />
                 </div>
               </div>
             </Card>
@@ -1087,15 +1091,15 @@ const ProductDetailsPage = () => {
                 <div>
                   <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: 8 }}>Stock Value</div>
                   {stockSummaryLoading ? <Skeleton.Input active size="small" style={{ width: 100 }} /> : (
-                    <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
+                    <div style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--theme-primary)', lineHeight: 1 }}>
                       {getCurrencySymbol()}{Number(stockSummary?.stockValue || 0).toLocaleString('en-IN')}
                     </div>
                   )}
                   <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>At selling price</div>
                   <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 8 }}>Qty × sale price</div>
                 </div>
-                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <RiseOutlined style={{ color: '#059669', fontSize: '1.1rem' }} />
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <RiseOutlined style={{ color: 'var(--theme-primary)', fontSize: '1.1rem' }} />
                 </div>
               </div>
             </Card>
@@ -1109,10 +1113,15 @@ const ProductDetailsPage = () => {
             <Card
               title={
                 <Space>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <BarcodeOutlined style={{ fontSize: '0.85rem', color: '#6366F1' }} />
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <BarcodeOutlined style={{ fontSize: '0.85rem', color: 'var(--theme-primary)' }} />
                   </div>
                   <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1rem' }}>Piece Code Management</span>
+                  <Tooltip title={isPurchasedProduct
+                    ? "Bought products don't use piece codes. Only made products do."
+                    : "A rate can't be changed later. To use a new rate, add a new piece code. Old records stay the same."}>
+                    <InfoCircleOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.8rem', cursor: 'help' }} />
+                  </Tooltip>
                 </Space>
               }
               extra={
@@ -1136,16 +1145,6 @@ const ProductDetailsPage = () => {
               headStyle={{ padding: '14px 14px' }}
               bodyStyle={{ padding: 0 }}
             >
-              <div style={{ backgroundColor: isPurchasedProduct ? '#FEF2F2' : '#FFFBEB', borderBottom: `1px solid ${isPurchasedProduct ? '#FECACA' : '#FDE68A'}`, padding: '9px 20px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <InfoCircleOutlined style={{ color: isPurchasedProduct ? '#B45309' : '#D97706', fontSize: '0.85rem', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.78rem', color: isPurchasedProduct ? '#92400E' : '#92400E' }}>
-                  {isPurchasedProduct ? (
-                    <><strong>Bought products don't use piece codes.</strong> Only made products do.</>
-                  ) : (
-                    <><strong>A rate can't be changed later.</strong> To use a new rate, add a new piece code. Old records stay the same.</>
-                  )}
-                </span>
-              </div>
               <Table
                 className="custom-table"
                 rowKey="id"
@@ -1173,10 +1172,13 @@ const ProductDetailsPage = () => {
             <Card
               title={
                 <Space wrap>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <DollarOutlined style={{ fontSize: '0.85rem', color: '#D97706' }} />
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <DollarOutlined style={{ fontSize: '0.85rem', color: 'var(--theme-primary)' }} />
                   </div>
                   <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1rem' }}>Pricing History</span>
+                  <Tooltip title="To change the cost or sale price, add a new row. The newest row is always used. A sale shows profit = sale price − cost.">
+                    <InfoCircleOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.8rem', cursor: 'help' }} />
+                  </Tooltip>
                   {currentMaterialCost && (currentMaterialCost.salePrice || currentMaterialCost.salePrice === 0) ? (
                     <ProfitBadge cost={currentMaterialCost.cost} salePrice={currentMaterialCost.salePrice} />
                   ) : null}
@@ -1200,14 +1202,6 @@ const ProductDetailsPage = () => {
               headStyle={{ padding: '14px 14px' }}
               bodyStyle={{ padding: 0 }}
             >
-              {/* Info Banner */}
-              <div style={{ backgroundColor: '#EFF6FF', borderBottom: '1px solid #BFDBFE', padding: '9px 20px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <InfoCircleOutlined style={{ color: '#2563EB', fontSize: '0.85rem', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.78rem', color: '#1E40AF' }}>
-                  <strong>To change the cost or sale price, add a new row.</strong> The newest row is always used. A sale shows profit = sale price − cost.
-                </span>
-              </div>
-
               <Table
                 className="custom-table"
                 rowKey="id"
@@ -1248,7 +1242,7 @@ const ProductDetailsPage = () => {
                 onClick={() => setShowAllActivities(!showAllActivities)}
                 style={{
                   fontSize: '0.82rem',
-                  color: '#2563EB',
+                  color: 'var(--theme-primary)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1257,7 +1251,7 @@ const ProductDetailsPage = () => {
                   transition: 'color 0.2s',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#1D4ED8'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#2563EB'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-primary)'}
               >
                 {showAllActivities ? 'Show Less' : 'View All'}
                 <RightOutlined style={{ fontSize: '0.7rem', transform: showAllActivities ? 'rotate(90deg)' : 'none', transition: 'transform 0.3s' }} />
@@ -1287,8 +1281,8 @@ const ProductDetailsPage = () => {
         <Drawer
           title={
             <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BarcodeOutlined style={{ color: '#6366F1', fontSize: '0.95rem' }} />
+              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <BarcodeOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.95rem' }} />
               </div>
               Add Piece Code
             </span>
@@ -1318,8 +1312,8 @@ const ProductDetailsPage = () => {
             </div>
 
             {/* Warning */}
-            <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: '#92400E', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <InfoCircleOutlined style={{ color: '#D97706', marginTop: 2, flexShrink: 0 }} />
+            <div style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 14px', fontSize: '0.78rem', color: '#92400E', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <InfoCircleOutlined style={{ color: 'var(--theme-primary)', marginTop: 2, flexShrink: 0 }} />
               <span>Rate is <strong>permanently fixed</strong> and cannot be edited after creation. If pricing changes, create a new piece code.</span>
             </div>
 
@@ -1346,7 +1340,7 @@ const ProductDetailsPage = () => {
         <Drawer
           title={
             <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ShoppingCartOutlined style={{ color: '#0C4A6E', fontSize: '0.95rem' }} />
               </div>
               Stock Receipts
@@ -1382,7 +1376,7 @@ const ProductDetailsPage = () => {
               onChange={setBatchSource}
               options={[{ label: 'All', value: 'ALL' }, { label: 'Purchase', value: 'PURCHASED' }, { label: 'Production', value: 'MANUFACTURED' }]}
             />
-            <Button type="link" size="small" onClick={() => { setDateRange([null, null]); setBatchSource('ALL'); }} style={{ color: '#2563EB', fontWeight: 700, padding: 0 }}>Reset</Button>
+            <Button type="link" size="small" onClick={() => { setDateRange([null, null]); setBatchSource('ALL'); }} style={{ color: 'var(--theme-primary)', fontWeight: 700, padding: 0 }}>Reset</Button>
           </div>
           <Table
             loading={batchesLoading}
@@ -1418,7 +1412,7 @@ const ProductDetailsPage = () => {
                 align: 'right',
                 render: (_, r) => {
                   const sold = (Number(r.totalQuantity) || 0) - (Number(r.quantityAvailable) || 0);
-                  return <span style={{ color: sold > 0 ? '#B45309' : '#94A3B8' }}>{sold.toLocaleString('en-IN')}</span>;
+                  return <span style={{ color: sold > 0 ? 'var(--theme-primary)' : '#94A3B8' }}>{sold.toLocaleString('en-IN')}</span>;
                 },
               },
               {
@@ -1426,7 +1420,7 @@ const ProductDetailsPage = () => {
                 dataIndex: 'quantityAvailable',
                 key: 'quantityAvailable',
                 align: 'right',
-                render: (q) => <b style={{ color: '#047857' }}>{(Number(q) || 0).toLocaleString('en-IN')}</b>,
+                render: (q) => <b style={{ color: 'var(--theme-primary)' }}>{(Number(q) || 0).toLocaleString('en-IN')}</b>,
               },
               {
                 title: `Cost (${getCurrencySymbol()})`,

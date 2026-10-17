@@ -82,7 +82,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                backgroundColor: '#EFF6FF',
+                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -107,7 +107,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
               type="default"
               icon={<PlusOutlined />}
               onClick={onAddInvestment}
-              style={{ marginTop: 16, color: '#2563EB', borderColor: '#2563EB', fontWeight: 600, borderRadius: 6 }}
+              style={{ marginTop: 16, color: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', fontWeight: 600, borderRadius: 6 }}
             >
               Create Investment
             </Button>

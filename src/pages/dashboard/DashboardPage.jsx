@@ -25,6 +25,7 @@ import axiosInstance from '../../services/axios';
 import { exportToExcel, exportElementToPdf } from '../../utils/exportUtils';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useThemeColor } from '../../contexts/ThemeColorContext';
 
 dayjs.extend(quarterOfYear);
 
@@ -58,11 +59,14 @@ const BOARDS = [
 
 const cardStyle = { borderRadius: 10, border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' };
 
-const KpiTile = ({ icon, color, label, value, sub }) => (
+const KpiTile = ({ icon, color, label, value, sub }) => {
+  // All KPI icons use the app theme colour (monochrome icons); `color` arg is ignored.
+  const { primary } = useThemeColor();
+  return (
   <Card style={cardStyle} styles={{ body: { padding: 12 } }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: `${color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {React.cloneElement(icon, { style: { fontSize: 16, color } })}
+      <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: `${primary}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {React.cloneElement(icon, { style: { fontSize: 16, color: primary } })}
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
@@ -71,18 +75,24 @@ const KpiTile = ({ icon, color, label, value, sub }) => (
       </div>
     </div>
   </Card>
-);
+  );
+};
 
-const SectionCard = ({ title, icon, extra, children, bodyPad = 12 }) => (
+const SectionCard = ({ title, icon, extra, children, bodyPad = 12 }) => {
+  // Section header icons follow the theme colour too.
+  const { primary } = useThemeColor();
+  const themedIcon = icon ? React.cloneElement(icon, { style: { ...(icon.props?.style || {}), color: primary } }) : icon;
+  return (
   <Card
     style={{ ...cardStyle, height: '100%' }}
     styles={{ body: { padding: bodyPad }, header: { minHeight: 42, padding: '0 12px' } }}
-    title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.85rem' }}>{icon}{title}</span>}
+    title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.85rem' }}>{themedIcon}{title}</span>}
     extra={extra}
   >
     {children}
   </Card>
-);
+  );
+};
 
 // One chart, three render modes. `series` items carry a `label` + the numeric `dataKey`.
 const TrendChart = ({ series, dataKey, color, type, formatter }) => {
@@ -626,7 +636,7 @@ const DashboardPage = () => {
   const busy = isLoading || (board === 'inventory' && invFetching && !inventoryData) || (board === 'expenses' && expFetching && !investmentsRaw);
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: '#2563EB', borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
+    <ConfigProvider theme={{ token: { borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Toolbar: board dropdown + range filter + refresh + export */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>

@@ -47,7 +47,7 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
       key: 'totalEarnings',
       width: '30%',
       render: (earnings: number) => (
-        <span style={{ fontWeight: 700, color: '#10B981' }}>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
           {formatCurrency(earnings)}
         </span>
       ),

@@ -21,7 +21,7 @@ export const EmployeeViewDrawer: React.FC<EmployeeViewDrawerProps> = ({
     <Drawer
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
-          <UserOutlined style={{ color: '#2563EB' }} />
+          <UserOutlined style={{ color: 'var(--theme-primary)' }} />
           Employee Details
         </span>
       }

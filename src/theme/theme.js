@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles';
+import { darken } from '../utils/color';
 
 const theme = createTheme({
   palette: {
@@ -142,11 +143,6 @@ const theme = createTheme({
             boxShadow: 'none',
           },
         },
-        containedPrimary: {
-          '&:hover': {
-            backgroundColor: '#1D4ED8',
-          },
-        },
       },
     },
     MuiPaper: {
@@ -202,5 +198,15 @@ const theme = createTheme({
     },
   },
 });
+
+// Build a theme with a custom primary color (used by the Theme setting). Keeps all
+// base config and only swaps the primary palette so every MUI surface re-themes.
+export const makeTheme = (primaryMain) =>
+  primaryMain
+    ? createTheme(theme, {
+        // dark = a slightly darker shade so contained-button hover stays on-brand (not blue).
+        palette: { primary: { main: primaryMain, light: primaryMain, dark: darken(primaryMain, 0.12), contrastText: '#ffffff' } },
+      })
+    : theme;
 
 export default theme;

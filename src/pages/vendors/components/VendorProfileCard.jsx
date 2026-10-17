@@ -90,9 +90,9 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
                 gap: 14,
               }}
             >
-              <ContactRow icon={<PhoneOutlined />} iconBg="#EFF6FF" iconColor="#2563EB" label="Mobile" value={vendor?.mobile || 'N/A'} />
-              <ContactRow icon={<MailOutlined />} iconBg="#ECFDF5" iconColor="#059669" label="Email" value={vendor?.email || 'N/A'} />
-              <ContactRow icon={<EnvironmentOutlined />} iconBg="#FFF7ED" iconColor="#D97706" label="Location" value={vendor?.address || 'N/A'} />
+              <ContactRow icon={<PhoneOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" label="Mobile" value={vendor?.mobile || 'N/A'} />
+              <ContactRow icon={<MailOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" label="Email" value={vendor?.email || 'N/A'} />
+              <ContactRow icon={<EnvironmentOutlined />} iconBg="#FFF7ED" iconColor="var(--theme-primary)" label="Location" value={vendor?.address || 'N/A'} />
             </div>
 
             {/* Summary stats — right of the contact card, filling the space */}
@@ -106,10 +106,10 @@ const VendorProfileCard = ({ vendor, onCreateInvestment, summary }) => {
                 alignContent: 'center',
               }}
             >
-              <Stat title="Total Purchase" value={inr(totalPurchaseAmount)} icon={<ShoppingCartOutlined />} iconBg="#EFF6FF" iconColor="#2563EB" />
-              <Stat title="Total Invoices" value={totalInvoices} icon={<FileTextOutlined />} iconBg="#DCFCE7" iconColor="#059669" />
-              <Stat title="Last Purchase" value={lastPurchase} icon={<CalendarOutlined />} iconBg="#FEF3C7" iconColor="#D97706" />
-              <Stat title="Average Invoice" value={inr(avgInvoice)} icon={<LineChartOutlined />} iconBg="#F3E8FF" iconColor="#7C3AED" />
+              <Stat title="Total Purchase" value={inr(totalPurchaseAmount)} icon={<ShoppingCartOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+              <Stat title="Total Invoices" value={totalInvoices} icon={<FileTextOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+              <Stat title="Last Purchase" value={lastPurchase} icon={<CalendarOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+              <Stat title="Average Invoice" value={inr(avgInvoice)} icon={<LineChartOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
               {Number(totalOverdue) > 0 && (
                 <Stat title="Total Overdue" value={inr(totalOverdue)} icon={<ExclamationCircleOutlined />} iconBg="#FEF2F2" iconColor="#DC2626" valueColor="#DC2626" />
               )}

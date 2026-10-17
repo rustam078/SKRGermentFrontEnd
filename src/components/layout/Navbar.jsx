@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useThemeColor } from '../../contexts/ThemeColorContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { authService } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,7 @@ import axiosInstance from '../../services/axios';
 const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
   const { companyName } = useAppSettings();
+  const { primary, nav } = useThemeColor();
   const { isAdmin } = usePermissions();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -135,7 +137,7 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
           component="div"
           sx={{
             fontWeight: 800,
-            background: 'linear-gradient(45deg, #2563EB 30%, #0F172A 90%)',
+            background: `linear-gradient(45deg, ${primary} 30%, ${nav} 90%)`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             userSelect: 'none',
@@ -170,7 +172,7 @@ const Navbar = ({ onToggleSidebar, sidebarOpen }) => {
                 sx={{
                   width: 40,
                   height: 40,
-                  bgcolor: '#2563EB',
+                  bgcolor: 'primary.main',
                   fontWeight: 600,
                   fontSize: '0.95rem',
                 }}

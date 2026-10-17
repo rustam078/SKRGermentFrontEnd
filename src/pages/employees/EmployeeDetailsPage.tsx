@@ -276,15 +276,15 @@ const EmployeeDetailsPage: React.FC = () => {
     let borderColor = '';
 
     if (totalEarning >= 5000) {
-      bgColor = '#059669'; // Dark Green
+      bgColor = 'var(--theme-primary)'; // Dark Green
       textColor = '#FFFFFF';
-      borderColor = '#047857';
+      borderColor = 'var(--theme-primary)';
     } else if (totalEarning >= 1000) {
       bgColor = '#A7F3D0'; // Medium Green
       textColor = '#065F46';
       borderColor = '#6EE7B7';
     } else if (totalEarning > 0) {
-      bgColor = '#DCFCE7'; // Light Green
+      bgColor = 'color-mix(in srgb, var(--theme-primary) 12%, white)'; // Light Green
       textColor = '#15803D';
       borderColor = '#BBF7D0';
     }
@@ -352,8 +352,7 @@ const EmployeeDetailsPage: React.FC = () => {
       <ConfigProvider
         theme={{
           token: {
-            colorPrimary: '#2563EB',
-            borderRadius: 8,
+                        borderRadius: 8,
           },
         }}
       >
@@ -422,8 +421,7 @@ const EmployeeDetailsPage: React.FC = () => {
       <ConfigProvider
         theme={{
           token: {
-            colorPrimary: '#2563EB',
-            borderRadius: 8,
+                        borderRadius: 8,
           },
         }}
       >
@@ -454,8 +452,7 @@ const EmployeeDetailsPage: React.FC = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#2563EB',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
       }}
@@ -489,7 +486,7 @@ const EmployeeDetailsPage: React.FC = () => {
                 menu={{
                   items: [
                     { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadReport('pdf') },
-                    { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadReport('excel') },
+                    { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadReport('excel') },
                   ],
                 }}
               >
@@ -503,7 +500,7 @@ const EmployeeDetailsPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <Space size="middle" align="center" style={{ flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FilterOutlined style={{ color: '#2563EB' }} />
+                  <FilterOutlined style={{ color: 'var(--theme-primary)' }} />
                   Filter by:
                 </span>
                 <Select
@@ -649,12 +646,12 @@ const EmployeeDetailsPage: React.FC = () => {
                     disabled={filterType === 'custom' || filterType === 'current-month'}
                   />
                   {filterType === 'custom' && (
-                    <span style={{ fontSize: '0.85rem', color: '#2563EB', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
                       Filtered by Custom Date Range
                     </span>
                   )}
                   {filterType === 'current-month' && (
-                    <span style={{ fontSize: '0.85rem', color: '#2563EB', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
                       Filtered by Current Month
                     </span>
                   )}
@@ -772,7 +769,7 @@ const EmployeeDetailsPage: React.FC = () => {
                 </Col>
                 <Col span={8} style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Earnings</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10B981', marginTop: 2 }}>{formatCurrency(item.earnings)}</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 2 }}>{formatCurrency(item.earnings)}</div>
                 </Col>
               </Row>
             </div>
@@ -804,7 +801,7 @@ const EmployeeDetailsPage: React.FC = () => {
                 <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>
                   {productsWorked.reduce((sum: number, item: any) => sum + item.quantity, 0)} pcs
                 </div>
-                <div style={{ fontSize: '1.4rem', color: '#10B981', fontWeight: 800, marginTop: 2 }}>
+                <div style={{ fontSize: '1.4rem', color: 'var(--theme-primary)', fontWeight: 800, marginTop: 2 }}>
                   {formatCurrency(productsWorked.reduce((sum: number, item: any) => sum + item.earnings, 0))}
                 </div>
               </Col>

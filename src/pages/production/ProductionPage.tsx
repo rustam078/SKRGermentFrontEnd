@@ -54,6 +54,7 @@ import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useThemeColor } from '../../contexts/ThemeColorContext';
 
 const ProductionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,6 +62,8 @@ const ProductionPage: React.FC = () => {
   const { can } = usePermissions();
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
+
+  const { primary } = useThemeColor(); // app theme color for the Total Amount panel
 
   // Responsive Drawer width tracking
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -329,13 +332,12 @@ const ProductionPage: React.FC = () => {
     const payload = {
       employeeId: values.employeeId,
       productionDate: values.productionDate.format('YYYY-MM-DD'),
-      remarks: values.remarks,
       items: items.map((item: any) => ({
         productId: item.productId,
         pieceCodeId: item.pieceCodeId,
         quantity: Number(item.quantity || 0),
         rate: Number(item.rate || 0),
-        amount: Number(item.amount || 0),
+        amount: Number(item.quantity || 0) * Number(item.rate || 0),
       })),
     };
 
@@ -500,14 +502,14 @@ const ProductionPage: React.FC = () => {
                 style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px' }}
               >
                 {getProductIconAndLabel(item.iconName, item.productName || 'Product')}
-                <span style={{ color: '#2563EB', marginLeft: 4 }}>×{item.quantity}</span>
+                <span style={{ color: 'var(--theme-primary)', marginLeft: 4 }}>×{item.quantity}</span>
               </Tag>
             ))}
             {items.length === 0 && <span style={{ color: '#94A3B8' }}>—</span>}
             {extra > 0 && (
               <Tag
                 onClick={() => openItems(record)}
-                style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB', fontWeight: 700, padding: '1px 8px' }}
+                style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BFDBFE', color: 'var(--theme-primary)', fontWeight: 700, padding: '1px 8px' }}
               >
                 +{extra} more
               </Tag>
@@ -536,7 +538,7 @@ const ProductionPage: React.FC = () => {
       align: 'right' as const,
       width: '12%',
       render: (qty: number) => (
-        <span style={{ fontWeight: 700, color: '#2563EB' }}>{(qty || 0).toLocaleString()} Pcs</span>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{(qty || 0).toLocaleString()} Pcs</span>
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         (a.totalQuantity || 0) - (b.totalQuantity || 0),
@@ -548,7 +550,7 @@ const ProductionPage: React.FC = () => {
       align: 'right' as const,
       width: '13%',
       render: (amt: number) => (
-        <span style={{ fontWeight: 800, color: '#10B981' }}>{formatCurrency(amt || 0)}</span>
+        <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{formatCurrency(amt || 0)}</span>
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         (a.totalAmount || 0) - (b.totalAmount || 0),
@@ -564,7 +566,7 @@ const ProductionPage: React.FC = () => {
           menu={{
             items: [
               { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
-              { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
+              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
               ...(can('production', 'delete') ? [
                 { type: 'divider' as const },
                 { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDeleteRow(record) },
@@ -582,8 +584,7 @@ const ProductionPage: React.FC = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#2563EB',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
       }}
@@ -599,7 +600,7 @@ const ProductionPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <FileAddOutlined style={{ color: '#2563EB' }} />
+              <FileAddOutlined style={{ color: 'var(--theme-primary)' }} />
               Production Management
               <HeadingInfo text="Manage daily production entries with piece code based pricing." />
             </Typography>
@@ -729,11 +730,11 @@ const ProductionPage: React.FC = () => {
         {/* ── Summary Cards ── */}
         <Row gutter={[16, 16]}>
           {[
-            { label: "Today's Production", value: statsTodayQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: '#10B981', marginRight: 8 }} />, color: '#10B981' },
-            { label: "Today's Amount", value: statsTodayAmount, formatter: (v: any) => formatCurrency(Number(v)), color: '#059669' },
-            { label: 'Total Quantity', value: statsTotalQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: '#F59E0B', marginRight: 8 }} />, color: '#F59E0B' },
-            { label: 'Total Amount', value: statsTotalAmount, formatter: (v: any) => formatCurrency(Number(v)), color: '#059669' },
-            { label: 'Total Entries', value: statsTotalEntries, icon: <FileAddOutlined style={{ color: '#2563EB', marginRight: 8 }} />, color: '#0F172A' },
+            { label: "Today's Production", value: statsTodayQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
+            { label: "Today's Amount", value: statsTodayAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
+            { label: 'Total Quantity', value: statsTotalQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
+            { label: 'Total Amount', value: statsTotalAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
+            { label: 'Total Entries', value: statsTotalEntries, icon: <FileAddOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: '#0F172A' },
           ].map((stat, i) => (
             <Col key={i} xs={24} sm={12} lg={4} style={{ flex: '1 1 180px', maxWidth: '100%' }}>
               <Card style={cardStyle} bodyStyle={{ padding: 20 }}>
@@ -818,30 +819,6 @@ const ProductionPage: React.FC = () => {
             </div>
           }
         >
-          {/* Immutability Banner */}
-          <div
-            style={{
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FEE2E2',
-              borderRadius: 8,
-              padding: '12px 16px',
-              color: '#991B1B',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              marginBottom: 20,
-              display: 'flex',
-              gap: 10,
-              alignItems: 'flex-start',
-              lineHeight: 1.4,
-            }}
-          >
-            <InfoCircleOutlined style={{ fontSize: '1.05rem', color: '#EF4444', marginTop: 2 }} />
-            <div>
-              <strong>Accounting Rule:</strong> Production entries cannot be edited after saving.
-              If a mistake is made, delete the entry and create a new one.
-            </div>
-          </div>
-
           <Form
             form={form}
             onFinish={handleSaveEntry}
@@ -882,17 +859,6 @@ const ProductionPage: React.FC = () => {
               </Col>
             </Row>
 
-            <Form.Item
-              name="remarks"
-              label={<span style={{ fontWeight: 600, color: '#475569' }}>Remarks</span>}
-            >
-              <Input.TextArea
-                placeholder="Enter shift comments or batch notes..."
-                rows={2}
-                style={{ borderRadius: 6 }}
-              />
-            </Form.Item>
-
             <Divider style={{ margin: '12px 0 16px' }} />
 
             {/* Section Header */}
@@ -905,57 +871,50 @@ const ProductionPage: React.FC = () => {
               }}
             >
               <span style={{ fontWeight: 800, color: '#1E293B', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BarcodeOutlined style={{ color: '#2563EB' }} />
+                <BarcodeOutlined style={{ color: 'var(--theme-primary)' }} />
                 Production Items
               </span>
-              <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontStyle: 'italic' }}>
-                Select Product → Piece Code → enter Quantity
-              </span>
+              <Tooltip title="Production entries cannot be edited after saving. To fix a mistake, delete the entry and create a new one.">
+                <span style={{ fontSize: '0.78rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
+                  <InfoCircleOutlined /> Can't edit after saving
+                </span>
+              </Tooltip>
             </div>
 
             <Form.List name="items">
               {(fields, { add, remove }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                   {fields.map(({ key, name, ...restField }, idx) => {
                     const rowPieceCodes = pieceCodesByRow[idx] || [];
                     const isLoadingPC = pieceCodesLoadingByRow[idx] || false;
-                    const currentProductId = form.getFieldValue(['items', idx, 'pieceCodeId']);
-                    const currentRate = form.getFieldValue(['items', idx, 'rate']) || 0;
-                    const currentAmount = form.getFieldValue(['items', idx, 'amount']) || 0;
 
                     return (
                       <div
                         key={key}
                         style={{
                           border: '1px solid #E2E8F0',
-                          borderRadius: 10,
-                          padding: '14px 12px 10px',
+                          borderRadius: 8,
+                          padding: 3,
                           backgroundColor: '#FFFFFF',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                         }}
                       >
-                        {/* Row label */}
-                        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                          Item #{idx + 1}
-                        </div>
+                        <Row gutter={[8, 2]} align="top">
+                          {/* Index */}
+                          <Col xs={0} sm={1} style={{ display: 'flex', alignItems: 'center', minHeight: 32 }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94A3B8' }}>{idx + 1}</span>
+                          </Col>
 
-                        <Row gutter={[8, 0]} align="middle">
                           {/* Product */}
                           <Col xs={24} sm={8}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'productId']}
-                              label={<span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Product</span>}
-                              rules={[{ required: true, message: 'Select product' }]}
-                              style={{ margin: 0 }}
-                            >
+                            <Form.Item {...restField} name={[name, 'productId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
                               <Select
-                                placeholder="Select product"
+                                placeholder="Product"
+                                size="middle"
+                                variant="borderless"
                                 onChange={(val) => handleProductChange(val, idx)}
                                 showSearch
                                 optionFilterProp="children"
-                                style={{ borderRadius: 6 }}
-                                size="middle"
+                                style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
                               >
                                 {products
                                   .filter((p: any) => p.active && p.source != 'PURCHASED')
@@ -969,32 +928,25 @@ const ProductionPage: React.FC = () => {
                           </Col>
 
                           {/* Piece Code */}
-                          <Col xs={24} sm={7}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'pieceCodeId']}
-                              label={<span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Piece Code</span>}
-                              rules={[{ required: true, message: 'Select piece code' }]}
-                              style={{ margin: 0 }}
-                            >
+                          <Col xs={14} sm={6}>
+                            <Form.Item {...restField} name={[name, 'pieceCodeId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
                               <Select
-                                placeholder={isLoadingPC ? 'Loading...' : 'Select code'}
+                                placeholder={isLoadingPC ? '...' : 'Code'}
                                 loading={isLoadingPC}
                                 disabled={rowPieceCodes.length === 0 && !isLoadingPC}
                                 onChange={(val) => handlePieceCodeChange(val, idx)}
                                 showSearch
                                 optionFilterProp="label"
                                 size="middle"
-                                style={{ borderRadius: 6 }}
-                                notFoundContent={
-                                  isLoadingPC ? 'Loading...' : 'No active piece codes'
-                                }
+                                variant="borderless"
+                                style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
+                                notFoundContent={isLoadingPC ? 'Loading...' : 'No codes'}
                               >
                                 {rowPieceCodes.map((pc: any) => (
                                   <Select.Option key={pc.id} value={pc.id} label={`${pc.code} ${getCurrencySymbol()}${pc.rate}`}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                       <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{pc.code}</span>
-                                      <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.82rem' }}>{getCurrencySymbol()}{Number(pc.rate).toLocaleString('en-IN')}</span>
+                                      <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontSize: '0.8rem' }}>{getCurrencySymbol()}{Number(pc.rate).toLocaleString('en-IN')}</span>
                                     </div>
                                   </Select.Option>
                                 ))}
@@ -1003,103 +955,55 @@ const ProductionPage: React.FC = () => {
                           </Col>
 
                           {/* Quantity */}
-                          <Col xs={8} sm={4}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'quantity']}
-                              label={<span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Qty</span>}
-                              rules={[{ required: true, message: 'Required' }]}
-                              style={{ margin: 0 }}
-                            >
-                              <InputNumber
-                                min={1}
-                                placeholder="Qty"
-                                style={{ width: '100%', borderRadius: 6 }}
-                                size="middle"
-                              />
+                          <Col xs={10} sm={3}>
+                            <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
+                              <InputNumber min={1} placeholder="Qty" size="middle" variant="borderless" style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }} />
                             </Form.Item>
                           </Col>
 
-                          {/* Rate (auto-filled, read-only) */}
-                          <Col xs={8} sm={3}>
-                            <Form.Item
-                              {...restField}
-                              name={[name, 'rate']}
-                              label={<span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Rate</span>}
-                              style={{ margin: 0 }}
-                            >
-                              <InputNumber
-                                formatter={(val) => `${getCurrencySymbol()}${val}`}
-                                readOnly
-                                disabled
-                                style={{
-                                  width: '100%',
-                                  borderRadius: 6,
-                                  backgroundColor: '#F8FAFC',
-                                  color: '#64748B',
-                                  fontWeight: 700,
-                                  border: '1px solid #CBD5E1',
+                          {/* Amount (auto = qty × rate), live */}
+                          <Col xs={20} sm={3} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', minHeight: 32 }}>
+                            <Form.Item noStyle shouldUpdate>
+                              {() => {
+                                const q = Number(form.getFieldValue(['items', idx, 'quantity']) || 0);
+                                const r = Number(form.getFieldValue(['items', idx, 'rate']) || 0);
+                                return (
+                                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1E293B', whiteSpace: 'nowrap', lineHeight: 1.1 }}>
+                                    {formatCurrency(q * r)}
+                                  </span>
+                                );
+                              }}
+                            </Form.Item>
+                            {/* keep rate registered for submit */}
+                            <Form.Item {...restField} name={[name, 'rate']} noStyle>
+                              <InputNumber style={{ display: 'none' }} />
+                            </Form.Item>
+                          </Col>
+
+                          {/* Delete */}
+                          <Col xs={4} sm={3} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: 32 }}>
+                            {fields.length > 1 && (
+                              <Button
+                                type="text"
+                                danger
+                                size="small"
+                                icon={<DeleteOutlined />}
+                                onClick={() => {
+                                  remove(name);
+                                  setPieceCodesByRow((prev) => {
+                                    const updated: Record<number, any[]> = {};
+                                    Object.keys(prev).forEach((k) => {
+                                      const ki = Number(k);
+                                      if (ki < idx) updated[ki] = prev[ki];
+                                      else if (ki > idx) updated[ki - 1] = prev[ki];
+                                    });
+                                    return updated;
+                                  });
                                 }}
-                                size="middle"
                               />
-                            </Form.Item>
-                          </Col>
-
-                          {/* Amount (auto-calc, read-only) */}
-                          <Col xs={6} sm={0} style={{ display: 'none' }} />
-                          <Col xs={24} sm={0}>
-                            {/* mobile: amount row */}
+                            )}
                           </Col>
                         </Row>
-
-                        {/* Amount Summary Row + Delete */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginTop: 10,
-                            paddingTop: 8,
-                            borderTop: '1px dashed #E2E8F0',
-                          }}
-                        >
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'amount']}
-                            style={{ margin: 0 }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748B' }}>Amount:</span>
-                              <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#059669' }}>
-                                {formatCurrency(form.getFieldValue(['items', idx, 'amount']) || 0)}
-                              </span>
-                            </div>
-                          </Form.Item>
-
-                          {fields.length > 1 && (
-                            <Button
-                              type="text"
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined />}
-                              onClick={() => {
-                                remove(name);
-                                setPieceCodesByRow((prev) => {
-                                  const updated: Record<number, any[]> = {};
-                                  Object.keys(prev).forEach((k) => {
-                                    const ki = Number(k);
-                                    if (ki < idx) updated[ki] = prev[ki];
-                                    else if (ki > idx) updated[ki - 1] = prev[ki];
-                                  });
-                                  return updated;
-                                });
-                              }}
-                              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </div>
                       </div>
                     );
                   })}
@@ -1107,11 +1011,10 @@ const ProductionPage: React.FC = () => {
                   <Button
                     type="dashed"
                     onClick={() => {
-                      const newIdx = fields.length;
                       add({ productId: undefined, pieceCodeId: undefined, quantity: undefined, rate: 0, amount: 0 });
                     }}
                     icon={<PlusOutlined />}
-                    style={{ width: '100%', borderRadius: 8, fontWeight: 500, height: 40 }}
+                    style={{ width: '100%', borderRadius: 8, fontWeight: 500, height: 34 }}
                   >
                     Add Product Row
                   </Button>
@@ -1119,36 +1022,28 @@ const ProductionPage: React.FC = () => {
               )}
             </Form.List>
 
-            {/* Live Summary Panel */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%)',
-                border: '1.5px solid #A7F3D0',
-                borderRadius: 12,
-                padding: '16px 20px',
-                marginTop: 8,
-              }}
-            >
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-                Entry Summary
+            {/* Live Summary Panel — monochrome, matches the sale form */}
+            <div style={{ marginTop: 12 }}>
+              {/* Total Amount hero */}
+              <div style={{ backgroundColor: primary, padding: '16px 20px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Total Amount
+                </div>
+                <div style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '1.9rem', lineHeight: 1.2, marginTop: 4 }}>
+                  {formatCurrency(liveTotalAmount)}
+                </div>
               </div>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#064E3B', fontWeight: 600, fontSize: '0.9rem' }}>Piece Codes:</span>
+              {/* Detail rows */}
+              <div style={{ border: '1px solid #E2E8F0', borderTop: 'none', padding: '12px 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>Piece Codes</span>
                   <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalPieceCodes}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#064E3B', fontWeight: 600, fontSize: '0.9rem' }}>Total Quantity:</span>
-                  <span style={{ color: '#2563EB', fontWeight: 700 }}>{liveTotalQuantity} Pcs</span>
-                </div>
-                <Divider style={{ margin: '6px 0', borderColor: '#A7F3D0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#047857', fontWeight: 800, fontSize: '0.95rem' }}>Total Amount:</span>
-                  <span style={{ color: '#059669', fontWeight: 900, fontSize: '1.5rem' }}>
-                    {formatCurrency(liveTotalAmount)}
-                  </span>
+                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>Total Quantity</span>
+                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalQuantity} Pcs</span>
                 </div>
-              </Space>
+              </div>
             </div>
           </Form>
         </Drawer>
@@ -1161,7 +1056,7 @@ const ProductionPage: React.FC = () => {
           width={640}
           title={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A' }}>
-              <AppstoreOutlined style={{ color: '#2563EB' }} />
+              <AppstoreOutlined style={{ color: 'var(--theme-primary)' }} />
               Products Produced
               {itemsModal.record && (
                 <span style={{ fontWeight: 500, color: '#64748B', fontSize: '0.8rem' }}>
@@ -1195,15 +1090,15 @@ const ProductionPage: React.FC = () => {
                 },
                 { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
                 { title: 'Rate', dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
-                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: '#10B981' }}>{formatCurrency(a || 0)}</span> },
+                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
               ]}
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row style={{ background: '#F8FAFC' }}>
                     <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>Total</span></Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: '#2563EB' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={3} />
-                    <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: '#10B981' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: 'var(--theme-primary)' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>
                   </Table.Summary.Row>
                 </Table.Summary>
               )}

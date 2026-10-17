@@ -426,7 +426,7 @@ const InventoryDetailsPage = () => {
                             <TableCell>
                               {formatCurrency(batch.unitCost)}
                             </TableCell>
-                            <TableCell sx={{ fontWeight: 700, color: '#059669' }}>
+                            <TableCell sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
                               {batch.sellingPrice != null ? formatCurrency(batch.sellingPrice) : '—'}
                             </TableCell>
                             <TableCell>
@@ -577,7 +577,7 @@ const InventoryDetailsPage = () => {
                 return (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 0.5 }}>
                     <Typography variant="body2" color="text.secondary">New available</Typography>
-                    <Typography sx={{ fontWeight: 800, color: next < 0 ? 'error.main' : '#2563EB' }}>
+                    <Typography sx={{ fontWeight: 800, color: next < 0 ? 'error.main' : 'var(--theme-primary)' }}>
                       {formatNumber(next)}
                     </Typography>
                   </Box>

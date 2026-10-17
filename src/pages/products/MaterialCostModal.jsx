@@ -149,7 +149,7 @@ const MaterialCostModal = ({
                         padding: '10px 14px',
                         borderRadius: 8,
                         marginBottom: 16,
-                        backgroundColor: hasBoth ? (positive ? '#ECFDF5' : '#FEF2F2') : '#F8FAFC',
+                        backgroundColor: hasBoth ? (positive ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2') : '#F8FAFC',
                         border: `1px solid ${hasBoth ? (positive ? '#A7F3D0' : '#FECACA') : '#E2E8F0'}`,
                     }}
                 >
@@ -157,7 +157,7 @@ const MaterialCostModal = ({
                         Profit on each piece
                     </span>
                     {hasBoth ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800, color: positive ? '#047857' : '#B91C1C' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800, color: positive ? 'var(--theme-primary)' : '#B91C1C' }}>
                             {positive ? <RiseOutlined /> : <FallOutlined />}
                             {profitPct != null ? `${positive ? '+' : ''}${profitPct.toFixed(1)}%` : '—'}
                             <span style={{ fontWeight: 600, opacity: 0.85 }}>

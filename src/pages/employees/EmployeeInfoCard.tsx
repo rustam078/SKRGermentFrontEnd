@@ -84,7 +84,7 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) 
           label="Email"
           value={
             employee.email ? (
-              <a href={`mailto:${employee.email}`} style={{ color: '#2563EB', fontWeight: 500 }}>{employee.email}</a>
+              <a href={`mailto:${employee.email}`} style={{ color: 'var(--theme-primary)', fontWeight: 500 }}>{employee.email}</a>
             ) : notProvided
           }
         />

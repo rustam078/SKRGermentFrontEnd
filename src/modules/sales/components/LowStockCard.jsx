@@ -29,7 +29,7 @@ const LowStockCard = ({ alerts, loading, error, onViewInventory }) => {
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     {alert.productName || alert.product || 'Unnamed Product'}
                   </Typography>
-                  <Chip label="Low" color="error" size="small" />
+                  <Chip label="Low" size="small" sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Current stock: {alert.currentStock != null ? alert.currentStock : alert.stock || '-'}

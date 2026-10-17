@@ -460,8 +460,8 @@ const CreateSale = () => {
         <Grid item xs={12} lg={8}>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShoppingBagOutlinedIcon sx={{ color: '#2563EB', fontSize: 18 }} />
+              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShoppingBagOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 18 }} />
               </Box>
               <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem', flexGrow: 1 }}>Products</Typography>
               <Chip size="small" label={`${formValues.items.length} item${formValues.items.length === 1 ? '' : 's'}`} sx={{ fontWeight: 700, bgcolor: '#F1F5F9', color: '#475569' }} />
@@ -490,7 +490,7 @@ const CreateSale = () => {
                           <Typography variant="caption" color="text.secondary">{option.productCode || option.barcode || option.sku || option.productSKU || ''}</Typography>
                         </Box>
                         <Chip size="small" label={`Stock: ${stock.toLocaleString('en-IN')}`}
-                          sx={{ flexShrink: 0, fontWeight: 700, bgcolor: stock <= 0 ? '#FEF2F2' : '#ECFDF5', color: stock <= 0 ? '#B91C1C' : '#047857' }} />
+                          sx={{ flexShrink: 0, fontWeight: 700, bgcolor: stock <= 0 ? '#FEF2F2' : 'color-mix(in srgb, var(--theme-primary) 12%, white)', color: stock <= 0 ? '#B91C1C' : 'var(--theme-primary)' }} />
                       </Box>
                     </li>
                   );
@@ -502,7 +502,7 @@ const CreateSale = () => {
                     size="small" fullWidth
                     InputProps={{
                       ...params.InputProps,
-                      startAdornment: <AddCircleOutlineIcon sx={{ color: '#2563EB', ml: 0.5, mr: 0.5 }} fontSize="small" />,
+                      startAdornment: <AddCircleOutlineIcon sx={{ color: 'var(--theme-primary)', ml: 0.5, mr: 0.5 }} fontSize="small" />,
                       endAdornment: (<>{productLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>),
                     }}
                     sx={{ bgcolor: '#fff' }}
@@ -547,8 +547,8 @@ const CreateSale = () => {
                             <TableCell sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>{index + 1}</TableCell>
                             <TableCell>
                               <Stack direction="row" spacing={1.25} alignItems="center">
-                                <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <ShoppingBagOutlinedIcon sx={{ color: '#2563EB', fontSize: 15 }} />
+                                <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <ShoppingBagOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 15 }} />
                                 </Box>
                                 <Box sx={{ minWidth: 0 }}>
                                   <Typography sx={{ fontWeight: 600, fontSize: '0.86rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 230 }}>{item.productName}</Typography>
@@ -636,8 +636,8 @@ const CreateSale = () => {
         <Grid item xs={12} lg={4}>
           <Box sx={{ position: { lg: 'sticky' }, top: 20 }}>
             <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ReceiptLongOutlinedIcon sx={{ color: '#059669', fontSize: 18 }} />
+              <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ReceiptLongOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 18 }} />
               </Box>
               <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem' }}>Order Summary</Typography>
             </Stack>
@@ -645,7 +645,7 @@ const CreateSale = () => {
             <Stack spacing={2}>
               <Box
                 onClick={() => { if (totalCostBasis > 0 && anyProductSelected) setProfitOpen(true); }}
-                sx={{ p: 2.25, borderRadius: 0, bgcolor: '#2e3647', color: '#fff', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
+                sx={{ p: 2.25, borderRadius: 0, bgcolor: 'primary.main', color: '#fff', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
               >
                 <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
@@ -688,7 +688,7 @@ const CreateSale = () => {
                 {Math.abs(roundOffAmount) > 0.0001 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Round off</Typography>
-                    <Typography sx={{ fontWeight: 600, color: roundOffAmount < 0 ? '#DC2626' : '#047857' }}>
+                    <Typography sx={{ fontWeight: 600, color: roundOffAmount < 0 ? '#DC2626' : 'var(--theme-primary)' }}>
                       {roundOffAmount >= 0 ? '+ ' : '− '}{getCurrencySymbol()}{Math.abs(roundOffAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </Typography>
                   </Box>
@@ -699,8 +699,8 @@ const CreateSale = () => {
                 {previousDue > 0 && (
                   <>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography sx={{ color: '#B45309', fontSize: '0.9rem', fontWeight: 600 }}>Previous due</Typography>
-                      <Typography sx={{ fontWeight: 700, color: '#B45309' }}>{getCurrencySymbol()}{previousDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                      <Typography sx={{ color: 'var(--theme-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Previous due</Typography>
+                      <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{previousDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                     </Box>
                     <Tooltip title="Click to receive the full amount (clear all)">
                       <Box
@@ -717,7 +717,7 @@ const CreateSale = () => {
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Amount received</Typography>
                     <Button size="small" onClick={() => setReceivedText(String(grandOwed))}
-                      disabled={!anyProductSelected} sx={{ minWidth: 0, px: 0.75, py: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', color: '#047857' }}>
+                      disabled={!anyProductSelected} sx={{ minWidth: 0, px: 0.75, py: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', color: 'var(--theme-primary)' }}>
                       Pay full
                     </Button>
                   </Stack>
@@ -731,8 +731,8 @@ const CreateSale = () => {
                       setReceivedText((Number(clean) || 0) > grandOwed ? String(grandOwed) : clean);
                     }}
                     onFocus={(e) => e.target.select()}
-                    InputProps={{ startAdornment: <Typography sx={{ color: '#047857', mr: 0.5, fontSize: '0.9rem' }}>{getCurrencySymbol()}</Typography> }}
-                    inputProps={{ style: { textAlign: 'right', width: 90, fontWeight: 700, color: '#047857' } }}
+                    InputProps={{ startAdornment: <Typography sx={{ color: 'var(--theme-primary)', mr: 0.5, fontSize: '0.9rem' }}>{getCurrencySymbol()}</Typography> }}
+                    inputProps={{ style: { textAlign: 'right', width: 90, fontWeight: 700, color: 'var(--theme-primary)' } }}
                   />
                 </Box>
                 {remainingDue > 0.0001 && (
@@ -772,7 +772,7 @@ const CreateSale = () => {
       <Drawer anchor="right" open={profitOpen} onClose={() => setProfitOpen(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 380 }, p: 2.5 } }}>
         <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
-          <InsightsOutlinedIcon sx={{ color: '#059669' }} />
+          <InsightsOutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
           <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A', flexGrow: 1 }}>Profit Summary</Typography>
           <IconButton size="small" onClick={() => setProfitOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
@@ -794,7 +794,7 @@ const CreateSale = () => {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">Cost</Typography><Typography variant="caption">{getCurrencySymbol()}{d.cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="caption" sx={{ fontWeight: 700 }}>Profit</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: profit >= 0 ? '#047857' : '#B91C1C' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: profit >= 0 ? 'var(--theme-primary)' : '#B91C1C' }}>
                       {profit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}{pct != null ? ` (${pct.toFixed(0)}%)` : ''}
                     </Typography>
                   </Box>
@@ -811,7 +811,7 @@ const CreateSale = () => {
           <Divider sx={{ my: 0.5 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Net Profit</Typography>
-            <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? '#047857' : '#B91C1C' }}>
+            <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? 'var(--theme-primary)' : '#B91C1C' }}>
               {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
               {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
             </Typography>
@@ -833,7 +833,7 @@ const CreateSale = () => {
                   {b.batchNumber}{b.productName ? ` · ${b.productName}` : ''}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  System stock {Number(b.available)} · {Number(b.requested)} QR scanned → reconcile <b style={{ color: '#B45309' }}>+{Number(b.deficit)}</b>
+                  System stock {Number(b.available)} · {Number(b.requested)} QR scanned → reconcile <b style={{ color: 'var(--theme-primary)' }}>+{Number(b.deficit)}</b>
                 </Typography>
               </Box>
             ))}

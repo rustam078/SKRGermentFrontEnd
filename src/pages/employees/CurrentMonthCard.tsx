@@ -53,16 +53,16 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
       {/* Summary stats */}
       <div style={{ display: 'flex', gap: 12 }}>
         <Stat
-          icon={<WalletOutlined style={{ color: '#10B981', fontSize: 15 }} />}
-          bg="#ECFDF5"
-          color="#10B981"
+          icon={<WalletOutlined style={{ color: 'var(--theme-primary)', fontSize: 15 }} />}
+          bg="color-mix(in srgb, var(--theme-primary) 12%, white)"
+          color="var(--theme-primary)"
           label="Earnings"
           value={inr(summary?.currentMonthEarnings ?? 0)}
         />
         <Stat
-          icon={<AppstoreOutlined style={{ color: '#8B5CF6', fontSize: 15 }} />}
-          bg="#F5F3FF"
-          color="#8B5CF6"
+          icon={<AppstoreOutlined style={{ color: 'var(--theme-primary)', fontSize: 15 }} />}
+          bg="color-mix(in srgb, var(--theme-primary) 12%, white)"
+          color="var(--theme-primary)"
           label="Products"
           value={worked}
         />
@@ -95,11 +95,11 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
                 <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 14 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
-                    <span style={{ fontSize: '0.88rem', color: '#2563EB', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} Pcs</span>
+                    <span style={{ fontSize: '0.88rem', color: 'var(--theme-primary)', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} Pcs</span>
                   </div>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
-                    <span style={{ fontSize: '1.05rem', color: '#10B981', fontWeight: 800 }}>{inr(item.earnings)}</span>
+                    <span style={{ fontSize: '1.05rem', color: 'var(--theme-primary)', fontWeight: 800 }}>{inr(item.earnings)}</span>
                   </div>
                 </div>
               ),

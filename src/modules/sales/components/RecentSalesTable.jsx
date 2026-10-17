@@ -70,7 +70,7 @@ const RecentSalesTable = ({ rows, loading, error }) => {
                       <TableCell>{sale.paymentMode || sale.paymentStatus || '-'}</TableCell>
                       <TableCell>{sale.saleDate || sale.date || '-'}</TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'inline-flex', px: 1.5, py: 0.5, borderRadius: 1, backgroundColor: sale.paymentStatus === 'PAID' ? '#DCFCE7' : '#FEE2E2', color: sale.paymentStatus === 'PAID' ? '#166534' : '#991B1B' }}>
+                        <Box sx={{ display: 'inline-flex', px: 1.5, py: 0.5, borderRadius: 1, backgroundColor: sale.paymentStatus === 'PAID' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEE2E2', color: sale.paymentStatus === 'PAID' ? '#166534' : '#991B1B' }}>
                           {sale.paymentStatus || '-'}
                         </Box>
                       </TableCell>

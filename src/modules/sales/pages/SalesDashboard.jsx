@@ -104,7 +104,7 @@ const SalesDashboard = () => {
   ];
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: '#2563EB', borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
+    <ConfigProvider theme={{ token: { borderRadius: 8, fontFamily: '"Inter", "Helvetica", "Arial", sans-serif' } }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>

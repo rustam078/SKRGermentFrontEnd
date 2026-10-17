@@ -23,7 +23,7 @@ const PaymentHeader = ({ group }) => (
         <Tag color="blue" style={{ borderRadius: 6 }}>{group.allocations.length} invoices</Tag>
       )}
     </span>
-    <span style={{ fontWeight: 800, color: '#059669' }}>{money(group.totalAmount)}</span>
+    <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{money(group.totalAmount)}</span>
   </div>
 );
 

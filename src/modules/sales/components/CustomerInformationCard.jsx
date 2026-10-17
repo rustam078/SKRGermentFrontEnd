@@ -126,8 +126,8 @@ const CustomerInformationCard = ({
           </Grid>
 
           {selectedCustomer && selectedCustomer.mobile === formValues.customerMobile ? (
-            <Box sx={{ px: 1.5, py: 1, borderRadius: 1, bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
-              <Typography sx={{ fontSize: '0.8rem', color: '#047857', fontWeight: 700 }}>
+            <Box sx={{ px: 1.5, py: 1, borderRadius: 1, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #A7F3D0' }}>
+              <Typography sx={{ fontSize: '0.8rem', color: 'var(--theme-primary)', fontWeight: 700 }}>
                 Existing customer selected
               </Typography>
               <Typography sx={{ fontSize: '0.78rem', color: '#065F46' }}>

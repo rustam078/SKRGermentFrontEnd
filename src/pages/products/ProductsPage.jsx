@@ -104,8 +104,8 @@ const IconPicker = ({ value, onChange }) => {
                 justifyContent: 'center',
                 padding: '8px 2px',
                 borderRadius: 8,
-                border: isSelected ? '2px solid #6366F1' : '1px solid #E2E8F0',
-                backgroundColor: isSelected ? '#EEF2FF' : '#ffffff',
+                border: isSelected ? '2px solid var(--theme-primary)' : '1px solid #E2E8F0',
+                backgroundColor: isSelected ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#ffffff',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'center',
@@ -168,7 +168,7 @@ const IconPicker = ({ value, onChange }) => {
           backgroundColor: '#ffffff',
           transition: 'all 0.3s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6366F1'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--theme-primary)'; }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#D9D9D9'; }}
       >
         {value ? (
@@ -466,8 +466,7 @@ const ProductsPage = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#6366F1',
-          borderRadius: 8,
+                    borderRadius: 8,
           fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
         },
       }}
@@ -559,13 +558,13 @@ const ProductsPage = () => {
                   ...(product.source === 'PURCHASED' ? [{
                     key: 'enable-manufacturing',
                     label: 'Enable Manufacturing',
-                    icon: <BuildOutlined style={{ color: '#2563EB' }} />,
+                    icon: <BuildOutlined style={{ color: 'var(--theme-primary)' }} />,
                     onClick: () => openEnableManufacturing(product),
                   }] : []),
                   {
                     key: 'toggle-status',
                     label: product.active ? 'Deactivate Product' : 'Activate Product',
-                    icon: product.active ? <StopOutlined style={{ color: '#EA580C' }} /> : <CheckCircleOutlined style={{ color: '#16A34A' }} />,
+                    icon: product.active ? <StopOutlined style={{ color: '#EA580C' }} /> : <CheckCircleOutlined style={{ color: 'var(--theme-primary)' }} />,
                     onClick: () => handleToggleStatus(product),
                   },
                 ],
@@ -579,7 +578,7 @@ const ProductsPage = () => {
                       style={{
                         position: 'relative',
                         height: 130,
-                        background: 'linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)',
+                        background: 'linear-gradient(135deg, #F8FAFC 0%, color-mix(in srgb, var(--theme-primary) 12%, white) 100%)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -620,8 +619,8 @@ const ProductsPage = () => {
                           position: 'absolute',
                           top: 8,
                           left: 8,
-                          backgroundColor: product.active ? '#DCFCE7' : '#FEF2F2',
-                          color: product.active ? '#16A34A' : '#DC2626',
+                          backgroundColor: product.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2',
+                          color: product.active ? 'var(--theme-primary)' : '#DC2626',
                           fontSize: '0.62rem',
                           fontWeight: 700,
                           padding: '2px 8px',
@@ -659,7 +658,7 @@ const ProductsPage = () => {
                         {product.name}
                       </div>
                       {/* Current selling price */}
-                      <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 800, color: '#059669' }}>
+                      <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 800, color: 'var(--theme-primary)' }}>
                         {product.sellingPrice != null
                           ? `${getCurrencySymbol()}${Number(product.sellingPrice).toLocaleString('en-IN')}`
                           : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>No price set</span>}
@@ -669,8 +668,8 @@ const ProductsPage = () => {
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             fontSize: '0.68rem', fontWeight: 700,
-                            color: product.source === 'PURCHASED' ? '#6366F1' : product.source === 'BOTH' ? '#9333EA' : '#0C4A6E',
-                            backgroundColor: product.source === 'PURCHASED' ? '#EEF2FF' : product.source === 'BOTH' ? '#F3E8FF' : '#E0F2FE',
+                            color: product.source === 'PURCHASED' ? 'var(--theme-primary)' : product.source === 'BOTH' ? 'var(--theme-primary)' : '#0C4A6E',
+                            backgroundColor: product.source === 'PURCHASED' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : product.source === 'BOTH' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                             padding: '2px 7px', borderRadius: 6,
                           }}
                         >
@@ -719,13 +718,13 @@ const ProductsPage = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  backgroundColor: '#EEF2FF',
+                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <PlusOutlined style={{ color: '#6366F1', fontSize: '1rem' }} />
+                <PlusOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />
               </div>
               Add New Product
             </span>
@@ -987,7 +986,7 @@ const ProductsPage = () => {
           .product-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 16px 24px -8px rgba(0, 0, 0, 0.12) !important;
-            border-color: #6366F1 !important;
+            border-color: var(--theme-primary) !important;
           }
         `}</style>
 

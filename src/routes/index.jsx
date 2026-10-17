@@ -49,6 +49,7 @@ const AppRoutes = () => {
           {/* Product details is an admin-only drill-down (staff sent back to the list). */}
           <Route path="/products/:productId" element={<AdminOnly fallback="/products"><ProductDetailsPage /></AdminOnly>} />
           <Route path="/investment" element={<InvestmentPage />} />
+          <Route path="/investment/new" element={<InvestmentPage />} />
           <Route path="/vendors/:id" element={<VendorDetailsPage />} />
           <Route path="/sales" element={<SalesDashboard />} />
           <Route path="/sales/dashboard" element={<SalesDashboard />} />

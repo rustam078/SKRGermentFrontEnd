@@ -45,13 +45,13 @@ const PurchaseInvoiceCard = ({ invoice }) => {
             width: 44,
             height: 44,
             borderRadius: 8,
-            backgroundColor: '#EFF6FF',
+            backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <FileTextOutlined style={{ color: '#2563EB', fontSize: '1.2rem' }} />
+          <FileTextOutlined style={{ color: 'var(--theme-primary)', fontSize: '1.2rem' }} />
         </div>
         <div>
           <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A', marginBottom: 4 }}>
@@ -89,7 +89,7 @@ const PurchaseInvoiceCard = ({ invoice }) => {
             {getCurrencySymbol()}{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 2 }}>
-            Paid <span style={{ color: '#059669', fontWeight: 700 }}>{inr(amountPaid)}</span>
+            Paid <span style={{ color: 'var(--theme-primary)', fontWeight: 700 }}>{inr(amountPaid)}</span>
             {' · '}Due <span style={{ color: (Number(amountDue) || 0) > 0 ? '#DC2626' : '#94A3B8', fontWeight: 700 }}>{inr(amountDue)}</span>
           </div>
         </div>
@@ -122,8 +122,8 @@ const PurchaseInvoiceCard = ({ invoice }) => {
           
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingRight: 16 }}>
             <Space size="large" align="center">
-              <Text style={{ color: '#2563EB', fontWeight: 700 }}>Total</Text>
-              <Text style={{ color: '#2563EB', fontWeight: 800, fontSize: '1.1rem' }}>
+              <Text style={{ color: 'var(--theme-primary)', fontWeight: 700 }}>Total</Text>
+              <Text style={{ color: 'var(--theme-primary)', fontWeight: 800, fontSize: '1.1rem' }}>
                 {getCurrencySymbol()}{Number(grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
             </Space>

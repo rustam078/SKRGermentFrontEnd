@@ -17,7 +17,7 @@ const SummaryCards = ({ items }) => {
                     {item.value}
                   </Typography>
                 </Box>
-                <Box sx={{ color: item.color || '#2563EB', fontSize: '1.5rem' }}>{item.icon}</Box>
+                <Box sx={{ color: item.color || 'var(--theme-primary)', fontSize: '1.5rem' }}>{item.icon}</Box>
               </Box>
               <Typography variant="body2" color="text.secondary">
                 {item.subtitle}

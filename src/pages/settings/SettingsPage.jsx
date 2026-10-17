@@ -17,6 +17,7 @@ import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import ReorderRoundedIcon from '@mui/icons-material/ReorderRounded';
 import PieChartOutlineRoundedIcon from '@mui/icons-material/PieChartOutlineRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
+import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import QrLabelSettings from '../../modules/qr/components/QrLabelSettings';
 import ThresholdSettings from './ThresholdSettings';
@@ -24,10 +25,19 @@ import CompanyInvoiceSettings from './CompanyInvoiceSettings';
 import MenuOrderSettings from './MenuOrderSettings';
 import ChartSettings from './ChartSettings';
 import UsersRolesSettings from './UsersRolesSettings';
+import ThemeSettings from './ThemeSettings';
 import { usePermissions } from '../../hooks/usePermissions';
 
 // Registry of settings sections — add future settings here and they get search + collapse for free.
 const BASE_SECTIONS = [
+  {
+    id: 'theme',
+    title: 'Theme / Appearance',
+    subtitle: 'Pick the app primary colour (buttons, accents)',
+    keywords: 'theme colour color appearance primary brand button accent look ui palette customize',
+    icon: <PaletteOutlinedIcon color="primary" />,
+    render: () => <ThemeSettings />,
+  },
   {
     id: 'company-invoice',
     title: 'Company & Invoice',

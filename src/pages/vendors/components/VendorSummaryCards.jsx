@@ -35,10 +35,10 @@ const VendorSummaryCards = ({ summary }) => {
   return (
     <Card style={{ borderRadius: 12, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '14px 20px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-        <Stat title="Total Purchase" value={inr(totalPurchaseAmount)} icon={<ShoppingCartOutlined />} iconBg="#EFF6FF" iconColor="#2563EB" />
-        <Stat title="Total Invoices" value={totalInvoices} icon={<FileTextOutlined />} iconBg="#DCFCE7" iconColor="#059669" />
-        <Stat title="Last Purchase" value={formattedLastPurchase} icon={<CalendarOutlined />} iconBg="#FEF3C7" iconColor="#D97706" />
-        <Stat title="Average Invoice" value={inr(avgInvoice)} icon={<LineChartOutlined />} iconBg="#F3E8FF" iconColor="#7C3AED" />
+        <Stat title="Total Purchase" value={inr(totalPurchaseAmount)} icon={<ShoppingCartOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+        <Stat title="Total Invoices" value={totalInvoices} icon={<FileTextOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+        <Stat title="Last Purchase" value={formattedLastPurchase} icon={<CalendarOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
+        <Stat title="Average Invoice" value={inr(avgInvoice)} icon={<LineChartOutlined />} iconBg="color-mix(in srgb, var(--theme-primary) 12%, white)" iconColor="var(--theme-primary)" />
       </div>
     </Card>
   );

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useThemeColor } from '../../contexts/ThemeColorContext';
+import { readableText, mutedText } from '../../utils/color';
 import {
   Collapse,
   Drawer,
@@ -71,6 +73,12 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
   const [salesOpen, setSalesOpen] = useState(true);
   const { menuOrder, companyName } = useAppSettings();
   const { can } = usePermissions();
+  // Theme-driven sidebar colors (nav background + readable text/icons + active = primary).
+  const { primary, nav } = useThemeColor();
+  const txt = readableText(nav);
+  const muted = mutedText(nav);
+  const hoverBg = txt === txt ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const dividerCol = txt === txt ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
   // Only show modules the current role can view (ADMIN sees all).
   const orderedItems = useMemo(
     () => orderMenu(MENU_ITEMS, menuOrder).filter((item) => can(item.key, 'view')),
@@ -102,16 +110,16 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
             py: 1,
             px: open ? 2 : 1.5,
             justifyContent: open ? 'initial' : 'center',
-            color: isActive ? '#FFFFFF' : '#94A3B8',
-            backgroundColor: isActive ? '#2563EB' : 'transparent',
+            color: isActive ? txt : muted,
+            backgroundColor: isActive ? primary : 'transparent',
             transition: 'all 0.2s ease-in-out',
             '&:hover': {
-              color: '#FFFFFF',
-              backgroundColor: isActive ? '#2563EB' : 'rgba(255, 255, 255, 0.05)',
-              '& .MuiListItemIcon-root': { color: '#FFFFFF' },
+              color: txt,
+              backgroundColor: isActive ? primary : hoverBg,
+              '& .MuiListItemIcon-root': { color: txt },
             },
             '& .MuiListItemIcon-root': {
-              color: isActive ? '#FFFFFF' : '#64748B',
+              color: isActive ? txt : muted,
               minWidth: open ? 36 : 'auto',
               justifyContent: 'center',
               transition: 'all 0.2s ease-in-out',
@@ -144,16 +152,16 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
             py: 1.25,
             px: open ? 2 : 1.5,
             justifyContent: open ? 'initial' : 'center',
-            color: location.pathname.startsWith('/sales') ? '#FFFFFF' : '#94A3B8',
-            backgroundColor: location.pathname.startsWith('/sales') ? '#2563EB' : 'transparent',
+            color: location.pathname.startsWith('/sales') ? txt : muted,
+            backgroundColor: location.pathname.startsWith('/sales') ? primary : 'transparent',
             transition: 'all 0.2s ease-in-out',
             '&:hover': {
-              color: '#FFFFFF',
-              backgroundColor: location.pathname.startsWith('/sales') ? '#2563EB' : 'rgba(255, 255, 255, 0.05)',
-              '& .MuiListItemIcon-root': { color: '#FFFFFF' },
+              color: txt,
+              backgroundColor: location.pathname.startsWith('/sales') ? primary : hoverBg,
+              '& .MuiListItemIcon-root': { color: txt },
             },
             '& .MuiListItemIcon-root': {
-              color: location.pathname.startsWith('/sales') ? '#FFFFFF' : '#64748B',
+              color: location.pathname.startsWith('/sales') ? txt : muted,
               minWidth: open ? 40 : 'auto',
               justifyContent: 'center',
               transition: 'all 0.2s ease-in-out',
@@ -171,7 +179,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
             }}
             primaryTypographyProps={{ fontSize: '0.84rem', fontWeight: 500 }}
           />
-          {open && (salesOpen ? <ExpandLess sx={{ color: '#94A3B8' }} /> : <ExpandMore sx={{ color: '#94A3B8' }} />)}
+          {open && (salesOpen ? <ExpandLess sx={{ color: muted }} /> : <ExpandMore sx={{ color: muted }} />)}
         </ListItemButton>
       </ListItem>
 
@@ -188,16 +196,16 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
                     py: 0.75,
                     px: 2,
                     justifyContent: 'initial',
-                    color: isActive ? '#FFFFFF' : '#94A3B8',
-                    backgroundColor: isActive ? '#2563EB' : 'transparent',
+                    color: isActive ? txt : muted,
+                    backgroundColor: isActive ? primary : 'transparent',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      color: '#FFFFFF',
-                      backgroundColor: isActive ? '#2563EB' : 'rgba(255, 255, 255, 0.05)',
-                      '& .MuiListItemIcon-root': { color: '#FFFFFF' },
+                      color: txt,
+                      backgroundColor: isActive ? primary : hoverBg,
+                      '& .MuiListItemIcon-root': { color: txt },
                     },
                     '& .MuiListItemIcon-root': {
-                      color: isActive ? '#FFFFFF' : '#64748B',
+                      color: isActive ? txt : muted,
                       minWidth: 36,
                       justifyContent: 'center',
                       transition: 'all 0.2s ease-in-out',
@@ -223,22 +231,15 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Space matching top navbar */}
       <Toolbar sx={{ minHeight: 64 }} />
-      
-      <Box sx={{ px: open ? 2.5 : 0, py: 2, textAlign: open ? 'left' : 'center' }}>
-        <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', display: open ? 'block' : 'none' }}>
-          Navigation
-        </Typography>
-        {!open && <Typography variant="caption" sx={{ color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Nav</Typography>}
-      </Box>
 
-      <List sx={{ px: 1.5, flexGrow: 1 }}>
+      <List sx={{ px: 1.5, flexGrow: 1, mt: 1 }}>
         {orderedItems.map((item) => (item.group ? renderSalesGroup() : renderNavButton(item)))}
       </List>
 
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+      <Divider sx={{ borderColor: dividerCol }} />
       
       <Box sx={{ p: 2.5, textAlign: 'center' }}>
-        <Typography variant="caption" display="block" sx={{ color: '#64748B', opacity: open ? 1 : 0, display: open ? 'block' : 'none' }}>
+        <Typography variant="caption" display="block" sx={{ color: muted, opacity: open ? 1 : 0, display: open ? 'block' : 'none' }}>
           {companyName || 'SKR Garment'} v1.4
         </Typography>
       </Box>
@@ -263,8 +264,8 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
-              backgroundColor: '#0F172A',
-              color: '#FFFFFF',
+              backgroundColor: nav,
+              color: txt,
             },
           }}
         >
@@ -286,8 +287,8 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: open ? DRAWER_WIDTH : MINI_DRAWER_WIDTH,
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
+            backgroundColor: nav,
+            color: txt,
             borderRight: 'none',
             overflowX: 'hidden',
             transition: 'width 0.2s ease-in-out',

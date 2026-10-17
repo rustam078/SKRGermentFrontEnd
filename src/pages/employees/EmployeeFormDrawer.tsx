@@ -69,7 +69,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
     <Drawer
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
-          {isEdit ? <EditOutlined style={{ color: '#2563EB' }} /> : <PlusOutlined style={{ color: '#2563EB' }} />}
+          {isEdit ? <EditOutlined style={{ color: 'var(--theme-primary)' }} /> : <PlusOutlined style={{ color: 'var(--theme-primary)' }} />}
           {isEdit ? 'Edit Employee' : 'Add Employee'}
         </span>
       }
@@ -88,7 +88,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
               type="primary"
               loading={loading}
               onClick={() => form.submit()}
-              style={{ backgroundColor: '#2563EB', borderColor: '#2563EB', fontWeight: 600 }}
+              style={{ backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', fontWeight: 600 }}
             >
               {isEdit ? 'Save Changes' : 'Save Employee'}
             </Button>
