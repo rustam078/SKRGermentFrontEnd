@@ -22,7 +22,6 @@ import {
   CloseCircleOutlined,
   PlusOutlined,
   SearchOutlined,
-  EyeOutlined,
   EditOutlined,
   StopOutlined,
   ExclamationCircleOutlined,
@@ -250,9 +249,9 @@ const EmployeePage: React.FC = () => {
       onFilter: (value: any, record: IEmployee) => record.active === value,
       render: (active: boolean) => (
         active ? (
-          <Tag color="success" style={{ borderRadius: 6, fontWeight: 600, padding: '2px 8px' }}>Active</Tag>
+          <Tag style={{ background: 'transparent', color: '#16A34A', border: 'none', fontWeight: 600, padding: '2px 8px' }}>Active</Tag>
         ) : (
-          <Tag color="error" style={{ borderRadius: 6, fontWeight: 600, padding: '2px 8px' }}>Inactive</Tag>
+          <Tag style={{ background: 'transparent', color: '#DC2626', border: 'none', fontWeight: 600, padding: '2px 8px' }}>Inactive</Tag>
         )
       ),
     },
@@ -288,20 +287,12 @@ const EmployeePage: React.FC = () => {
       width: '10%',
       render: (_: any, record: IEmployee) => (
         <Space size={4} align="center">
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined style={{ color: '#64748B' }} />}
-              onClick={() => handleOpenView(record)}
-              style={{ minWidth: 32, padding: 0 }}
-            />
-          </Tooltip>
           {can('employees', 'write') && (
             <Tooltip title="Edit Employee">
               <Button
                 type="text"
                 icon={<EditOutlined style={{ color: 'var(--theme-primary)' }} />}
-                onClick={() => handleOpenEdit(record)}
+                onClick={(e) => { e.stopPropagation(); handleOpenEdit(record); }}
                 style={{ minWidth: 32, padding: 0 }}
               />
             </Tooltip>
@@ -312,7 +303,7 @@ const EmployeePage: React.FC = () => {
                 type="text"
                 danger
                 icon={<StopOutlined />}
-                onClick={() => handleDeactivate(record)}
+                onClick={(e) => { e.stopPropagation(); handleDeactivate(record); }}
                 style={{ minWidth: 32, padding: 0 }}
               />
             </Tooltip>
@@ -427,11 +418,11 @@ const EmployeePage: React.FC = () => {
                   </div>
                   {kpi.isStatusCard ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Tag color="success" style={{ borderRadius: 6, fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
+                      <Tag style={{ background: 'transparent', color: '#16A34A', border: 'none', fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
                         Active: {stats?.activeEmployees ?? 0}
                       </Tag>
                       <span style={{ color: '#CBD5E1', fontWeight: 300 }}>|</span>
-                      <Tag color="error" style={{ borderRadius: 6, fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
+                      <Tag style={{ background: 'transparent', color: '#DC2626', border: 'none', fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
                         Inactive: {stats?.inactiveEmployees ?? 0}
                       </Tag>
                     </div>
@@ -453,6 +444,10 @@ const EmployeePage: React.FC = () => {
             columns={columns}
             rowKey="id"
             loading={employeesLoading}
+            onRow={(record: IEmployee) => ({
+              onClick: () => handleOpenView(record),
+              style: { cursor: 'pointer' },
+            })}
             pagination={{
               defaultPageSize: 10,
               showSizeChanger: true,

@@ -13,7 +13,7 @@ const cardStyle = {
   boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.05)',
   border: '1px solid #E2E8F0',
   backgroundColor: '#ffffff',
-  height: '563px', // Locked height — the product list scrolls instead of stretching the card
+  height: '440px', // Locked height — the product list scrolls instead of stretching the card
   display: 'flex',
   flexDirection: 'column' as const,
 };
@@ -21,14 +21,14 @@ const cardStyle = {
 const Stat: React.FC<{ icon: React.ReactNode; bg: string; color: string; label: string; value: React.ReactNode }> = ({
   icon, bg, color, label, value,
 }) => (
-  <div style={{ flex: 1, padding: '10px 12px', borderRadius: 10, background: bg, minWidth: 0 }}>
+  <div style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: bg, minWidth: 0 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ width: 28, height: 28, borderRadius: 8, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 24, height: 24, borderRadius: 8, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {icon}
       </div>
-      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</span>
+      <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</span>
     </div>
-    <div style={{ fontSize: '1.25rem', fontWeight: 800, color, marginTop: 6 }}>{value}</div>
+    <div style={{ fontSize: '1.05rem', fontWeight: 800, color, marginTop: 4 }}>{value}</div>
   </div>
 );
 
@@ -43,15 +43,15 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
     <Card
       style={cardStyle}
       title={
-        <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center' }}>
+        <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center' }}>
           Current Month
           <HeadingInfo text="Always shows the current month — the page filter does not apply to this card." />
         </span>
       }
-      bodyStyle={{ padding: 16, flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      styles={{ header: { minHeight: 40 }, body: { padding: 12, flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
     >
       {/* Summary stats */}
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         <Stat
           icon={<WalletOutlined style={{ color: 'var(--theme-primary)', fontSize: 15 }} />}
           bg="color-mix(in srgb, var(--theme-primary) 12%, white)"
@@ -68,9 +68,9 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
         />
       </div>
 
-      <Divider style={{ margin: '14px 0 10px' }} />
+      <Divider style={{ margin: '10px 0 8px' }} />
 
-      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
         Product Performance
       </div>
 
@@ -90,16 +90,16 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
             current={-1}
             status="process"
             items={products.map((item) => ({
-              title: <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, item.productName)}</span>,
+              title: <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, item.productName)}</span>,
               description: (
-                <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 14 }}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
-                    <span style={{ fontSize: '0.88rem', color: 'var(--theme-primary)', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} Pcs</span>
+                <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 3, paddingBottom: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--theme-primary)', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} Pcs</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
-                    <span style={{ fontSize: '1.05rem', color: 'var(--theme-primary)', fontWeight: 800 }}>{inr(item.earnings)}</span>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
+                    <span style={{ fontSize: '0.92rem', color: 'var(--theme-primary)', fontWeight: 800 }}>{inr(item.earnings)}</span>
                   </div>
                 </div>
               ),

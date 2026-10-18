@@ -15,11 +15,11 @@ interface EmployeeInfoCardProps {
 }
 
 const Detail: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode }> = ({ icon, label, value }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
-    <span style={{ marginTop: 3, color: '#64748B', fontSize: '1rem' }}>{icon}</span>
+  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+    <span style={{ marginTop: 2, color: '#64748B', fontSize: '0.9rem' }}>{icon}</span>
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</div>
-      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B', wordBreak: 'break-word', lineHeight: 1.35 }}>{value}</div>
+      <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</div>
+      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1E293B', wordBreak: 'break-word', lineHeight: 1.3 }}>{value}</div>
     </div>
   </div>
 );
@@ -37,30 +37,30 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) 
         boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.05)',
         border: '1px solid #E2E8F0',
       }}
-      bodyStyle={{ padding: 20 }}
+      bodyStyle={{ padding: 14 }}
     >
       {/* Header (horizontal to keep the card compact) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div
           style={{
-            width: 64,
-            height: 64,
+            width: 52,
+            height: 52,
             borderRadius: '50%',
             backgroundColor: employee.active ? '#DBEAFE' : '#F1F5F9',
             color: employee.active ? '#1E40AF' : '#475569',
-            fontSize: '1.4rem',
+            fontSize: '1.15rem',
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: `3px solid ${employee.active ? '#93C5FD' : '#CBD5E1'}`,
+            border: `2px solid ${employee.active ? '#93C5FD' : '#CBD5E1'}`,
             flexShrink: 0,
           }}
         >
           {getInitials(employee.fullName || 'Emp')}
         </div>
         <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
             {employee.fullName}
             <HeadingInfo text="Production output, earnings and history for this employee." />
           </h2>
@@ -75,10 +75,10 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) 
         </div>
       </div>
 
-      <Divider style={{ margin: '16px 0' }} />
+      <Divider style={{ margin: '10px 0' }} />
 
       {/* Details in 2 columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
         <Detail
           icon={<MailOutlined />}
           label="Email"

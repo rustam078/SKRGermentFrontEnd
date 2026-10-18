@@ -19,19 +19,19 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
 
   return (
     <Card
-      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>Product Wise Earnings</span>}
+      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.95rem' }}>Product Wise Earnings</span>}
       style={{
         borderRadius: 12,
         boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.05)',
         border: '1px solid #E2E8F0',
         backgroundColor: '#ffffff',
-        height: '633px', // Locked height to prevent row shifting
+        height: '480px', // Locked height to prevent row shifting
         display: 'flex',
         flexDirection: 'column',
       }}
-      bodyStyle={{ padding: '20px', flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      bodyStyle={{ padding: '14px', flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flexGrow: 1 }}>
+      <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flexGrow: 1 }}>
         {data.length === 0 ? (
           <div style={{ padding: '32px 16px', color: '#94A3B8', textAlign: 'center', fontWeight: 500 }}>
             No product contributions found for the selected period.
@@ -41,7 +41,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
             <div
               key={item.productName || idx}
               style={{
-                padding: '16px',
+                padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1px solid #F1F5F9',
                 backgroundColor: '#FAFAFA',
@@ -63,14 +63,14 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '1.05rem', textTransform: 'capitalize' }}>
+                <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem', textTransform: 'capitalize' }}>
                   {getProductIconAndLabel(item.iconName, item.productName)}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: 4, fontWeight: 500 }}>
+                <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {item.quantityProduced.toLocaleString('en-IN')} Pcs
                 </div>
               </div>
-              <div style={{ fontWeight: 800, color: 'var(--theme-primary)', fontSize: '1.15rem' }}>
+              <div style={{ fontWeight: 800, color: 'var(--theme-primary)', fontSize: '1rem' }}>
                 {formatCurrency(item.totalEarnings)}
               </div>
             </div>

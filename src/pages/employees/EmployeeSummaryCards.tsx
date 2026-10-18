@@ -118,22 +118,24 @@ export const OverallSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
   return (
     <Card
       style={cardStyle}
-      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>Overall Summary</span>}
-      bodyStyle={{ padding: 16, display: 'flex', flexGrow: 1, minHeight: 0, overflow: 'hidden' }}
+      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>Overall Summary</span>}
+      styles={{ header: { minHeight: 40 }, body: { padding: 12, display: 'flex', flexGrow: 1, minHeight: 0, overflow: 'hidden' } }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 10, width: '100%', flexGrow: 1, minHeight: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 8, width: '100%', flexGrow: 1, minHeight: 0 }}>
         {tiles.map((t) => (
           <div
             key={t.label}
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '10px 12px', borderRadius: 12, background: t.bg, minWidth: 0, minHeight: 0, overflow: 'hidden' }}
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8px 12px', borderRadius: 10, background: t.bg, minWidth: 0, minHeight: 0, overflow: 'hidden' }}
           >
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {React.cloneElement(t.icon, { style: { fontSize: 16, color: t.color } })}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 7, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {React.cloneElement(t.icon, { style: { fontSize: 13, color: t.color } })}
+              </div>
+              <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t.label}
+              </span>
             </div>
-            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: 8 }}>
-              {t.label}
-            </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: t.color, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: t.color, marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {t.value}
             </div>
           </div>

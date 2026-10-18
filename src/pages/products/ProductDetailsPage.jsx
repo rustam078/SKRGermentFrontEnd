@@ -578,12 +578,13 @@ const ProductDetailsPage = () => {
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '4px 10px',
+          padding: '3px 10px',
           borderRadius: 12,
           fontSize: '0.78rem',
           fontWeight: 700,
-          color: active ? '#166534' : '#991B1B',
-          backgroundColor: active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEE2E2',
+          color: active ? '#16A34A' : '#DC2626',
+          backgroundColor: 'transparent',
+          border: `1px solid ${active ? '#16A34A' : '#DC2626'}`,
         }}>
           {active ? 'Active' : 'Inactive'}
         </span>
@@ -699,7 +700,7 @@ const ProductDetailsPage = () => {
       return <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>—</span>;
     }
     const positive = profit.amount >= 0;
-    const color = positive ? 'var(--theme-primary)' : '#B91C1C';
+    const color = positive ? '#16A34A' : '#B91C1C';
     // Plain text (no pill/badge) — just the arrow, %, amount and colour.
     return (
       <span style={{
@@ -950,13 +951,13 @@ const ProductDetailsPage = () => {
                   </h1>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    backgroundColor: product.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2',
-                    color: product.active ? 'var(--theme-primary)' : '#DC2626',
+                    backgroundColor: 'transparent',
+                    color: product.active ? '#16A34A' : '#DC2626',
                     fontSize: '0.72rem', fontWeight: 700,
                     padding: '3px 10px', borderRadius: 20,
-                    border: `1px solid ${product.active ? '#BBF7D0' : '#FCA5A5'}`,
+                    border: `1px solid ${product.active ? '#16A34A' : '#DC2626'}`,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: product.active ? 'var(--theme-primary)' : '#DC2626' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: product.active ? '#16A34A' : '#DC2626' }} />
                     {product.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>

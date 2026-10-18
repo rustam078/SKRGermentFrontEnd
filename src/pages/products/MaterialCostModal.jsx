@@ -157,7 +157,7 @@ const MaterialCostModal = ({
                         Profit on each piece
                     </span>
                     {hasBoth ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800, color: positive ? 'var(--theme-primary)' : '#B91C1C' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800, color: positive ? '#16A34A' : '#B91C1C' }}>
                             {positive ? <RiseOutlined /> : <FallOutlined />}
                             {profitPct != null ? `${positive ? '+' : ''}${profitPct.toFixed(1)}%` : '—'}
                             <span style={{ fontWeight: 600, opacity: 0.85 }}>

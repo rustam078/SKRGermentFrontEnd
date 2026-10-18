@@ -112,13 +112,13 @@ const StatusBadge = ({ active }) => (
       display: 'inline-flex',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEF2F2',
-      color: active ? 'var(--theme-primary)' : '#DC2626',
+      backgroundColor: 'transparent',
+      color: active ? '#16A34A' : '#DC2626',
       fontSize: '0.72rem',
       fontWeight: 700,
       padding: '3px 10px',
       borderRadius: 20,
-      border: `1px solid ${active ? '#BBF7D0' : '#FCA5A5'}`,
+      border: `1px solid ${active ? '#16A34A' : '#DC2626'}`,
     }}
   >
     <span
@@ -126,7 +126,7 @@ const StatusBadge = ({ active }) => (
         width: 6,
         height: 6,
         borderRadius: '50%',
-        backgroundColor: active ? 'var(--theme-primary)' : '#DC2626',
+        backgroundColor: active ? '#16A34A' : '#DC2626',
       }}
     />
     {active ? 'Active' : 'Inactive'}
@@ -142,7 +142,7 @@ const TypeBadge = ({ type }) => {
     <span
       style={{
         display: 'inline-block',
-        backgroundColor: cfg.bg,
+        backgroundColor: 'transparent',
         color: '#0F172A',
         border: `1px solid ${cfg.border}`,
         borderRadius: 6,
@@ -244,6 +244,7 @@ const InvestmentPage = () => {
     toDate: null,
     vendorId: undefined,
     type: undefined,
+    paymentStatus: undefined,
     search: '',
   });
   const [appliedFilters, setAppliedFilters] = useState({});
@@ -417,10 +418,11 @@ const InvestmentPage = () => {
     });
   };
 
+  // Same colours as the Sales table chips (MUI success / info / warning).
   const PAYMENT_STATUS_META = {
-    PAID: { color: 'success', label: 'Paid', border: '#86EFAC' },
-    PARTIALLY_PAID: { color: 'warning', label: 'Partial', border: '#FDE68A' },
-    PENDING: { color: 'default', label: 'Unpaid', border: '#FECACA' },
+    PAID: { color: 'success', label: 'Paid', bg: '#10B981' },
+    PARTIALLY_PAID: { color: 'processing', label: 'Partial', bg: '#06B6D4' },
+    PENDING: { color: 'warning', label: 'Unpaid', bg: '#F59E0B' },
   };
 
   // ── Summary computations ───────────────
@@ -644,13 +646,14 @@ const InvestmentPage = () => {
       params.toDate = investmentFilters.toDate.format('YYYY-MM-DD');
     if (investmentFilters.vendorId) params.vendorId = investmentFilters.vendorId;
     if (investmentFilters.type) params.type = investmentFilters.type;
+    if (investmentFilters.paymentStatus) params.paymentStatus = investmentFilters.paymentStatus;
     if (investmentFilters.search) params.search = investmentFilters.search;
     setAppliedFilters(params);
     setFilterOpen(false);
   };
 
   const handleResetFilters = () => {
-    setInvestmentFilters({ fromDate: null, toDate: null, vendorId: undefined, type: undefined, search: '' });
+    setInvestmentFilters({ fromDate: null, toDate: null, vendorId: undefined, type: undefined, paymentStatus: undefined, search: '' });
     setAppliedFilters({});
     setFilterOpen(false);
   };
@@ -964,7 +967,7 @@ const InvestmentPage = () => {
       key: 'vendorName',
       render: (val, record) => (
         record.vendorId ? (
-          <a onClick={() => navigate(`/vendors/${record.vendorId}`)} style={{ fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}>
+          <a onClick={(e) => { e.stopPropagation(); navigate(`/vendors/${record.vendorId}`); }} style={{ fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}>
             {val || '—'}
           </a>
         ) : (
@@ -1024,40 +1027,50 @@ const InvestmentPage = () => {
       title: 'Payment',
       key: 'paymentStatus',
       align: 'center',
+      filters: [
+        { text: 'Paid', value: 'PAID' },
+        { text: 'Partial', value: 'PARTIALLY_PAID' },
+        { text: 'Unpaid', value: 'PENDING' },
+      ],
+      onFilter: (value, record) => (record.paymentStatus || 'PENDING') === value,
       render: (_, record) => {
         const meta = PAYMENT_STATUS_META[record.paymentStatus] || PAYMENT_STATUS_META.PENDING;
         const paid = Number(record.amountPaid || 0);
         const total = Number(record.grandTotal || 0);
         return (
           <Tooltip title={`Paid ${getCurrencySymbol()}${paid.toLocaleString('en-IN')} of ${getCurrencySymbol()}${total.toLocaleString('en-IN')}`}>
-            <Tag style={{
-              color: '#0F172A',
-              background: 'color-mix(in srgb, var(--theme-primary) 10%, white)',
-              border: `1px solid ${meta.border}`,
-              fontWeight: 700, borderRadius: 6,
-            }}>{meta.label}</Tag>
+            <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>{meta.label}</Tag>
           </Tooltip>
         );
       },
     },
     {
-      title: 'Actions',
+      title: 'Invoice',
       key: 'actions',
-      width: 96,
-      align: 'left',
+      width: 80,
+      align: 'center',
       render: (_, record) => (
-        <Space size={6}>
-          <Tooltip title="View Details" placement="top">
+        record.investmentType !== 'OVERHEAD' ? (
+          <Tooltip title="Download Invoice PDF" placement="top">
             <Button
               type="text"
               size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleViewInvestment(record)}
+              icon={<DownloadOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((err) =>
+                  notification.error({
+                    message: 'Invoice download failed',
+                    description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
+                    placement: 'topRight',
+                  })
+                );
+              }}
               style={{
-                color: 'var(--theme-primary)',
-                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
-                border: '1px solid #BFDBFE',
-                borderRadius: 6,
+                color: '#16A34A',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid color-mix(in srgb, var(--theme-primary) 30%, white)',
+                borderRadius: '50%',
                 width: 30,
                 height: 30,
                 display: 'flex',
@@ -1066,34 +1079,7 @@ const InvestmentPage = () => {
               }}
             />
           </Tooltip>
-          {record.investmentType !== 'OVERHEAD' && (
-            <Tooltip title="Download Invoice PDF" placement="top">
-              <Button
-                type="text"
-                size="small"
-                icon={<DownloadOutlined />}
-                onClick={() => investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((e) =>
-                  notification.error({
-                    message: 'Invoice download failed',
-                    description: e.response?.data?.message || e.message || 'Could not generate the invoice PDF.',
-                    placement: 'topRight',
-                  })
-                )}
-                style={{
-                  color: 'var(--theme-primary)',
-                  backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
-                  border: '1px solid #FDE68A',
-                  borderRadius: 6,
-                  width: 30,
-                  height: 30,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            </Tooltip>
-          )}
-        </Space>
+        ) : <span style={{ color: '#CBD5E1' }}>—</span>
       ),
     },
   ];
@@ -1671,6 +1657,18 @@ const InvestmentPage = () => {
                             <Option key={t.value} value={t.value}>{t.label}</Option>
                           ))}
                         </Select>
+                        <span style={labelStyle}>Payment Status</span>
+                        <Select
+                          value={investmentFilters.paymentStatus}
+                          onChange={(v) => setInvestmentFilters((p) => ({ ...p, paymentStatus: v }))}
+                          placeholder="All Payments"
+                          allowClear
+                          style={{ width: '100%', marginBottom: 12 }}
+                        >
+                          <Option value="PAID">Paid</Option>
+                          <Option value="PARTIALLY_PAID">Partial</Option>
+                          <Option value="PENDING">Unpaid</Option>
+                        </Select>
                         <span style={labelStyle}>Search</span>
                         <Input
                           value={investmentFilters.search}
@@ -1766,7 +1764,11 @@ const InvestmentPage = () => {
                   <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
                 </span>
                 <span style={{ color: '#CBD5E1' }}>|</span>
-                <span>
+                <span
+                  onClick={() => setAppliedFilters((p) => ({ ...p, paymentStatus: p.paymentStatus === 'DUE' ? undefined : 'DUE' }))}
+                  title="Click to show only records with a pending due"
+                  style={{ cursor: 'pointer', textDecoration: appliedFilters.paymentStatus === 'DUE' ? 'underline' : 'none' }}
+                >
                   <span style={{ color: '#B91C1C' }}>Due:</span>
                   <span style={{ marginLeft: 6, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
                 </span>
@@ -1778,9 +1780,20 @@ const InvestmentPage = () => {
                   className="custom-table"
                   size="small"
                   rowKey="id"
-                  dataSource={investments.map((i) => ({ ...i, key: i.id }))}
+                  dataSource={investments
+                    .filter((i) => {
+                      if (!appliedFilters.paymentStatus) return true;
+                      const st = i.paymentStatus || 'PENDING';
+                      // "DUE" (from the Due stat click) = anything still owing: unpaid or partial.
+                      return appliedFilters.paymentStatus === 'DUE' ? st !== 'PAID' : st === appliedFilters.paymentStatus;
+                    })
+                    .map((i) => ({ ...i, key: i.id }))}
                   columns={investmentColumns}
                   loading={invLoading}
+                  onRow={(record) => ({
+                    onClick: () => handleViewInvestment(record),
+                    style: { cursor: 'pointer' },
+                  })}
                   pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,
@@ -1949,7 +1962,7 @@ const InvestmentPage = () => {
         width={580}
         onClose={() => { setViewDrawerVisible(false); setSelectedInvestment(null); }}
         open={viewDrawerVisible}
-        bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
+        bodyStyle={{ backgroundColor: '#F8FAFC', padding: 16 }}
         extra={
           investmentDetail && investmentDetail.investmentType !== 'OVERHEAD' ? (
             <Button
@@ -1966,11 +1979,11 @@ const InvestmentPage = () => {
         {invDetailLoading ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : investmentDetail ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
             {/* Info Card */}
-            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '18px 20px' }}>
-              <Row gutter={[16, 16]}>
+            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginTop: 6 }} bodyStyle={{ padding: '12px 16px' }}>
+              <Row gutter={[10, 8]}>
                 {[
                   { label: 'Invoice Number', value: investmentDetail.invoiceNumber || '—' },
                   {
@@ -1995,11 +2008,11 @@ const InvestmentPage = () => {
                     value: <TypeBadge type={investmentDetail.investmentType} />,
                   },
                 ].map(({ label, value }) => (
-                  <Col xs={12} key={label}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  <Col xs={6} key={label}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 1 }}>
                       {label}
                     </div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#0F172A' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#0F172A' }}>
                       {value}
                     </div>
                   </Col>
@@ -2017,8 +2030,8 @@ const InvestmentPage = () => {
               </Row>
             </Card>
 
-            <Divider style={{ margin: '4px 0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>Items</span>
+            <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Items</span>
             </Divider>
 
             {/* Items Table */}
@@ -2033,12 +2046,12 @@ const InvestmentPage = () => {
               />
             </Card>
 
-            <Divider style={{ margin: '4px 0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>Summary</span>
+            <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Summary</span>
             </Divider>
 
             {/* Totals Card */}
-            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '16px 20px' }}>
+            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '12px 16px' }}>
               {[
                 { label: 'Subtotal', value: investmentDetail.subtotal, color: '#0F172A' },
                 { label: 'GST', value: investmentDetail.gst, color: '#0F172A' },
@@ -2046,7 +2059,7 @@ const InvestmentPage = () => {
               ].map(({ label, value, color, prefix }) => (
                 <div
                   key={label}
-                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: '0.88rem' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: '0.82rem' }}
                 >
                   <span style={{ color: '#64748B', fontWeight: 500 }}>{label}</span>
                   <span style={{ color, fontWeight: 600 }}>
@@ -2054,34 +2067,34 @@ const InvestmentPage = () => {
                   </span>
                 </div>
               ))}
-              <Divider style={{ margin: '10px 0' }} />
+              <Divider style={{ margin: '6px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>Grand Total</span>
-                <span style={{ fontWeight: 900, fontSize: '1.3rem', color: 'var(--theme-primary)' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>Grand Total</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--theme-primary)' }}>
                   {getCurrencySymbol()}{Number(investmentDetail.grandTotal || 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </Card>
 
-            <Divider style={{ margin: '4px 0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>Payments</span>
+            <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Payments</span>
             </Divider>
 
             {/* Payment summary + add form + history */}
-            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '16px 20px' }}>
+            <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '12px 16px' }}>
               {/* Summary row */}
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-                <div style={{ flex: '1 1 120px', background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BBF7D0', borderRadius: 8, padding: '8px 12px' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>Paid</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                <div style={{ flex: '1 1 110px', background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BBF7D0', borderRadius: 8, padding: '6px 10px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>Paid</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
                 </div>
-                <div style={{ flex: '1 1 120px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '8px 12px' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{Number(investmentDetail.amountDue ?? ((investmentDetail.grandTotal || 0) - (investmentDetail.amountPaid || 0))).toLocaleString('en-IN')}</div>
+                <div style={{ flex: '1 1 110px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{Number(investmentDetail.amountDue ?? ((investmentDetail.grandTotal || 0) - (investmentDetail.amountPaid || 0))).toLocaleString('en-IN')}</div>
                 </div>
-                <div style={{ flex: '1 1 120px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '8px 12px' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 700 }}>Status</div>
-                  <Tag color={(PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).color} style={{ marginTop: 4, fontWeight: 700 }}>
+                <div style={{ flex: '1 1 110px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '6px 10px' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700 }}>Status</div>
+                  <Tag style={{ marginTop: 2, background: (PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>
                     {(PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).label}
                   </Tag>
                 </div>
@@ -2089,7 +2102,7 @@ const InvestmentPage = () => {
 
               {/* Add payment form (hidden once fully paid) */}
               {investmentDetail.paymentStatus !== 'PAID' && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottom: '1px dashed #E2E8F0' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10, paddingBottom: 10, borderBottom: '1px dashed #E2E8F0' }}>
                   <InputNumber
                     value={payAmount}
                     onChange={setPayAmount}

@@ -457,11 +457,11 @@ const EmployeeDetailsPage: React.FC = () => {
         },
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {/* ==================================================
             HEADER & FILTER SECTION
             ================================================== */}
-        <Card style={cardStyle} bodyStyle={{ padding: '16px 24px' }}>
+        <Card style={cardStyle} bodyStyle={{ padding: '10px 16px' }}>
           <div
             style={{
               display: 'flex',
@@ -565,12 +565,12 @@ const EmployeeDetailsPage: React.FC = () => {
 
         {/* Row 1: left column (compact Employee details + Overall stacked) · right column (Current Month).
             Left cards keep their natural height and do not stretch to the Current Month card. */}
-        <style>{`@media (min-width: 992px) { .emp-left-stack { height: 563px; } }`}</style>
-        <Row gutter={[24, 24]} style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <style>{`@media (min-width: 992px) { .emp-left-stack { height: 440px; } }`}</style>
+        <Row gutter={[14, 14]} style={{ display: 'flex', alignItems: 'flex-start' }}>
           <Col xs={24} lg={16}>
-            {/* On desktop the stack matches the Current Month card height (563px); Overall
+            {/* On desktop the stack matches the Current Month card height; Overall
                 Summary flex-grows to fill the space left below the Employee card. */}
-            <div className="emp-left-stack" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="emp-left-stack" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ flexShrink: 0 }}>
                 <EmployeeInfoCard employee={employee} />
               </div>
@@ -588,7 +588,7 @@ const EmployeeDetailsPage: React.FC = () => {
         </Row>
 
         {/* Row 2: both graphs — Monthly Earnings Trend + Product Contribution % */}
-        <Row gutter={[24, 24]} style={{ display: 'flex', alignItems: 'stretch' }}>
+        <Row gutter={[14, 14]} style={{ display: 'flex', alignItems: 'stretch' }}>
           <Col xs={24} lg={12} style={{ display: 'flex', flexDirection: 'column' }}>
             <EmployeeEarningsChart data={monthlyEarnings} />
           </Col>
@@ -598,14 +598,14 @@ const EmployeeDetailsPage: React.FC = () => {
         </Row>
 
         {/* Row 3: Product Wise Earnings (left) + Production Calendar (right) */}
-        <Row gutter={[24, 24]} style={{ display: 'flex', alignItems: 'stretch' }}>
+        <Row gutter={[14, 14]} style={{ display: 'flex', alignItems: 'stretch' }}>
           <Col xs={24} lg={10} style={{ display: 'flex', flexDirection: 'column' }}>
             <ProductWiseEarningsList data={productSummary} />
           </Col>
           <Col xs={24} lg={14} style={{ display: 'flex', flexDirection: 'column' }}>
             <Card
               title={
-                <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center' }}>
                   Production Calendar
                   <HeadingInfo text="Daily earnings overview — each cell shows that day's pieces and earnings." />
                 </span>
@@ -614,7 +614,7 @@ const EmployeeDetailsPage: React.FC = () => {
                 ...cardStyle,
                 height: '100%',
               }}
-              bodyStyle={{ padding: '24px' }}
+              bodyStyle={{ padding: '14px' }}
             >
               {/* Calendar Filters & Month Header Row */}
               <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -658,7 +658,7 @@ const EmployeeDetailsPage: React.FC = () => {
                 </div>
 
                 {/* Month & Year Header aligned on the right side */}
-                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1E293B', flexShrink: 0 }}>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1E293B', flexShrink: 0 }}>
                   {calendarValue.format('MMMM YYYY')}
                 </div>
               </div>
@@ -682,11 +682,11 @@ const EmployeeDetailsPage: React.FC = () => {
                       }
                       .custom-calendar-container .ant-picker-cell-inner {
                         height: auto !important;
-                        min-height: 74px !important;
+                        min-height: 52px !important;
                         overflow: visible !important;
                       }
                       .custom-calendar-container .ant-picker-calendar-date {
-                        min-height: 74px !important;
+                        min-height: 52px !important;
                         height: auto !important;
                         padding: 2px 4px !important;
                         display: flex !important;
@@ -721,7 +721,7 @@ const EmployeeDetailsPage: React.FC = () => {
         </Row>
 
         {/* 3. Production History */}
-        <Row gutter={[24, 24]} style={{ marginBottom: 12 }}>
+        <Row gutter={[14, 14]} style={{ marginBottom: 8 }}>
           <Col xs={24}>
             <EmployeeProductionHistoryTable data={productionHistory} />
           </Col>
@@ -742,34 +742,34 @@ const EmployeeDetailsPage: React.FC = () => {
         width={500}
         onClose={() => setDrawerOpen(false)}
         open={drawerOpen}
-        bodyStyle={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }}
+        bodyStyle={{ padding: '14px', display: 'flex', flexDirection: 'column', height: '100%' }}
       >
-        <div className="hide-scrollbar" style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }}>
+        <div className="hide-scrollbar" style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '14px' }}>
           {productsWorked.map((item: any, idx: number) => (
             <div
               key={item.id || idx}
               style={{
-                padding: '16px',
+                padding: '10px 12px',
                 borderRadius: '10px',
                 border: '1px solid #E2E8F0',
                 backgroundColor: '#F8FAFC',
               }}
             >
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '1.05rem', fontWeight: 700, color: '#1E293B', textTransform: 'capitalize' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 700, color: '#1E293B', textTransform: 'capitalize' }}>
                 {getProductIconAndLabel(item.iconName, item.productName)}
               </h4>
-              <Row gutter={[16, 8]}>
+              <Row gutter={[12, 6]}>
                 <Col span={8}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Quantity</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginTop: 2 }}>{item.quantity} pcs</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Quantity</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginTop: 1 }}>{item.quantity} pcs</div>
                 </Col>
                 <Col span={8}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Rate</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginTop: 2 }}>{formatCurrency(item.rate)}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Rate</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginTop: 1 }}>{formatCurrency(item.rate)}</div>
                 </Col>
                 <Col span={8} style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Earnings</div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 2 }}>{formatCurrency(item.earnings)}</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Earnings</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 1 }}>{formatCurrency(item.earnings)}</div>
                 </Col>
               </Row>
             </div>
@@ -780,14 +780,14 @@ const EmployeeDetailsPage: React.FC = () => {
         <div
           style={{
             borderTop: '2px dashed #E2E8F0',
-            paddingTop: '20px',
+            paddingTop: '14px',
             marginTop: 'auto',
             backgroundColor: '#ffffff',
           }}
         >
           <div
             style={{
-              padding: '16px 20px',
+              padding: '10px 14px',
               borderRadius: '10px',
               backgroundColor: '#F1F5F9',
               border: '1px solid #E2E8F0',
@@ -795,13 +795,13 @@ const EmployeeDetailsPage: React.FC = () => {
           >
             <Row align="middle">
               <Col span={12}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>TOTAL</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>TOTAL</span>
               </Col>
               <Col span={12} style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>
                   {productsWorked.reduce((sum: number, item: any) => sum + item.quantity, 0)} pcs
                 </div>
-                <div style={{ fontSize: '1.4rem', color: 'var(--theme-primary)', fontWeight: 800, marginTop: 2 }}>
+                <div style={{ fontSize: '1.15rem', color: 'var(--theme-primary)', fontWeight: 800, marginTop: 1 }}>
                   {formatCurrency(productsWorked.reduce((sum: number, item: any) => sum + item.earnings, 0))}
                 </div>
               </Col>
