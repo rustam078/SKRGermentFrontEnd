@@ -1097,7 +1097,13 @@ const ProductDetailsPage = () => {
                     </div>
                   )}
                   <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: 4 }}>At selling price</div>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 8 }}>Qty × sale price</div>
+                  {isPurchasedProduct && Number(stockSummary?.totalQty || 0) > 0 ? (
+                    <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 8 }}>
+                      Avg sale price <b style={{ color: '#0F172A' }}>{getCurrencySymbol()}{Math.round(Number(stockSummary?.stockValue || 0) / Number(stockSummary?.totalQty || 1)).toLocaleString('en-IN')}</b>/pc
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: 8 }}>Qty × sale price</div>
+                  )}
                 </div>
                 <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <RiseOutlined style={{ color: 'var(--theme-primary)', fontSize: '1.1rem' }} />

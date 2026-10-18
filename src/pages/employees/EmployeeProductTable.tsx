@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Table } from 'antd';
 import { IProductSummary } from '../../types/employee-details.types';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 interface EmployeeProductTableProps {
   data: IProductSummary[];
@@ -25,9 +25,7 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
       key: 'productName',
       width: '40%',
       render: (name: string, record: IProductSummary) => (
-        <span style={{ fontWeight: 600, color: '#0F172A' }}>
-          {getProductIconAndLabel(record.iconName, name)}
-        </span>
+        <ProductLabel productId={(record as any).productId} iconName={(record as any).iconName} name={name} size={22} nameStyle={{ fontWeight: 600, color: '#0F172A' }} />
       ),
     },
     {

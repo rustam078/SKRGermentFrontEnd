@@ -44,6 +44,7 @@ import ReportDownloadDialog from '../../components/common/ReportDownloadDialog';
 import { employeeService } from '../../services/employee.service';
 import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -229,9 +230,9 @@ const ProductionHistoryPage: React.FC = () => {
             {shown.map((item, i) => (
               <Tag
                 key={i}
-                style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px' }}
+                style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px', display: 'inline-flex', alignItems: 'center' }}
               >
-                {getProductIconAndLabel(item.iconName, item.productName || 'Product')}
+                <ProductLabel productId={item.productId} iconName={item.iconName} name={item.productName} hasImage={item.hasImage} size={16} />
                 <span style={{ color: 'var(--theme-primary)', marginLeft: 4 }}>×{item.quantity}</span>
               </Tag>
             ))}
@@ -482,11 +483,12 @@ const ProductionHistoryPage: React.FC = () => {
                     allowClear
                     showSearch
                     optionFilterProp="children"
+                    listHeight={190}
                     style={{ borderRadius: 6 }}
                   >
                     {products.map((prod: any) => (
                       <Select.Option key={prod.id} value={prod.id}>
-                        {getProductIconAndLabel(prod.iconName, prod.name)}
+                        <ProductLabel productId={prod.id} iconName={prod.iconName} name={prod.name} hasImage={prod.hasImage} size={18} />
                       </Select.Option>
                     ))}
                   </Select>
@@ -586,7 +588,7 @@ const ProductionHistoryPage: React.FC = () => {
                   dataIndex: 'productName',
                   key: 'productName',
                   render: (name: string, item: any) => (
-                    <span style={{ fontWeight: 600, color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, name || 'Product')}</span>
+                    <ProductLabel productId={item.productId} iconName={item.iconName} name={name} hasImage={item.hasImage} size={22} nameStyle={{ fontWeight: 600, color: '#0F172A' }} />
                   ),
                 },
                 {

@@ -84,6 +84,8 @@ function normalizeDetailsResponse(
   const productionHistory = rawHistory.map((item: any, idx: number) => ({
     id: item.id || `history-item-${idx}`,
     date: item.productionDate || item.date || '',
+    productId: item.productId,
+    iconName: item.iconName,
     productName: item.productName || '',
     quantity: Number(item.quantity ?? 0),
     rate: Number(item.rate ?? 0),
@@ -123,6 +125,8 @@ function normalizeDetailsResponse(
     const qty = Number(item.quantity ?? item.quantityProduced ?? 0);
     const earn = Number(item.earnings ?? item.totalEarnings ?? 0);
     return {
+      productId: item.productId,
+      iconName: item.iconName,
       productName: item.productName || '',
       quantityProduced: qty,
       totalEarnings: earn,
@@ -174,6 +178,8 @@ function normalizeDetailsResponse(
   // 6. Normalize current month product summary
   const rawCurrentMonthProd = Array.isArray(rawData.currentMonthProductSummary) ? rawData.currentMonthProductSummary : [];
   const currentMonthProductSummary = rawCurrentMonthProd.map((item: any) => ({
+    productId: item.productId,
+    iconName: item.iconName,
     productName: item.productName || '',
     quantity: Number(item.quantity ?? 0),
     earnings: Number(item.earnings ?? 0),

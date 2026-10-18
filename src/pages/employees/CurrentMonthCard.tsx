@@ -3,7 +3,7 @@ import { Card, Divider, Empty, Steps } from 'antd';
 import { WalletOutlined, AppstoreOutlined } from '@ant-design/icons';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { IEmployeeSummary, ICurrentMonthProductSummary } from '../../types/employee-details.types';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 const inr = (v: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v || 0);
@@ -90,7 +90,7 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
             current={-1}
             status="process"
             items={products.map((item) => ({
-              title: <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, item.productName)}</span>,
+              title: <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#0F172A' }}><ProductLabel productId={(item as any).productId} iconName={(item as any).iconName} name={item.productName} size={18} /></span>,
               description: (
                 <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 3, paddingBottom: 10 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

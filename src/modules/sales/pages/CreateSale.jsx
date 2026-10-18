@@ -43,6 +43,7 @@ import customerService from '../services/customerService';
 import productService from '../services/productService';
 import ScanBar from '../../qr/components/ScanBar';
 import { mergeScannedUnit } from '../../qr/scanCart';
+import { ProductThumb } from '../../../components/common/ProductLabel';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { useGstConfig } from '../../../contexts/AppSettingsContext';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -476,6 +477,7 @@ const CreateSale = () => {
                 value={null}
                 blurOnSelect
                 clearOnBlur
+                ListboxProps={{ style: { maxHeight: 260 } }}
                 popupIcon={<ArrowDropDownIcon />}
                 onChange={(e, value) => handleAddProduct(value)}
                 getOptionLabel={formatProductLabel}
@@ -547,9 +549,16 @@ const CreateSale = () => {
                             <TableCell sx={{ color: '#94A3B8', fontSize: '0.8rem' }}>{index + 1}</TableCell>
                             <TableCell>
                               <Stack direction="row" spacing={1.25} alignItems="center">
-                                <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <ShoppingBagOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 15 }} />
-                                </Box>
+                                <ProductThumb
+                                  productId={item.productId}
+                                  hasImage={item.hasImage}
+                                  size={30}
+                                  fallback={
+                                    <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      <ShoppingBagOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 15 }} />
+                                    </Box>
+                                  }
+                                />
                                 <Box sx={{ minWidth: 0 }}>
                                   <Typography sx={{ fontWeight: 600, fontSize: '0.86rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 230 }}>{item.productName}</Typography>
                                   <Typography variant="caption" sx={{ color: exceeded ? '#DC2626' : '#94A3B8' }}>
@@ -577,7 +586,7 @@ const CreateSale = () => {
                               ) : (
                                 // Typed line: enter the quantity directly (clamped to available stock).
                                 <TextField
-                                  type="number" size="small"
+                                  type="number" size="small" variant="standard"
                                   value={item.quantity}
                                   onFocus={(e) => e.target.select()}
                                   onChange={(e) => {
@@ -585,8 +594,11 @@ const CreateSale = () => {
                                     const v = Math.max(1, Math.min(Number(e.target.value) || 1, max));
                                     updateItem(index, { quantity: v });
                                   }}
-                                  inputProps={{ min: 1, max: item.quantityAvailable ?? undefined, style: { textAlign: 'center', width: 70, fontWeight: 700, padding: '5px 6px', color: exceeded ? '#DC2626' : '#0F172A' } }}
-                                  sx={{ '& .MuiInputBase-root': { bgcolor: '#fff' } }}
+                                  inputProps={{ min: 1, max: item.quantityAvailable ?? undefined, style: { textAlign: 'center', width: 70, fontWeight: 700, padding: '4px 6px', color: exceeded ? '#DC2626' : '#0F172A' } }}
+                                  sx={{
+                                    '& input[type=number]': { MozAppearance: 'textfield' },
+                                    '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                                  }}
                                 />
                               )}
                             </TableCell>
@@ -645,10 +657,10 @@ const CreateSale = () => {
             <Stack spacing={2}>
               <Box
                 onClick={() => { if (totalCostBasis > 0 && anyProductSelected) setProfitOpen(true); }}
-                sx={{ p: 2.25, borderRadius: 0, bgcolor: 'primary.main', color: '#fff', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
+                sx={{ p: 2.25, borderRadius: 0, bgcolor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
               >
-                <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5 }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 {totalDiscount > 0 && <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', mt: 0.25 }}>You saved {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>}
                 {totalCostBasis > 0 && anyProductSelected && (
                   <Tooltip title="View profit summary">

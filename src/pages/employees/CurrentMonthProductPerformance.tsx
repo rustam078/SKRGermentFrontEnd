@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Steps, Empty } from 'antd';
 import { ICurrentMonthProductSummary } from '../../types/employee-details.types';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 interface CurrentMonthProductPerformanceProps {
   data?: ICurrentMonthProductSummary[];
@@ -58,7 +58,7 @@ export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerform
           current={-1}
           status="process"
           items={data.map((item) => ({
-            title: <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, item.productName)}</span>,
+            title: <span style={{ fontWeight: 800, fontSize: '1rem', color: '#0F172A' }}><ProductLabel productId={(item as any).productId} iconName={(item as any).iconName} name={item.productName} size={18} /></span>,
             description: (
               <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

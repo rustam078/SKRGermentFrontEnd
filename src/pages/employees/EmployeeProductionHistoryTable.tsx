@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Table } from 'antd';
 import dayjs from 'dayjs';
 import { IProductionHistoryItem } from '../../types/employee-details.types';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 interface EmployeeProductionHistoryTableProps {
   data: IProductionHistoryItem[];
@@ -57,9 +57,7 @@ export const EmployeeProductionHistoryTable: React.FC<EmployeeProductionHistoryT
       key: 'productName',
       width: '25%',
       render: (name: string, record: IProductionHistoryItem) => (
-        <span style={{ fontWeight: 600, color: '#0F172A' }}>
-          {getProductIconAndLabel(record.iconName, name)}
-        </span>
+        <ProductLabel productId={(record as any).productId} iconName={(record as any).iconName} name={name} size={22} nameStyle={{ fontWeight: 600, color: '#0F172A' }} />
       ),
     },
     {

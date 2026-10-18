@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import ProductLabel from '../../components/common/ProductLabel';
 import { getCurrencySymbol } from '../../utils/currency';
 import {
   Alert,
@@ -248,7 +249,7 @@ const InventoryPage = () => {
                     ) : null}
                     {paginatedProducts.map((item) => (
                       <TableRow key={item.productId} hover>
-                        <TableCell>{item.productName}</TableCell>
+                        <TableCell><ProductLabel productId={item.productId} iconName={item.iconName} name={item.productName} hasImage={item.hasImage} size={28} round borderColor="var(--theme-primary)" /></TableCell>
                         <TableCell>
                           <Chip
                             label={item.source}

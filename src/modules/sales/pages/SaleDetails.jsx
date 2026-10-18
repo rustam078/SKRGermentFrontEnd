@@ -10,6 +10,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { notification, Tabs, Collapse, Pagination, Tag } from 'antd';
 import dayjs from 'dayjs';
+import ProductLabel from '../../../components/common/ProductLabel';
 import salesService from '../services/salesService';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { modeLabel } from '../../../utils/payment';
@@ -218,7 +219,7 @@ const SaleDetails = () => {
                   <TableRow><TableCell colSpan={5} align="center" sx={{ color: '#94A3B8', py: 4 }}>No items</TableCell></TableRow>
                 ) : items.map((it, i) => (
                   <TableRow key={it.productId || i} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{it.productName || 'Product'}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}><ProductLabel productId={it.productId} iconName={it.iconName} name={it.productName} hasImage={it.hasImage} size={22} /></TableCell>
                     <TableCell align="right">{Number(it.quantity || 0)}</TableCell>
                     <TableCell align="right">{inr(it.sellingPrice)}</TableCell>
                     <TableCell align="right">{inr(it.discount)}</TableCell>

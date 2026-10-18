@@ -31,7 +31,6 @@ import {
 import {
   PlusOutlined,
   ArrowLeftOutlined,
-  EyeOutlined,
   EditOutlined,
   StopOutlined,
   CheckCircleOutlined,
@@ -1055,7 +1054,7 @@ const InvestmentPage = () => {
             <Button
               type="text"
               size="small"
-              icon={<DownloadOutlined />}
+              icon={<DownloadOutlined style={{ fontSize: 17, fontWeight: 700 }} />}
               onClick={(e) => {
                 e.stopPropagation();
                 investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((err) =>
@@ -1067,10 +1066,7 @@ const InvestmentPage = () => {
                 );
               }}
               style={{
-                color: '#16A34A',
-                backgroundColor: '#F0FDF4',
-                border: '1px solid color-mix(in srgb, var(--theme-primary) 30%, white)',
-                borderRadius: '50%',
+                color: 'var(--theme-primary)',
                 width: 30,
                 height: 30,
                 display: 'flex',
@@ -1153,32 +1149,13 @@ const InvestmentPage = () => {
       width: 130,
       render: (_, record) => (
         <Space size={6}>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => handleOpenVendorDrawer(record)}
-              style={{
-                color: 'var(--theme-primary)',
-                backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
-                border: '1px solid #BFDBFE',
-                borderRadius: 6,
-                width: 28,
-                height: 28,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            />
-          </Tooltip>
           {can('investment', 'write') && (
           <Tooltip title="Edit Vendor">
             <Button
               type="text"
               size="small"
               icon={<EditOutlined />}
-              onClick={() => handleOpenEditVendor(record)}
+              onClick={(e) => { e.stopPropagation(); handleOpenEditVendor(record); }}
               style={{
                 color: 'var(--theme-primary)',
                 backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
@@ -1199,7 +1176,7 @@ const InvestmentPage = () => {
                 type="text"
                 size="small"
                 icon={<StopOutlined />}
-                onClick={() => toggleVendorStatusMutation.mutate({ id: record.id, active: false })}
+                onClick={(e) => { e.stopPropagation(); toggleVendorStatusMutation.mutate({ id: record.id, active: false }); }}
                 loading={toggleVendorStatusMutation.isPending}
                 style={{
                   color: '#EA580C',
@@ -1220,7 +1197,7 @@ const InvestmentPage = () => {
                 type="text"
                 size="small"
                 icon={<CheckCircleOutlined />}
-                onClick={() => toggleVendorStatusMutation.mutate({ id: record.id, active: true })}
+                onClick={(e) => { e.stopPropagation(); toggleVendorStatusMutation.mutate({ id: record.id, active: true }); }}
                 loading={toggleVendorStatusMutation.isPending}
                 style={{
                   color: 'var(--theme-primary)',
@@ -1608,11 +1585,47 @@ const InvestmentPage = () => {
                     Investment
                     <HeadingInfo text="Manage raw material purchases, purchased products and business expenses." />
                   </div>
+                  {/* Inline summary stats (left of the filter) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: 8, color: '#334155', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <span>
+                      <span style={{ color: 'var(--theme-primary)' }}>Current Month:</span>
+                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
+                      <span style={{ marginLeft: 8, fontSize: '0.78rem', color: currentMonthInvestment >= previousMonthInvestment ? 'var(--theme-primary)' : '#DC2626', fontWeight: 700 }}>
+                        {previousMonthInvestment === 0
+                          ? currentMonthInvestment === 0 ? '0%' : 'New'
+                          : `${currentMonthInvestment >= previousMonthInvestment ? '+' : ''}${(((currentMonthInvestment - previousMonthInvestment) / previousMonthInvestment) * 100).toFixed(1)}%`}
+                      </span>
+                    </span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span>
+                      <span style={{ color: 'var(--theme-primary)' }}>Total Investment:</span>
+                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
+                    </span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span>
+                      <span style={{ color: 'var(--theme-primary)' }}>Purchase:</span>
+                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
+                    </span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span>
+                      <span style={{ color: 'var(--theme-primary)' }}>Overhead:</span>
+                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
+                    </span>
+                    <span style={{ color: '#CBD5E1' }}>|</span>
+                    <span
+                      onClick={() => setAppliedFilters((p) => ({ ...p, paymentStatus: p.paymentStatus === 'DUE' ? undefined : 'DUE' }))}
+                      title="Click to show only records with a pending due"
+                      style={{ cursor: 'pointer', textDecoration: appliedFilters.paymentStatus === 'DUE' ? 'underline' : 'none' }}
+                    >
+                      <span style={{ color: '#B91C1C' }}>Due:</span>
+                      <span style={{ marginLeft: 6, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
+                    </span>
+                  </div>
                 </div>
                 <Space size={10}>
                   <Popover
                     trigger="click"
-                    placement="bottomRight"
+                    placement="leftTop"
                     open={filterOpen}
                     onOpenChange={setFilterOpen}
                     content={
@@ -1713,65 +1726,6 @@ const InvestmentPage = () => {
                   </Button>
                   )}
                 </Space>
-              </div>
-
-              {/* Summary Row */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '10px',
-                  marginBottom: 24,
-                  color: '#334155',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                }}
-              >
-                <span>
-                  <span style={{ color: 'var(--theme-primary)' }}>Current Month:</span>
-                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
-                  <span
-                    style={{
-                      marginLeft: 10,
-                      fontSize: '0.82rem',
-                      color: currentMonthInvestment >= previousMonthInvestment ? 'var(--theme-primary)' : '#DC2626',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {previousMonthInvestment === 0
-                      ? currentMonthInvestment === 0
-                        ? '0%'
-                        : 'New'
-                      : `${currentMonthInvestment >= previousMonthInvestment ? '+' : ''}${(
-                          ((currentMonthInvestment - previousMonthInvestment) / previousMonthInvestment) * 100
-                        ).toFixed(1)}%`}
-                  </span>
-                </span>
-                <span style={{ color: '#CBD5E1' }}>|</span>
-                <span>
-                  <span style={{ color: 'var(--theme-primary)' }}>Total Investment:</span>
-                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
-                </span>
-                <span style={{ color: '#CBD5E1' }}>|</span>
-                <span>
-                  <span style={{ color: 'var(--theme-primary)' }}>Purchase:</span>
-                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
-                </span>
-                <span style={{ color: '#CBD5E1' }}>|</span>
-                <span>
-                  <span style={{ color: 'var(--theme-primary)' }}>Overhead:</span>
-                  <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
-                </span>
-                <span style={{ color: '#CBD5E1' }}>|</span>
-                <span
-                  onClick={() => setAppliedFilters((p) => ({ ...p, paymentStatus: p.paymentStatus === 'DUE' ? undefined : 'DUE' }))}
-                  title="Click to show only records with a pending due"
-                  style={{ cursor: 'pointer', textDecoration: appliedFilters.paymentStatus === 'DUE' ? 'underline' : 'none' }}
-                >
-                  <span style={{ color: '#B91C1C' }}>Due:</span>
-                  <span style={{ marginLeft: 6, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
-                </span>
               </div>
 
               {/* Investments Table — flush to the outer card (cancels the 24px wrapper padding) */}
@@ -1893,6 +1847,10 @@ const InvestmentPage = () => {
                   dataSource={filteredVendors.map((v) => ({ ...v, key: v.id }))}
                   columns={vendorColumns}
                   loading={vendorsLoading}
+                  onRow={(record) => ({
+                    onClick: () => handleOpenVendorDrawer(record),
+                    style: { cursor: 'pointer' },
+                  })}
                   pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,

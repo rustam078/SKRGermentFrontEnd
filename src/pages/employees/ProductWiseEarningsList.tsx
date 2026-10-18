@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from 'antd';
 import { IProductSummary } from '../../types/employee-details.types';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 interface ProductWiseEarningsListProps {
   data: IProductSummary[];
@@ -64,7 +64,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
             >
               <div>
                 <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '0.9rem', textTransform: 'capitalize' }}>
-                  {getProductIconAndLabel(item.iconName, item.productName)}
+                  <ProductLabel productId={(item as any).productId} iconName={(item as any).iconName} name={item.productName} size={20} />
                 </div>
                 <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: 2, fontWeight: 500 }}>
                   {item.quantityProduced.toLocaleString('en-IN')} Pcs

@@ -42,7 +42,7 @@ import { EmployeeEarningsChart } from './EmployeeEarningsChart';
 import { EmployeeProductChart } from './EmployeeProductChart';
 import { CurrentMonthCard } from './CurrentMonthCard';
 import HeadingInfo from '../../components/common/HeadingInfo';
-import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 
 const { RangePicker } = DatePicker;
 
@@ -756,7 +756,7 @@ const EmployeeDetailsPage: React.FC = () => {
               }}
             >
               <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 700, color: '#1E293B', textTransform: 'capitalize' }}>
-                {getProductIconAndLabel(item.iconName, item.productName)}
+                <ProductLabel productId={item.productId} iconName={item.iconName} name={item.productName} size={20} />
               </h4>
               <Row gutter={[12, 6]}>
                 <Col span={8}>

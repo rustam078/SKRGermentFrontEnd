@@ -50,11 +50,11 @@ import ReportDownloadDialog from '../../components/common/ReportDownloadDialog';
 import { employeeService } from '../../services/employee.service';
 import { productService } from '../../services/productService';
 import { getProductIconAndLabel } from '../../utils/product-icons';
+import ProductLabel from '../../components/common/ProductLabel';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
-import { useThemeColor } from '../../contexts/ThemeColorContext';
 
 const ProductionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +63,6 @@ const ProductionPage: React.FC = () => {
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
 
-  const { primary } = useThemeColor(); // app theme color for the Total Amount panel
 
   // Responsive Drawer width tracking
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -499,9 +498,9 @@ const ProductionPage: React.FC = () => {
             {shown.map((item, i) => (
               <Tag
                 key={i}
-                style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px' }}
+                style={{ margin: 0, borderRadius: 6, background: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600, padding: '1px 8px', display: 'inline-flex', alignItems: 'center' }}
               >
-                {getProductIconAndLabel(item.iconName, item.productName || 'Product')}
+                <ProductLabel productId={item.productId} iconName={item.iconName} name={item.productName} hasImage={item.hasImage} size={16} />
                 <span style={{ color: 'var(--theme-primary)', marginLeft: 4 }}>×{item.quantity}</span>
               </Tag>
             ))}
@@ -675,11 +674,11 @@ const ProductionPage: React.FC = () => {
                       label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Product</span>}
                       style={{ marginBottom: 16 }}
                     >
-                      <Select placeholder="Product" allowClear showSearch optionFilterProp="children">
+                      <Select placeholder="Product" allowClear showSearch optionFilterProp="children" listHeight={190}>
                         {products.filter((p: any) => p.active && p.source != 'PURCHASED')
                           .map((p: any) => (
                             <Select.Option key={p.id} value={p.id}>
-                              {getProductIconAndLabel(p.iconName, p.name)}
+                              <ProductLabel productId={p.id} iconName={p.iconName} name={p.name} hasImage={p.hasImage} size={18} />
                             </Select.Option>
                           ))}
                       </Select>
@@ -914,13 +913,14 @@ const ProductionPage: React.FC = () => {
                                 onChange={(val) => handleProductChange(val, idx)}
                                 showSearch
                                 optionFilterProp="children"
+                                listHeight={190}
                                 style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
                               >
                                 {products
                                   .filter((p: any) => p.active && p.source != 'PURCHASED')
                                   .map((p: any) => (
                                     <Select.Option key={p.id} value={p.id}>
-                                      {getProductIconAndLabel(p.iconName, p.name)}
+                                      <ProductLabel productId={p.id} iconName={p.iconName} name={p.name} hasImage={p.hasImage} size={18} />
                                     </Select.Option>
                                   ))}
                               </Select>
@@ -1024,12 +1024,12 @@ const ProductionPage: React.FC = () => {
 
             {/* Live Summary Panel — monochrome, matches the sale form */}
             <div style={{ marginTop: 12 }}>
-              {/* Total Amount hero */}
-              <div style={{ backgroundColor: primary, padding: '16px 20px' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {/* Total Amount hero — light theme tint (consistent with sale & investment) */}
+              <div style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)', padding: '16px 20px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Total Amount
                 </div>
-                <div style={{ color: '#FFFFFF', fontWeight: 800, fontSize: '1.9rem', lineHeight: 1.2, marginTop: 4 }}>
+                <div style={{ color: 'var(--theme-primary)', fontWeight: 800, fontSize: '1.9rem', lineHeight: 1.2, marginTop: 4 }}>
                   {formatCurrency(liveTotalAmount)}
                 </div>
               </div>
@@ -1079,7 +1079,7 @@ const ProductionPage: React.FC = () => {
                   dataIndex: 'productName',
                   key: 'productName',
                   render: (name: string, item: any) => (
-                    <span style={{ fontWeight: 600, color: '#0F172A' }}>{getProductIconAndLabel(item.iconName, name || 'Product')}</span>
+                    <ProductLabel productId={item.productId} iconName={item.iconName} name={name} hasImage={item.hasImage} size={22} nameStyle={{ fontWeight: 600, color: '#0F172A' }} />
                   ),
                 },
                 {
