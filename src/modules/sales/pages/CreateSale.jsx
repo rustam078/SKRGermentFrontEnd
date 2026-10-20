@@ -25,6 +25,8 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -109,6 +111,7 @@ const CreateSale = () => {
   const [profitOpen, setProfitOpen] = useState(false); // profit summary side panel
   const [discountText, setDiscountText] = useState('0'); // ₹ amount field text (stored truth = formValues.discount)
   const [pctText, setPctText] = useState('0'); // % field text; the two fields convert into each other
+  const [discountMode, setDiscountMode] = useState('PERCENT'); // single field toggles ₹ / % (auto-converts)
   const [previousDue, setPreviousDue] = useState(0); // this customer's outstanding from past sales
   const [receivedText, setReceivedText] = useState('0'); // amount received now (text so no arrows/scroll)
 
@@ -533,7 +536,7 @@ const CreateSale = () => {
                         <TableCell sx={{ width: 26 }}>#</TableCell>
                         <TableCell>Product</TableCell>
                         <TableCell align="center" sx={{ width: 140 }}>Qty</TableCell>
-                        <TableCell align="right" sx={{ width: 150 }}>Price (FIFO)</TableCell>
+                        <TableCell align="right" sx={{ width: 150 }}>MRP</TableCell>
                         <TableCell align="right" sx={{ width: 100 }}>Total</TableCell>
                         <TableCell sx={{ width: 40 }} />
                       </TableRow>
@@ -672,24 +675,26 @@ const CreateSale = () => {
               <Stack spacing={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography>
-                  <Stack direction="row" spacing={1.25} alignItems="center">
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <ToggleButtonGroup
+                      size="small" exclusive value={discountMode}
+                      onChange={(e, v) => { if (v) setDiscountMode(v); }}
+                      disabled={!anyProductSelected}
+                      sx={{ '& .MuiToggleButton-root': { px: 1, py: 0.1, minWidth: 28, fontWeight: 700, lineHeight: 1.6, color: '#64748B', '&.Mui-selected': { color: 'var(--theme-primary)', bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' } } }}
+                    >
+                      <ToggleButton value="PERCENT">%</ToggleButton>
+                      <ToggleButton value="AMOUNT">{getCurrencySymbol()}</ToggleButton>
+                    </ToggleButtonGroup>
                     <TextField
                       type="text" inputMode="decimal" size="small" variant="standard"
-                      value={discountText}
+                      value={discountMode === 'PERCENT' ? pctText : discountText}
                       disabled={!anyProductSelected}
-                      onChange={(e) => handleDiscountAmount(e.target.value)}
+                      onChange={(e) => (discountMode === 'PERCENT' ? handleDiscountPercent(e.target.value) : handleDiscountAmount(e.target.value))}
                       onFocus={(e) => e.target.select()}
-                      InputProps={{ startAdornment: <Typography sx={{ color: '#DC2626', mr: 0.5, fontSize: '0.9rem' }}>− {getCurrencySymbol()}</Typography> }}
-                      inputProps={{ style: { textAlign: 'right', width: 74, fontWeight: 700, color: '#DC2626' } }}
-                    />
-                    <TextField
-                      type="text" inputMode="decimal" size="small" variant="standard"
-                      value={pctText}
-                      disabled={!anyProductSelected}
-                      onChange={(e) => handleDiscountPercent(e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      InputProps={{ endAdornment: <Typography sx={{ color: '#DC2626', ml: 0.25, fontSize: '0.9rem' }}>%</Typography> }}
-                      inputProps={{ style: { textAlign: 'right', width: 46, fontWeight: 700, color: '#DC2626' } }}
+                      InputProps={discountMode === 'PERCENT'
+                        ? { endAdornment: <Typography sx={{ color: '#DC2626', ml: 0.25, fontSize: '0.9rem' }}>%</Typography> }
+                        : { startAdornment: <Typography sx={{ color: '#DC2626', mr: 0.5, fontSize: '0.9rem' }}>− {getCurrencySymbol()}</Typography> }}
+                      inputProps={{ style: { textAlign: 'right', width: 70, fontWeight: 700, color: '#DC2626' } }}
                     />
                   </Stack>
                 </Box>

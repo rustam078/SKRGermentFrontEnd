@@ -144,6 +144,16 @@ const InventoryPage = () => {
     () => filteredProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [filteredProducts, page, rowsPerPage]
   );
+  // Top summary: total current stock + its total buying value (qty × average cost).
+  const inventorySummary = useMemo(() => {
+    let stock = 0, value = 0;
+    for (const p of filteredProducts) {
+      const s = Number(p.currentStock ?? 0);
+      stock += s;
+      value += s * Number(p.averageCost ?? 0);
+    }
+    return { stock, value };
+  }, [filteredProducts]);
 
   useEffect(() => {
     setPage(0);
@@ -197,6 +207,19 @@ const InventoryPage = () => {
           )}
         </Stack>
       </Stack>
+
+      {/* Top summary — pipe-separated text, like other modules */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', mb: 2, color: '#334155', fontSize: '0.95rem', fontWeight: 600 }}>
+        <span>
+          <span style={{ color: 'var(--theme-primary)' }}>Total Stock:</span>
+          <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{inventorySummary.stock.toLocaleString('en-IN', { maximumFractionDigits: 2 })} pcs</span>
+        </span>
+        <span style={{ color: '#CBD5E1' }}>|</span>
+        <span>
+          <span style={{ color: 'var(--theme-primary)' }}>Total Buying Value:</span>
+          <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{inventorySummary.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+        </span>
+      </Box>
 
       <Card>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>

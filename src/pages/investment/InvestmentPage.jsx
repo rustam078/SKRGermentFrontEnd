@@ -275,7 +275,7 @@ const InvestmentPage = () => {
 
   // GST is entered as a percent. Use the user's override % once edited, else the default %.
   // The rupee amount is derived from the subtotal and snapshotted into the invoice on save.
-  const effectiveGstRate = gstManual ? (gstRate || 0) : (gstPercent || 0);
+  const effectiveGstRate = gstRate || 0; // user enters GST % manually; no auto-fill
   useEffect(() => {
     if (selectedType === 'OVERHEAD') return;
     const auto = Math.round((subtotal * effectiveGstRate / 100) * 100) / 100;
@@ -1585,31 +1585,26 @@ const InvestmentPage = () => {
                     Investment
                     <HeadingInfo text="Manage raw material purchases, purchased products and business expenses." />
                   </div>
-                  {/* Inline summary stats (left of the filter) */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: 8, color: '#334155', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {/* Compact inline summary (left of the filter) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginTop: 6, color: '#334155', fontSize: '0.78rem', fontWeight: 600 }}>
                     <span>
                       <span style={{ color: 'var(--theme-primary)' }}>Current Month:</span>
-                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
-                      <span style={{ marginLeft: 8, fontSize: '0.78rem', color: currentMonthInvestment >= previousMonthInvestment ? 'var(--theme-primary)' : '#DC2626', fontWeight: 700 }}>
-                        {previousMonthInvestment === 0
-                          ? currentMonthInvestment === 0 ? '0%' : 'New'
-                          : `${currentMonthInvestment >= previousMonthInvestment ? '+' : ''}${(((currentMonthInvestment - previousMonthInvestment) / previousMonthInvestment) * 100).toFixed(1)}%`}
-                      </span>
+                      <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
-                      <span style={{ color: 'var(--theme-primary)' }}>Total Investment:</span>
-                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
+                      <span style={{ color: 'var(--theme-primary)' }}>Total:</span>
+                      <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
                       <span style={{ color: 'var(--theme-primary)' }}>Purchase:</span>
-                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
+                      <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
                       <span style={{ color: 'var(--theme-primary)' }}>Overhead:</span>
-                      <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
+                      <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span
@@ -1618,11 +1613,11 @@ const InvestmentPage = () => {
                       style={{ cursor: 'pointer', textDecoration: appliedFilters.paymentStatus === 'DUE' ? 'underline' : 'none' }}
                     >
                       <span style={{ color: '#B91C1C' }}>Due:</span>
-                      <span style={{ marginLeft: 6, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
+                      <span style={{ marginLeft: 4, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
                     </span>
                   </div>
                 </div>
-                <Space size={10}>
+                <Space size={10} style={{ flexShrink: 0 }}>
                   <Popover
                     trigger="click"
                     placement="leftTop"
@@ -2011,9 +2006,9 @@ const InvestmentPage = () => {
             {/* Totals Card */}
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '12px 16px' }}>
               {[
-                { label: 'Subtotal', value: investmentDetail.subtotal, color: '#0F172A' },
-                { label: 'GST', value: investmentDetail.gst, color: '#0F172A' },
-                { label: 'Discount', value: investmentDetail.discount, color: '#DC2626', prefix: '− ' },
+                { label: 'Subtotal', value: investmentDetail.subTotal, color: '#0F172A' },
+                { label: 'GST', value: investmentDetail.gstAmount, color: '#0F172A' },
+                { label: 'Discount', value: investmentDetail.discountAmount, color: '#DC2626', prefix: '− ' },
               ].map(({ label, value, color, prefix }) => (
                 <div
                   key={label}
@@ -2249,7 +2244,7 @@ const InvestmentPage = () => {
                         min={0}
                         max={100}
                         precision={2}
-                        value={gstManual ? gstRate : gstPercent}
+                        value={gstRate}
                         onChange={(v) => { setGstRate(v ?? 0); setGstManual(true); }}
                         style={{ width: '100%', borderRadius: 8 }}
                         size="middle"
