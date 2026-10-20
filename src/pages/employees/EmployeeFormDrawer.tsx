@@ -74,7 +74,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
         </span>
       }
       placement="right"
-      width={700}
+      width={500}
       onClose={onClose}
       open={visible}
       bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
@@ -115,6 +115,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
         <Form.Item
           name="email"
           label={<span style={{ fontWeight: 600, color: '#475569' }}>Email</span>}
+          validateTrigger="onBlur"
           rules={[
             { required: true, message: 'Email is required.' },
             { type: 'email', message: 'Please enter a valid email format.' },
@@ -126,6 +127,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
         <Form.Item
           name="mobileNumber"
           label={<span style={{ fontWeight: 600, color: '#475569' }}>Mobile Number</span>}
+          validateTrigger="onBlur"
           rules={[
             {
               pattern: /^\d*$/,

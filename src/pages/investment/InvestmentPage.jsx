@@ -2560,7 +2560,11 @@ const InvestmentPage = () => {
         >
           <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '18px 20px' }}>
             <Row gutter={[16, 0]}>
-              <Col xs={24} sm={16}>
+              {/* New vendors are Active by default; status is toggled from the vendor list. */}
+              <Form.Item name="active" initialValue={true} hidden>
+                <Input />
+              </Form.Item>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="name"
                   label={<span style={{ fontWeight: 700, color: '#374151' }}>Vendor Name *</span>}
@@ -2569,20 +2573,20 @@ const InvestmentPage = () => {
                   <Input placeholder="Enter vendor name" style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={12}>
                 <Form.Item
-                  name="active"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Status *</span>}
-                  rules={[{ required: true }]}
-                  initialValue={true}
+                  name="mobile"
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Phone *</span>}
+                  validateTrigger="onBlur"
+                  rules={[
+                    { required: true, message: 'Phone is required.' },
+                    { pattern: /^\d{10}$/, message: 'Enter a valid 10-digit number' },
+                  ]}
                 >
-                  <Select style={{ borderRadius: 8 }} size="large">
-                    <Option value={true}>Active</Option>
-                    <Option value={false}>Inactive</Option>
-                  </Select>
+                  <Input placeholder="Enter phone number" maxLength={10} style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
-              <Col xs={24}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="gstNumber"
                   label={<span style={{ fontWeight: 700, color: '#374151' }}>GST Number</span>}
@@ -2592,17 +2596,9 @@ const InvestmentPage = () => {
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
-                  name="mobile"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Phone *</span>}
-                  rules={[{ required: true, message: 'Phone is required.' }]}
-                >
-                  <Input placeholder="Enter phone number" style={{ borderRadius: 8 }} size="large" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
                   name="email"
                   label={<span style={{ fontWeight: 700, color: '#374151' }}>Email</span>}
+                  validateTrigger="onBlur"
                   rules={[{ type: 'email', message: 'Please enter a valid email.' }]}
                 >
                   <Input placeholder="Enter email address" style={{ borderRadius: 8 }} size="large" />

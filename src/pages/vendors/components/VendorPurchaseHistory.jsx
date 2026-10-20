@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Typography, Empty, Button, Input, DatePicker, Space, Pagination, Tag, Popover, Badge } from 'antd';
+import { Typography, Empty, Button, Input, DatePicker, Space, Pagination, Tag, Popover, Badge, Select } from 'antd';
 import { ShoppingOutlined, PlusOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -17,6 +17,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
   const { can } = usePermissions();
   const [searchText, setSearchText] = useState('');
   const [dateRange, setDateRange] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(undefined);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter from ALL records (not paginated)
@@ -41,8 +42,15 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
       });
     }
 
+    // Filter by payment status — Unpaid also includes partially-paid (anything still owing).
+    if (paymentStatus === 'PAID') {
+      result = result.filter((inv) => (inv.paymentStatus || 'PENDING') === 'PAID');
+    } else if (paymentStatus === 'UNPAID') {
+      result = result.filter((inv) => (inv.paymentStatus || 'PENDING') !== 'PAID');
+    }
+
     return result;
-  }, [invoices, searchText, dateRange]);
+  }, [invoices, searchText, dateRange, paymentStatus]);
 
   // Paginate the filtered results
   const totalFiltered = filteredInvoices.length;
@@ -61,7 +69,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
     setCurrentPage(1); // reset page on filter
   };
 
-  const hasFilters = searchText.trim() || (dateRange && dateRange[0]);
+  const hasFilters = searchText.trim() || (dateRange && dateRange[0]) || paymentStatus;
 
   if (!invoices || invoices.length === 0) {
     return (
@@ -152,11 +160,23 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
                 onChange={handleDateChange}
                 style={{ borderRadius: 6, width: '100%', marginBottom: 12 }}
               />
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Payment Status</div>
+              <Select
+                placeholder="All Payments"
+                allowClear
+                value={paymentStatus}
+                onChange={(v) => { setPaymentStatus(v); setCurrentPage(1); }}
+                style={{ width: '100%', marginBottom: 12 }}
+                options={[
+                  { value: 'PAID', label: 'Paid' },
+                  { value: 'UNPAID', label: 'Unpaid (incl. partial)' },
+                ]}
+              />
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
                   size="small"
                   disabled={!hasFilters}
-                  onClick={() => { setSearchText(''); setDateRange(null); setCurrentPage(1); }}
+                  onClick={() => { setSearchText(''); setDateRange(null); setPaymentStatus(undefined); setCurrentPage(1); }}
                   style={{ borderRadius: 6, color: '#64748B' }}
                 >
                   Clear
@@ -165,7 +185,7 @@ const VendorPurchaseHistory = ({ invoices = [], onAddInvestment }) => {
             </div>
           }
         >
-          <Badge count={(searchText.trim() ? 1 : 0) + (dateRange && dateRange[0] ? 1 : 0)} size="small">
+          <Badge count={(searchText.trim() ? 1 : 0) + (dateRange && dateRange[0] ? 1 : 0) + (paymentStatus ? 1 : 0)} size="small">
             <Button icon={<FilterOutlined />} style={{ borderRadius: 8 }}>Filters</Button>
           </Badge>
         </Popover>

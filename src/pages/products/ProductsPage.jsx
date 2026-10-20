@@ -821,15 +821,15 @@ const ProductsPage = () => {
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map(({ key, name, ...restField }) => (
-                      <div key={key} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                      <div key={key} style={{ display: 'flex', gap: 12, marginBottom: 8, alignItems: 'flex-start' }}>
                         <Form.Item
                           {...restField}
                           name={[name, 'code']}
-                          style={{ flex: 2, marginBottom: 0 }}
+                          style={{ flex: 1, marginBottom: 0 }}
                           getValueFromEvent={(e) => (e.target.value || '').toUpperCase()}
                           rules={[{ required: true, message: 'Code required' }, { whitespace: true, message: 'Code required' }]}
                         >
-                          <Input placeholder="Piece code" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                          <Input placeholder="Piece code" size="large" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
                         </Form.Item>
                         <Form.Item
                           {...restField}
@@ -837,7 +837,7 @@ const ProductsPage = () => {
                           style={{ flex: 1, marginBottom: 0 }}
                           rules={[{ required: true, message: 'Rate required' }]}
                         >
-                          <InputNumber min={0.01} placeholder="Rate" addonBefore={getCurrencySymbol()} style={{ width: '100%' }} />
+                          <InputNumber min={0.01} placeholder="0" size="large" addonBefore={getCurrencySymbol()} style={{ width: '100%' }} />
                         </Form.Item>
                         {fields.length > 1 && (
                           <Button type="text" danger icon={<MinusCircleOutlined />} onClick={() => remove(name)} style={{ marginTop: 2 }} />

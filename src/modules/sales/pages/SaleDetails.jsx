@@ -8,6 +8,12 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import CalculateOutlinedIcon from '@mui/icons-material/CalculateOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { notification, Tabs, Collapse, Pagination, Tag } from 'antd';
 import dayjs from 'dayjs';
 import ProductLabel from '../../../components/common/ProductLabel';
@@ -36,6 +42,19 @@ const MetaBlock = ({ label, children }) => (
   </Box>
 );
 
+// One of the three info cards (Billed To / Payment / Order).
+const InfoCard = ({ icon, label, children }) => (
+  <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 2, display: 'flex', gap: 1.5, alignItems: 'flex-start', height: '100%' }}>
+    <Box sx={{ width: 40, height: 40, borderRadius: 0, flexShrink: 0, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', color: 'var(--theme-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {icon}
+    </Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: '0.66rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.25 }}>{label}</Typography>
+      {children}
+    </Box>
+  </Paper>
+);
+
 const SaleDetails = () => {
   const navigate = useNavigate();
   const { saleId } = useParams();
@@ -43,6 +62,7 @@ const SaleDetails = () => {
   const [downloading, setDownloading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('details');
+  const [productSearch, setProductSearch] = useState(''); // search within this invoice's products
 
   const { data: sale, isLoading, error } = useQuery({
     queryKey: ['saleDetails', saleId],
@@ -154,147 +174,169 @@ const SaleDetails = () => {
         items={[{ key: 'details', label: 'Details' }, { key: 'history', label: 'Customer Payment History' }]}
       />
 
-      {/* Invoice card */}
-      {activeTab === 'details' && (
-      <Paper sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', overflow: 'hidden' }}>
-        {/* Top banner */}
-        <Box sx={{ p: 3, background: 'linear-gradient(135deg, #F8FAFC 0%, color-mix(in srgb, var(--theme-primary) 12%, white) 100%)', borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={8}>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--theme-primary)', letterSpacing: '1px' }}>
-                {companyName || 'SKR Garment'}
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', mt: 0.5 }}>
-                Invoice {invoiceNo}
-              </Typography>
-              <Typography sx={{ color: '#64748B', mt: 0.5 }}>{saleDate} · {paymentMode}</Typography>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Stack spacing={1} alignItems={{ xs: 'flex-start', md: 'flex-end' }}>
-                <Chip label={status} color={STATUS_COLOR[inv.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />
-                <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8' }}>Grand Total</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{inr(inv.grandTotal)}</Typography>
-              </Stack>
-            </Grid>
-          </Grid>
-        </Box>
+      {/* Invoice details */}
+      {activeTab === 'details' && (() => {
+        const q = productSearch.trim().toLowerCase();
+        const shownItems = q ? items.filter((it) => (it.productName || '').toLowerCase().includes(q)) : items;
+        const CARD_H = 470;
+        return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Hero */}
+          <Paper sx={{ borderRadius: 0, border: '1px solid color-mix(in srgb, var(--theme-primary) 20%, white)', boxShadow: 'none', p: 2.5, background: 'linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 16%, white) 0%, color-mix(in srgb, var(--theme-primary) 5%, white) 100%)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box sx={{ width: 56, height: 56, borderRadius: 0, bgcolor: 'var(--theme-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ReceiptLongOutlinedIcon sx={{ color: '#fff', fontSize: 30 }} />
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#0F172A', lineHeight: 1.2 }}>{companyName || 'SKR Garment'}</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#334155' }}>Invoice {invoiceNo}</Typography>
+                <Typography sx={{ color: '#64748B', fontSize: '0.85rem', mt: 0.25 }}>{saleDate} • {paymentMode}</Typography>
+              </Box>
+            </Stack>
+            <Stack alignItems="flex-end" spacing={0.75}>
+              <Chip
+                icon={inv.paymentStatus === 'PAID' ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : undefined}
+                label={status}
+                color={STATUS_COLOR[inv.paymentStatus] || 'default'}
+                sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}
+              />
+              <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Grand Total</Typography>
+              <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: 'var(--theme-primary)', lineHeight: 1 }}>{inr(inv.grandTotal)}</Typography>
+            </Stack>
+          </Paper>
 
-        {/* Meta */}
-        <Box sx={{ p: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={4}>
-              <MetaBlock label="Billed To">
+          {/* Info cards */}
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={<PersonOutlineIcon />} label="Billed To">
                 <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{inv.customerName || '-'}</Typography>
                 <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.customerMobile || '-'}</Typography>
-                {inv.customerEmail && <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.customerEmail}</Typography>}
-              </MetaBlock>
+                {inv.customerEmail && <Typography sx={{ color: '#64748B', fontSize: '0.85rem', wordBreak: 'break-all' }}>{inv.customerEmail}</Typography>}
+              </InfoCard>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <MetaBlock label="Payment">
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={<CreditCardOutlinedIcon />} label="Payment">
                 <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{paymentMode}</Typography>
-                <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.paymentProvider || 'No provider'}</Typography>
-              </MetaBlock>
+                {inv.paymentProvider && <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.paymentProvider}</Typography>}
+              </InfoCard>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <MetaBlock label="Order">
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={<Inventory2OutlinedIcon />} label="Order">
                 <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{items.length} item{items.length === 1 ? '' : 's'}</Typography>
-              </MetaBlock>
+              </InfoCard>
             </Grid>
           </Grid>
 
-          {/* Items */}
-          <TableContainer sx={{ mt: 3, mx: -3, width: 'auto', borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', borderRadius: 0 }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ '& th': { backgroundColor: '#E2E8F0', color: '#334155', fontWeight: 700 } }}>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="right">Qty</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="right">Discount</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {items.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} align="center" sx={{ color: '#94A3B8', py: 4 }}>No items</TableCell></TableRow>
-                ) : items.map((it, i) => (
-                  <TableRow key={it.productId || i} hover>
-                    <TableCell sx={{ fontWeight: 600 }}><ProductLabel productId={it.productId} iconName={it.iconName} name={it.productName} hasImage={it.hasImage} size={22} /></TableCell>
-                    <TableCell align="right">{Number(it.quantity || 0)}</TableCell>
-                    <TableCell align="right">{inr(it.sellingPrice)}</TableCell>
-                    <TableCell align="right">{inr(it.discount)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(it.lineTotal)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {/* Products (left) + Amount Summary (right) — equal fixed height */}
+          <Grid container spacing={2} alignItems="stretch">
+            <Grid item xs={12} md={8}>
+              <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: { md: CARD_H }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Inventory2OutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Products ({items.length})</Typography>
+                </Box>
+                <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow sx={{ '& th': { backgroundColor: '#F1F5F9', color: '#334155', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.03em' } }}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Product</TableCell>
+                        <TableCell align="right">Qty</TableCell>
+                        <TableCell align="right">Price</TableCell>
+                        <TableCell align="right">Discount</TableCell>
+                        <TableCell align="right">Amount</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {shownItems.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} align="center" sx={{ color: '#94A3B8', py: 4 }}>No items</TableCell></TableRow>
+                      ) : shownItems.map((it, i) => (
+                        <TableRow key={it.productId || i} hover>
+                          <TableCell sx={{ color: '#94A3B8', fontWeight: 600 }}>{i + 1}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}><ProductLabel productId={it.productId} iconName={it.iconName} name={it.productName} hasImage={it.hasImage} size={30} /></TableCell>
+                          <TableCell align="right">{Number(it.quantity || 0)}</TableCell>
+                          <TableCell align="right">{inr(it.sellingPrice)}</TableCell>
+                          <TableCell align="right" sx={{ color: '#DC2626' }}>{inr(it.discount)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{inr(it.lineTotal)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Grid>
 
-          {/* Totals */}
-          <Stack sx={{ mt: 2, ml: 'auto', width: { xs: '100%', sm: 320 } }} spacing={0.5}>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography sx={{ color: '#64748B' }}>Subtotal</Typography>
-              <Typography sx={{ fontWeight: 600 }}>{inr(inv.subtotal)}</Typography>
-            </Stack>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography sx={{ color: '#64748B' }}>Discount</Typography>
-              <Typography sx={{ fontWeight: 600 }}>- {inr(inv.discount)}</Typography>
-            </Stack>
-            {Number(inv.tax) > 0 && (
-              <Stack direction="row" justifyContent="space-between">
-                <Typography sx={{ color: '#64748B' }}>GST</Typography>
-                <Typography sx={{ fontWeight: 600 }}>{inr(inv.tax)}</Typography>
-              </Stack>
-            )}
-            <Divider sx={{ my: 0.5 }} />
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Grand Total</Typography>
-              <Typography sx={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--theme-primary)' }}>{inr(inv.grandTotal)}</Typography>
-            </Stack>
-            {(Number(inv.amountDue) > 0.0001 || Number(inv.paidToPreviousDues) > 0.0001 || Number(inv.customerBalanceDue) > 0.0001) && (
-              <>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography sx={{ color: '#64748B' }}>Amount Received</Typography>
-                  <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(inv.amountReceived)}</Typography>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: { md: CARD_H }, display: 'flex', flexDirection: 'column', overflow: 'auto', p: 2 }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <CalculateOutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Amount Summary</Typography>
                 </Stack>
-                {Number(inv.paidToPreviousDues) > 0.0001 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography sx={{ color: '#64748B', pl: 1.5, fontSize: '0.9rem' }}>• Towards previous dues</Typography>
-                    <Typography sx={{ fontWeight: 600, color: 'var(--theme-primary)' }}>{inr(inv.paidToPreviousDues)}</Typography>
+                <Stack spacing={0.25}>
+                  <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
+                    <Typography sx={{ color: '#64748B' }}>Subtotal</Typography>
+                    <Typography sx={{ fontWeight: 600 }}>{inr(inv.subtotal)}</Typography>
                   </Stack>
-                )}
-                {Number(inv.amountDue) > 0.0001 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography sx={{ color: '#64748B' }}>This invoice due</Typography>
-                    <Typography sx={{ fontWeight: 700, color: '#B91C1C' }}>{inr(inv.amountDue)}</Typography>
+                  <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
+                    <Typography sx={{ color: '#64748B' }}>Discount</Typography>
+                    <Typography sx={{ fontWeight: 600, color: '#DC2626' }}>− {inr(inv.discount)}</Typography>
                   </Stack>
-                )}
-                {Number(inv.customerBalanceDue) > 0.0001 && (
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>Balance Due</Typography>
-                    <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>{inr(inv.customerBalanceDue)}</Typography>
+                  {Number(inv.tax) > 0 && (
+                    <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
+                      <Typography sx={{ color: '#64748B' }}>GST</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{inr(inv.tax)}</Typography>
+                    </Stack>
+                  )}
+                </Stack>
+                {/* Grand Total highlight */}
+                <Box sx={{ my: 1, p: 1.5, borderRadius: 0, bgcolor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 22%, white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Grand Total</Typography>
+                  <Typography sx={{ fontWeight: 900, fontSize: '1.3rem', color: 'var(--theme-primary)' }}>{inr(inv.grandTotal)}</Typography>
+                </Box>
+                <Stack spacing={0.25}>
+                  <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                    <Typography sx={{ color: '#64748B' }}>Amount Received</Typography>
+                    <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{inr(inv.amountReceived)}</Typography>
                   </Stack>
-                )}
-              </>
-            )}
-            {Array.isArray(inv.clearances) && inv.clearances.length > 0 && (
-              <>
-                <Divider sx={{ my: 0.5 }} />
-                <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.9rem' }}>Due cleared later</Typography>
-                {inv.clearances.map((c, i) => (
-                  <Stack key={i} direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>
-                      {dayjs(c.date).format('DD MMM YYYY')} · {modeLabel(c.mode)} · Ref: <b style={{ color: '#0F172A' }}>{c.referenceInvoiceNo}</b>
-                    </Typography>
-                    <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(c.amount)}</Typography>
-                  </Stack>
-                ))}
-              </>
-            )}
-          </Stack>
+                  {Number(inv.paidToPreviousDues) > 0.0001 && (
+                    <Stack direction="row" justifyContent="space-between" sx={{ py: 0.25 }}>
+                      <Typography sx={{ color: '#64748B', pl: 1.5, fontSize: '0.88rem' }}>• Towards previous dues</Typography>
+                      <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(inv.paidToPreviousDues)}</Typography>
+                    </Stack>
+                  )}
+                  {Number(inv.amountDue) > 0.0001 && (
+                    <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
+                      <Typography sx={{ color: '#64748B' }}>This invoice due</Typography>
+                      <Typography sx={{ fontWeight: 700, color: '#B91C1C' }}>{inr(inv.amountDue)}</Typography>
+                    </Stack>
+                  )}
+                  {Number(inv.customerBalanceDue) > 0.0001 && (
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
+                      <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>Balance Due</Typography>
+                      <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>{inr(inv.customerBalanceDue)}</Typography>
+                    </Stack>
+                  )}
+                  {Array.isArray(inv.clearances) && inv.clearances.length > 0 && (
+                    <>
+                      <Divider sx={{ my: 0.75 }} />
+                      <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', mb: 0.25 }}>Due cleared later</Typography>
+                      {inv.clearances.map((c, i) => (
+                        <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.25 }}>
+                          <Typography sx={{ color: '#64748B', fontSize: '0.8rem' }}>
+                            {dayjs(c.date).format('DD MMM YYYY')} · {modeLabel(c.mode)}
+                          </Typography>
+                          <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(c.amount)}</Typography>
+                        </Stack>
+                      ))}
+                    </>
+                  )}
+                </Stack>
+              </Paper>
+            </Grid>
+          </Grid>
         </Box>
-      </Paper>
-      )}
+        );
+      })()}
 
       {activeTab === 'history' && (
         <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', overflow: 'hidden' }}>

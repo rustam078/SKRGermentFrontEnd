@@ -2,15 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ConfigProvider, Card, Row, Col, Button, Table, Tag, Spin, Empty, Alert, Popover, Radio, DatePicker,
+  ConfigProvider, Card, Row, Col, Button, Table, Tag, Spin, Empty, Alert, Popover, Radio, DatePicker, Segmented,
 } from 'antd';
 import {
   DollarCircleOutlined, ShoppingCartOutlined, RiseOutlined,
   PercentageOutlined, WarningOutlined, LineChartOutlined, FilterOutlined,
+  RadarChartOutlined, AppstoreOutlined, BarChartOutlined,
 } from '@ant-design/icons';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
-  PieChart, Pie, Cell, Legend, BarChart, Bar,
+  PieChart, Pie, Cell, Legend, BarChart, Bar, Treemap,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import dayjs from 'dayjs';
 import { dashboardService } from '../../../services/dashboardService';
@@ -20,6 +22,29 @@ const inr = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency:
 const num = (v) => new Intl.NumberFormat('en-IN').format(Number(v) || 0);
 
 const PIE_COLORS = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'];
+const TREEMAP_COLORS = ['#BFDBFE', '#BBF7D0', '#FDE68A', '#DDD6FE', '#A5F3FC', '#FBCFE8', '#FECACA', '#C7D2FE'];
+
+// Treemap cell: each product is a rectangle sized by units sold.
+const TreemapCell = ({ x, y, width, height, index, name, value, depth }) => {
+  if (depth !== 1 || !name) return null;
+  const fill = TREEMAP_COLORS[index % TREEMAP_COLORS.length];
+  const haloText = { paintOrder: 'stroke', stroke: '#ffffff', strokeWidth: 3, strokeLinejoin: 'round', pointerEvents: 'none' };
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} rx={4} style={{ fill, stroke: '#fff', strokeWidth: 2 }} />
+      {width > 46 && height > 24 ? (
+        <text x={x + 8} y={y + 19} fill="#0F172A" fontSize={12} fontWeight={800} style={haloText}>
+          {name.length > 16 ? `${name.slice(0, 15)}…` : name}
+        </text>
+      ) : null}
+      {width > 46 && height > 40 ? (
+        <text x={x + 8} y={y + 36} fill="#1E293B" fontSize={11} fontWeight={700} style={haloText}>
+          {new Intl.NumberFormat('en-IN').format(Number(value) || 0)} pcs
+        </text>
+      ) : null}
+    </g>
+  );
+};
 
 const RANGES = {
   'Today': [dayjs().startOf('day'), dayjs().endOf('day')],
@@ -52,11 +77,12 @@ const Kpi = ({ icon, color, label, value, sub }) => (
   </Card>
 );
 
-const Section = ({ title, icon, children }) => (
+const Section = ({ title, icon, children, extra }) => (
   <Card
     style={{ ...cardStyle, height: '100%' }}
     styles={{ body: { padding: 16 } }}
     title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>{icon}{title}</span>}
+    extra={extra}
   >
     {children}
   </Card>
@@ -65,6 +91,7 @@ const Section = ({ title, icon, children }) => (
 const SalesDashboard = () => {
   const navigate = useNavigate();
   const [preset, setPreset] = useState('This Month');
+  const [prodChart, setProdChart] = useState('radar'); // best-sellers default: spider/radar
   const [customRange, setCustomRange] = useState(null); // [dayjs, dayjs] overrides the preset
   const hasCustom = Boolean(customRange && customRange[0] && customRange[1]);
   const [from, to] = hasCustom ? customRange : RANGES[preset];
@@ -209,17 +236,38 @@ const SalesDashboard = () => {
 
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={11}>
-                <Section title="Top Products (by qty)" icon={<ShoppingCartOutlined style={{ color: '#8B5CF6' }} />}>
+                <Section
+                  title="Top Products (by qty)"
+                  icon={<ShoppingCartOutlined style={{ color: '#8B5CF6' }} />}
+                  extra={(
+                    <Segmented size="small" value={prodChart} onChange={setProdChart}
+                      options={[{ value: 'radar', icon: <RadarChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
+                  )}
+                >
                   <div style={{ height: 300 }}>
                     {topProducts.length ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={topProducts} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
-                          <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} />
-                          <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={100} />
-                          <RTooltip formatter={(v, n) => (n === 'revenue' ? inr(v) : num(v))} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
-                          <Bar dataKey="quantity" fill="#8B5CF6" radius={[0, 6, 6, 0]} barSize={16} />
-                        </BarChart>
+                        {prodChart === 'radar' ? (
+                          <RadarChart data={topProducts} outerRadius="70%">
+                            <PolarGrid stroke="#E2E8F0" />
+                            <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
+                            <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
+                            <RTooltip formatter={(v) => num(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+                            <Radar dataKey="quantity" stroke="var(--theme-primary)" fill="var(--theme-primary)" fillOpacity={0.35} />
+                          </RadarChart>
+                        ) : prodChart === 'treemap' ? (
+                          <Treemap data={topProducts.filter((p) => p.quantity > 0).map((p) => ({ name: p.name, size: p.quantity, value: p.quantity }))} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
+                            <RTooltip formatter={(v) => `${num(v)} units sold`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+                          </Treemap>
+                        ) : (
+                          <BarChart data={topProducts} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 10, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} tickFormatter={num} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={110} />
+                            <RTooltip formatter={(v) => num(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+                            <Bar dataKey="quantity" fill="#8B5CF6" radius={[0, 5, 5, 0]} barSize={15} />
+                          </BarChart>
+                        )}
                       </ResponsiveContainer>
                     ) : (
                       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No product sales" /></div>

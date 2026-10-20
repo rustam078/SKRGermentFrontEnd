@@ -246,6 +246,21 @@ const CreateSale = () => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Live validation on blur: show/clear the error for mobile & email as the cursor leaves.
+  const validateField = (name, value) => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (name === 'customerMobile') {
+        if (value && !/^\d{10}$/.test(value)) next.customerMobile = 'Enter a valid 10-digit number';
+        else delete next.customerMobile;
+      } else if (name === 'customerEmail') {
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) next.customerEmail = 'Enter a valid email';
+        else delete next.customerEmail;
+      }
+      return next;
+    });
+  };
+
   const updateItem = (index, changes) => {
     setFormValues((prev) => ({
       ...prev,
@@ -270,6 +285,8 @@ const CreateSale = () => {
     const nextErrors = {};
     if (!formValues.customerName.trim()) nextErrors.customerName = 'Required';
     if (!formValues.customerMobile.trim()) nextErrors.customerMobile = 'Required';
+    else if (!/^\d{10}$/.test(formValues.customerMobile.trim())) nextErrors.customerMobile = 'Enter a valid 10-digit number';
+    if (formValues.customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.customerEmail.trim())) nextErrors.customerEmail = 'Enter a valid email';
     if (!formValues.items.length) nextErrors.items = 'Add at least one product';
     formValues.items.forEach((item, index) => {
       if (!item.quantity || Number(item.quantity) <= 0) nextErrors[`quantity_${index}`] = 'Qty > 0';
@@ -358,6 +375,13 @@ const CreateSale = () => {
     }));
   };
 
+  // Clear (X) on the mobile field → reset the whole customer (name, email, dues).
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setReceivedText('0');
+    setFormValues((prev) => ({ ...prev, customerName: '', customerMobile: '', customerEmail: '' }));
+  };
+
   // A scanned QR unit → add/merge a batch-bound line at its frozen price.
   const handleScannedUnit = (unit) => {
     const makeNewItem = (u) => ({
@@ -438,11 +462,18 @@ const CreateSale = () => {
           getOptionLabel={(o) => (typeof o === 'string' ? o : `${o.mobile} — ${o.name}`)}
           filterOptions={(x) => x}
           inputValue={formValues.customerMobile}
-          onInputChange={(e, val, reason) => { if (reason === 'input') setFormValues((prev) => ({ ...prev, customerMobile: val })); }}
-          onChange={(e, val) => { if (val && typeof val === 'object') handleSelectCustomer(val); }}
+          onInputChange={(e, val, reason) => {
+            if (reason === 'input') setFormValues((prev) => ({ ...prev, customerMobile: val.replace(/\D/g, '').slice(0, 10) }));
+            else if (reason === 'clear') handleClearCustomer();
+          }}
+          onChange={(e, val, reason) => {
+            if (!val || reason === 'clear') { handleClearCustomer(); return; }
+            if (typeof val === 'object') handleSelectCustomer(val);
+          }}
           sx={{ flex: '1 1 190px', minWidth: 170 }}
           renderInput={(params) => (
             <TextField {...params} label="Mobile" size="small" required
+              onBlur={(e) => validateField('customerMobile', e.target.value.replace(/\D/g, ''))}
               error={Boolean(errors.customerMobile)} helperText={errors.customerMobile || ' '} sx={{ bgcolor: '#fff' }} />
           )}
         />
@@ -454,7 +485,9 @@ const CreateSale = () => {
         />
         <TextField
           name="customerEmail" label="Email (optional)" size="small"
-          value={formValues.customerEmail} onChange={handleInputChange} helperText=" "
+          value={formValues.customerEmail} onChange={handleInputChange}
+          onBlur={(e) => validateField('customerEmail', e.target.value.trim())}
+          error={Boolean(errors.customerEmail)} helperText={errors.customerEmail || ' '}
           sx={{ flex: '1 1 200px', minWidth: 170, bgcolor: '#fff' }}
         />
       </Stack>
@@ -593,9 +626,14 @@ const CreateSale = () => {
                                   value={item.quantity}
                                   onFocus={(e) => e.target.select()}
                                   onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === '') { updateItem(index, { quantity: '' }); return; } // allow clearing to retype
                                     const max = item.quantityAvailable != null ? Number(item.quantityAvailable) : Infinity;
-                                    const v = Math.max(1, Math.min(Number(e.target.value) || 1, max));
-                                    updateItem(index, { quantity: v });
+                                    updateItem(index, { quantity: Math.min(Number(raw), max) });
+                                  }}
+                                  onBlur={(e) => {
+                                    const max = item.quantityAvailable != null ? Number(item.quantityAvailable) : Infinity;
+                                    updateItem(index, { quantity: Math.min(Math.max(1, Number(e.target.value) || 1), max) });
                                   }}
                                   inputProps={{ min: 1, max: item.quantityAvailable ?? undefined, style: { textAlign: 'center', width: 70, fontWeight: 700, padding: '4px 6px', color: exceeded ? '#DC2626' : '#0F172A' } }}
                                   sx={{
@@ -625,7 +663,7 @@ const CreateSale = () => {
                                   }
                                 >
                                   <Typography sx={{ fontWeight: 700, fontSize: '0.86rem', color: '#0F172A', display: 'inline-block', borderBottom: d.breakdown.length > 1 ? '1px dotted #94A3B8' : 'none', cursor: d.breakdown.length > 1 ? 'help' : 'default' }}>
-                                    {getCurrencySymbol()}{Number(d.avgPrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                    {getCurrencySymbol()}{Math.round(Number(d.avgPrice || 0)).toLocaleString('en-IN')}
                                   </Typography>
                                 </Tooltip>
                               )}
@@ -787,53 +825,76 @@ const CreateSale = () => {
 
       {/* Profit summary side panel — after-discount profit per line, for pricing/negotiation. */}
       <Drawer anchor="right" open={profitOpen} onClose={() => setProfitOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 380 }, p: 2.5 } }}>
-        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
+        PaperProps={{ sx: { width: { xs: '100%', sm: 620 }, p: 2.5 } }}>
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 0.5 }}>
           <InsightsOutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
           <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A', flexGrow: 1 }}>Profit Summary</Typography>
           <IconButton size="small" onClick={() => setProfitOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <Typography variant="caption" sx={{ color: '#94A3B8' }}>Discount is shared across lines by value; profit shown is after discount.</Typography>
-        <Stack spacing={1.25} sx={{ mt: 2 }}>
-          {formValues.items.filter((it) => it.productId).map((item, idx) => {
-            const d = lineDerived(item);
-            const share = subtotal > 0 ? (d.gross / subtotal) * totalDiscount : 0;
-            const net = d.gross - share;
-            const profit = net - d.cost;
-            const pct = d.cost > 0 ? (profit / d.cost) * 100 : null;
-            return (
-              <Box key={`${item.productId}-${idx}`} sx={{ border: '1px solid #F1F5F9', borderRadius: 2, p: 1.25 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A', mb: 0.5 }}>
-                  {item.productName} <span style={{ color: '#94A3B8', fontWeight: 500 }}>× {item.quantity}</span>
-                </Typography>
-                <Stack spacing={0.25}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">Revenue</Typography><Typography variant="caption">{getCurrencySymbol()}{net.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="caption" color="text.secondary">Cost</Typography><Typography variant="caption">{getCurrencySymbol()}{d.cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700 }}>Profit</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: profit >= 0 ? 'var(--theme-primary)' : '#B91C1C' }}>
-                      {profit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}{pct != null ? ` (${pct.toFixed(0)}%)` : ''}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Box>
-            );
-          })}
-        </Stack>
-        <Divider sx={{ my: 2 }} />
-        <Stack spacing={0.75}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Subtotal</Typography><Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography><Typography sx={{ fontWeight: 600, color: '#DC2626' }}>− {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Total Cost</Typography><Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{totalCostBasis.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography></Box>
-          <Divider sx={{ my: 0.5 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Net Profit</Typography>
-            <Typography sx={{ fontWeight: 800, color: totalProfit >= 0 ? 'var(--theme-primary)' : '#B91C1C' }}>
-              {totalProfit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-              {totalProfitPct != null ? ` (${totalProfit >= 0 ? '+' : ''}${totalProfitPct.toFixed(1)}%)` : ''}
-            </Typography>
-          </Box>
-        </Stack>
+        <Typography variant="caption" sx={{ color: '#94A3B8' }}>After discount</Typography>
+
+        {/* Per-item breakdown — MRP → discount → selling → cost → profit */}
+        <TableContainer sx={{ mt: 1.5, border: '1px solid #E2E8F0', borderRadius: 0 }}>
+          <Table size="small" sx={{ '& th': { bgcolor: '#F8FAFC', color: '#64748B', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.03em', py: 0.75 }, '& td': { py: 0.75, fontSize: '0.8rem' } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Product</TableCell>
+                <TableCell align="right">MRP</TableCell>
+                <TableCell align="right">Discount</TableCell>
+                <TableCell align="right">Selling</TableCell>
+                <TableCell align="right">Cost</TableCell>
+                <TableCell align="right">Profit</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {formValues.items.filter((it) => it.productId).map((item, idx) => {
+                const d = lineDerived(item);
+                const share = subtotal > 0 ? (d.gross / subtotal) * totalDiscount : 0;
+                const sell = d.gross - share; // selling after discount
+                const profit = sell - d.cost;
+                const pct = d.cost > 0 ? (profit / d.cost) * 100 : null;
+                return (
+                  <TableRow key={`${item.productId}-${idx}`}>
+                    <TableCell sx={{ fontWeight: 600, color: '#0F172A' }}>
+                      {item.productName} <span style={{ color: '#94A3B8', fontWeight: 500 }}>× {item.quantity}</span>
+                    </TableCell>
+                    <TableCell align="right">{getCurrencySymbol()}{d.gross.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell align="right" sx={{ color: '#DC2626' }}>− {getCurrencySymbol()}{share.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: '#0F172A' }}>{getCurrencySymbol()}{sell.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell align="right" sx={{ color: '#64748B' }}>{getCurrencySymbol()}{d.cost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: profit >= 0 ? 'var(--theme-primary)' : '#B91C1C', whiteSpace: 'nowrap' }}>
+                      {profit >= 0 ? '+' : '−'}{getCurrencySymbol()}{Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      {pct != null ? <span style={{ fontWeight: 600, fontSize: '0.68rem', opacity: 0.85 }}> ({pct.toFixed(0)}%)</span> : ''}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Bill-style totals */}
+        {(() => {
+          const customerPays = subtotal - totalDiscount; // what the customer pays after discount
+          const netProfit = customerPays - totalCostBasis;
+          const netPct = totalCostBasis > 0 ? (netProfit / totalCostBasis) * 100 : null;
+          const row = (label, value, opts = {}) => (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', py: 0.4 }}>
+              <Typography sx={{ color: opts.strong ? '#0F172A' : '#64748B', fontSize: opts.strong ? '0.95rem' : '0.88rem', fontWeight: opts.strong ? 800 : 600 }}>{label}</Typography>
+              <Typography sx={{ fontWeight: opts.strong ? 800 : 700, color: opts.color || '#0F172A', fontSize: opts.strong ? '1rem' : '0.9rem' }}>{value}</Typography>
+            </Box>
+          );
+          return (
+            <Box sx={{ mt: 2, borderRadius: 0, p: 1.75, bgcolor: 'color-mix(in srgb, var(--theme-primary) 6%, white)' }}>
+              {row('Subtotal (MRP)', `${getCurrencySymbol()}${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`)}
+              {row('Discount', `− ${getCurrencySymbol()}${totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { color: '#DC2626' })}
+              <Divider sx={{ my: 0.5 }} />
+              {row('Customer Pays', `${getCurrencySymbol()}${customerPays.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { strong: true, color: 'var(--theme-primary)' })}
+              <Divider sx={{ my: 0.5 }} />
+              {row('Net Profit', `${netProfit >= 0 ? '+' : '−'}${getCurrencySymbol()}${Math.abs(netProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}${netPct != null ? ` (${netProfit >= 0 ? '+' : ''}${netPct.toFixed(1)}%)` : ''}`, { strong: true, color: netProfit >= 0 ? 'var(--theme-primary)' : '#B91C1C' })}
+            </Box>
+          );
+        })()}
       </Drawer>
 
       <Dialog open={reconcile.open} onClose={() => setReconcile({ open: false, batches: [] })} maxWidth="xs" fullWidth>

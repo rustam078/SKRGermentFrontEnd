@@ -9,11 +9,12 @@ import {
   DollarCircleOutlined, ToolOutlined, WalletOutlined, InboxOutlined, WarningOutlined,
   TeamOutlined, LineChartOutlined, AreaChartOutlined, BarChartOutlined, FilterOutlined,
   MoreOutlined, LeftOutlined, RightOutlined, FundOutlined, ShopOutlined,
-  AppstoreOutlined, PieChartOutlined,
+  AppstoreOutlined, PieChartOutlined, RadarChartOutlined,
 } from '@ant-design/icons';
 import {
   ResponsiveContainer, AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, PieChart, Pie, Cell, Legend, BarChart, Bar, Treemap,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear';
@@ -261,26 +262,42 @@ const RankTreemap = ({ data, categoryKey, valueKey, formatter, height = 300 }) =
 
 // Ranked list rendered as bar / pie / treemap — user toggles, each card sets its own default.
 // Bars page through long lists; pie & treemap show the top slice.
-const RankCard = ({ title, icon, data, categoryKey = 'name', valueKey, color, formatter, defaultType = 'bar', pageSize = 8, height = 300, showLabels = false }) => {
+const RankCard = ({ title, icon, data, categoryKey = 'name', valueKey, color, formatter, defaultType = 'bar', pageSize = 8, height = 300, showLabels = false, radar = false }) => {
   const [type, setType] = useState(defaultType);
   const [page, setPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil((data?.length || 0) / pageSize));
   useEffect(() => { setPage(0); }, [data?.length]);
   // Same paged slice for every mode, so the pager works in bar, pie AND treemap.
   const slice = (data || []).slice(page * pageSize, page * pageSize + pageSize);
+  // Radar (spider) is opt-in per card so it only shows where it makes sense (best-sellers).
+  const chartOptions = [
+    ...(radar ? [{ value: 'radar', icon: <RadarChartOutlined /> }] : []),
+    { value: 'bar', icon: <BarChartOutlined /> }, { value: 'pie', icon: <PieChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> },
+  ];
   return (
     <SectionCard
       title={title}
       icon={icon}
       extra={(
         <Space size={4}>
-          <Pager page={page} totalPages={totalPages} setPage={setPage} />
-          <Segmented size="small" value={type} onChange={setType}
-            options={[{ value: 'bar', icon: <BarChartOutlined /> }, { value: 'pie', icon: <PieChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }]} />
+          {type !== 'radar' && <Pager page={page} totalPages={totalPages} setPage={setPage} />}
+          <Segmented size="small" value={type} onChange={setType} options={chartOptions} />
         </Space>
       )}
     >
-      {type === 'pie'
+      {type === 'radar'
+        ? (
+          <ResponsiveContainer width="100%" height={height}>
+            <RadarChart data={slice.map((d) => ({ name: String(d[categoryKey] ?? ''), value: Number(d[valueKey]) || 0 }))} outerRadius="70%">
+              <PolarGrid stroke="#E2E8F0" />
+              <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
+              <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
+              <Radar dataKey="value" stroke={color || 'var(--theme-primary)'} fill={color || 'var(--theme-primary)'} fillOpacity={0.35} />
+              <RTooltip formatter={formatter} />
+            </RadarChart>
+          </ResponsiveContainer>
+        )
+        : type === 'pie'
         ? <Donut data={slice.map((d) => ({ label: d[categoryKey], amount: Number(d[valueKey]) || 0 }))} nameKey="label" dataKey="amount" formatter={formatter} height={height} showLabels={showLabels} />
         : type === 'treemap'
           ? <RankTreemap data={slice} categoryKey={categoryKey} valueKey={valueKey} formatter={formatter} height={height} />
@@ -342,7 +359,7 @@ const DashboardPage = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [revType, setRevType] = useState('area');   // revenue trend default: area
   const [expType, setExpType] = useState('bar');    // monthly spend default: bar
-  const [prodChart, setProdChart] = useState('treemap'); // best-sellers default: treemap
+  const [prodChart, setProdChart] = useState('radar'); // best-sellers default: spider/radar
   const [payType, setPayType] = useState('donut');  // payment modes default: donut
   const [catType, setCatType] = useState('donut');  // expense category default: donut
   // Show names on pie slices — toggled from Settings (stored per browser).
@@ -692,13 +709,25 @@ const DashboardPage = () => {
                       icon={<InboxOutlined style={{ color: '#8B5CF6' }} />}
                       extra={(
                         <Space size={4}>
-                          <Pager page={prodPage} totalPages={prodTotalPages} setPage={setProdPage} />
+                          {prodChart !== 'radar' && <Pager page={prodPage} totalPages={prodTotalPages} setPage={setProdPage} />}
                           <Segmented size="small" value={prodChart} onChange={setProdChart}
-                            options={[{ value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
+                            options={[{ value: 'radar', icon: <RadarChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
                         </Space>
                       )}
                     >
-                      {prodChart === 'bar'
+                      {prodChart === 'radar'
+                        ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <RadarChart data={pagedProducts.map((d) => ({ name: String(d.name ?? ''), value: Number(d.quantity) || 0 }))} outerRadius="70%">
+                              <PolarGrid stroke="#E2E8F0" />
+                              <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
+                              <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
+                              <Radar dataKey="value" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.35} />
+                              <RTooltip formatter={num} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        )
+                        : prodChart === 'bar'
                         ? <RankBars data={pagedProducts} categoryKey="name" valueKey="quantity" color="#8B5CF6" formatter={num} />
                         : <ProductTreemap data={pagedProducts} />}
                     </SectionCard>
@@ -787,7 +816,7 @@ const DashboardPage = () => {
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Best-Selling Products (units sold)" icon={<InboxOutlined style={{ color: '#8B5CF6' }} />} data={topProducts} valueKey="quantity" color="#8B5CF6" formatter={num} defaultType="treemap" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Best-Selling Products (units sold)" icon={<InboxOutlined style={{ color: '#8B5CF6' }} />} data={topProducts} valueKey="quantity" color="#8B5CF6" formatter={num} radar defaultType="radar" /></Col>
                   <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Highest-Revenue Products" icon={<DollarCircleOutlined style={{ color: '#2563EB' }} />} data={[...topProducts].sort((a, b) => b.revenue - a.revenue)} valueKey="revenue" color="#2563EB" formatter={money} defaultType="bar" /></Col>
                 </Row>
                 <Row gutter={[12, 12]}>
