@@ -288,7 +288,7 @@ const RankCard = ({ title, icon, data, categoryKey = 'name', valueKey, color, fo
       {type === 'radar'
         ? (
           <ResponsiveContainer width="100%" height={height}>
-            <RadarChart data={slice.map((d) => ({ name: String(d[categoryKey] ?? ''), value: Number(d[valueKey]) || 0 }))} outerRadius="70%">
+            <RadarChart data={slice.map((d) => ({ name: `${d[categoryKey] ?? ''} (${formatter(Number(d[valueKey]) || 0)})`, value: Number(d[valueKey]) || 0 }))} outerRadius="70%">
               <PolarGrid stroke="#E2E8F0" />
               <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
               <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
@@ -319,6 +319,30 @@ const BreakdownToolbar = ({ type, setType }) => (
     options={[{ value: 'donut', icon: <PieChartOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
 );
 
+// Custom slice label: a leader line to the slice, name+% anchored left/right by side.
+// Tiny slices (< 4%) are left to the legend so labels never overlap or mis-point.
+const RADIAN = Math.PI / 180;
+const renderDonutLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
+  if (!percent) return null; // skip only zero-value slices; every real slice gets a label
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sin = Math.sin(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 2) * cos;
+  const sy = cy + (outerRadius + 2) * sin;
+  const mx = cx + (outerRadius + 14) * cos;
+  const my = cy + (outerRadius + 14) * sin;
+  const right = cos >= 0;
+  const ex = mx + (right ? 1 : -1) * 12;
+  const pct = percent * 100;
+  return (
+    <g>
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${my}`} stroke="#94A3B8" fill="none" />
+      <text x={ex + (right ? 4 : -4)} y={my} textAnchor={right ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fill="#475569">
+        {`${name} ${pct < 1 ? pct.toFixed(1) : pct.toFixed(0)}%`}
+      </text>
+    </g>
+  );
+};
+
 const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, formatter = money, showLabels = false }) => (
   <div style={{ height }}>
     {data.length ? (
@@ -326,9 +350,9 @@ const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, form
         <PieChart>
           <Pie
             data={data} dataKey={dataKey} nameKey={nameKey} cx="50%" cy="50%"
-            innerRadius={showLabels ? 44 : 52} outerRadius={showLabels ? 72 : 86} paddingAngle={2}
-            labelLine={showLabels}
-            label={showLabels ? ({ name, percent }) => (percent > 0.03 ? `${name} ${(percent * 100).toFixed(0)}%` : '') : false}
+            innerRadius={showLabels ? 44 : 52} outerRadius={showLabels ? 70 : 86} paddingAngle={2}
+            labelLine={false}
+            label={showLabels ? renderDonutLabel : false}
           >
             {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
           </Pie>
@@ -464,12 +488,8 @@ const DashboardPage = () => {
 
   const paymentBreakdown = data?.paymentBreakdown || [];
   const topProducts = useMemo(() => (data?.topProducts || []).map((p) => ({ ...p, revenue: Number(p.revenue) || 0, quantity: Number(p.quantity) || 0 })), [data]);
-  // Page the treemap 6 at a time (backend returns the top sellers).
-  const PROD_PAGE = 6;
-  const [prodPage, setProdPage] = useState(0);
-  const prodTotalPages = Math.max(1, Math.ceil(topProducts.length / PROD_PAGE));
-  useEffect(() => { setProdPage(0); }, [topProducts.length]);
-  const pagedProducts = useMemo(() => topProducts.slice(prodPage * PROD_PAGE, prodPage * PROD_PAGE + PROD_PAGE), [topProducts, prodPage]);
+  // Top 10 best-sellers for the "Top Products" card (all chart modes).
+  const top10Products = useMemo(() => topProducts.slice(0, 10), [topProducts]);
   const topEmployees = useMemo(() => (data?.topEmployees || []).map((e) => ({ ...e, quantity: Number(e.quantity) || 0, earnings: Number(e.earnings) || 0 })), [data]);
   const recentSales = data?.recentSales || [];
   const topCustomers = useMemo(() => (data?.topCustomers || []).map((c) => ({ ...c, orders: Number(c.orders) || 0, spend: Number(c.spend) || 0 })), [data]);
@@ -705,20 +725,17 @@ const DashboardPage = () => {
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
                     <SectionCard
-                      title="Best-Selling Products — share of units sold"
+                      title="Top Products (by qty)"
                       icon={<InboxOutlined style={{ color: '#8B5CF6' }} />}
                       extra={(
-                        <Space size={4}>
-                          {prodChart !== 'radar' && <Pager page={prodPage} totalPages={prodTotalPages} setPage={setProdPage} />}
-                          <Segmented size="small" value={prodChart} onChange={setProdChart}
-                            options={[{ value: 'radar', icon: <RadarChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
-                        </Space>
+                        <Segmented size="small" value={prodChart} onChange={setProdChart}
+                          options={[{ value: 'radar', icon: <RadarChartOutlined /> }, { value: 'treemap', icon: <AppstoreOutlined /> }, { value: 'bar', icon: <BarChartOutlined /> }]} />
                       )}
                     >
                       {prodChart === 'radar'
                         ? (
                           <ResponsiveContainer width="100%" height={300}>
-                            <RadarChart data={pagedProducts.map((d) => ({ name: String(d.name ?? ''), value: Number(d.quantity) || 0 }))} outerRadius="70%">
+                            <RadarChart data={top10Products.map((d) => ({ name: `${d.name} (${num(d.quantity)})`, value: Number(d.quantity) || 0 }))} outerRadius="70%">
                               <PolarGrid stroke="#E2E8F0" />
                               <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
                               <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
@@ -728,8 +745,8 @@ const DashboardPage = () => {
                           </ResponsiveContainer>
                         )
                         : prodChart === 'bar'
-                        ? <RankBars data={pagedProducts} categoryKey="name" valueKey="quantity" color="#8B5CF6" formatter={num} />
-                        : <ProductTreemap data={pagedProducts} />}
+                        ? <RankBars data={top10Products} categoryKey="name" valueKey="quantity" color="#8B5CF6" formatter={num} />
+                        : <ProductTreemap data={top10Products} />}
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Employee Productivity — pieces produced" icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topEmployees} valueKey="quantity" color="#6366F1" formatter={num} /></Col>

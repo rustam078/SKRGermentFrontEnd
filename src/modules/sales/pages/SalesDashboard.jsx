@@ -113,6 +113,8 @@ const SalesDashboard = () => {
     () => (data?.topProducts || []).map((p) => ({ ...p, quantity: Number(p.quantity) || 0, revenue: Number(p.revenue) || 0 })),
     [data]
   );
+  // Top 10 best-sellers shown in the product chart (all modes).
+  const top10 = useMemo(() => topProducts.slice(0, 10), [topProducts]);
   const recentSales = data?.recentSales || [];
 
   const kpis = data ? [
@@ -237,7 +239,7 @@ const SalesDashboard = () => {
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={11}>
                 <Section
-                  title="Top Products (by qty)"
+                  title="Top Products Sold (by qty)"
                   icon={<ShoppingCartOutlined style={{ color: '#8B5CF6' }} />}
                   extra={(
                     <Segmented size="small" value={prodChart} onChange={setProdChart}
@@ -245,10 +247,10 @@ const SalesDashboard = () => {
                   )}
                 >
                   <div style={{ height: 300 }}>
-                    {topProducts.length ? (
+                    {top10.length ? (
                       <ResponsiveContainer width="100%" height="100%">
                         {prodChart === 'radar' ? (
-                          <RadarChart data={topProducts} outerRadius="70%">
+                          <RadarChart data={top10.map((p) => ({ name: `${p.name} (${num(p.quantity)})`, quantity: p.quantity }))} outerRadius="70%">
                             <PolarGrid stroke="#E2E8F0" />
                             <PolarAngleAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
                             <PolarRadiusAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
@@ -256,11 +258,11 @@ const SalesDashboard = () => {
                             <Radar dataKey="quantity" stroke="var(--theme-primary)" fill="var(--theme-primary)" fillOpacity={0.35} />
                           </RadarChart>
                         ) : prodChart === 'treemap' ? (
-                          <Treemap data={topProducts.filter((p) => p.quantity > 0).map((p) => ({ name: p.name, size: p.quantity, value: p.quantity }))} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
+                          <Treemap data={top10.filter((p) => p.quantity > 0).map((p) => ({ name: p.name, size: p.quantity, value: p.quantity }))} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
                             <RTooltip formatter={(v) => `${num(v)} units sold`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
                           </Treemap>
                         ) : (
-                          <BarChart data={topProducts} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                          <BarChart data={top10} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F7" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 10, fill: '#64748B' }} tickLine={false} axisLine={{ stroke: '#E2E8F0' }} tickFormatter={num} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} tickLine={false} axisLine={false} width={110} />
