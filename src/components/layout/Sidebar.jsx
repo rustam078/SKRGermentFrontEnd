@@ -240,7 +240,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
       
       <Box sx={{ p: 2.5, textAlign: 'center' }}>
         <Typography variant="caption" display="block" sx={{ color: muted, opacity: open ? 1 : 0, display: open ? 'block' : 'none' }}>
-          {companyName || 'SKR Garment'} v1.4
+          {companyName || 'SKR Garment'} v1.6
         </Typography>
       </Box>
     </Box>

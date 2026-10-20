@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
+import PaymentConfirmDialog from '../../components/common/PaymentConfirmDialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -358,6 +359,7 @@ const InvestmentPage = () => {
   const [createFullPayment, setCreateFullPayment] = useState(false);
   const [createPayAmount, setCreatePayAmount] = useState(null);
   const [createPayMode, setCreatePayMode] = useState('CASH');
+  const [investConfirmOpen, setInvestConfirmOpen] = useState(false); // payment confirmation before saving the investment
   const [showDues, setShowDues] = useState(false); // slide-open the vendor's previous dues
 
   // Selected vendor's outstanding (for the create-time payment allocation preview).
@@ -828,6 +830,21 @@ const InvestmentPage = () => {
     return true;
   }, [selectedType, itemRows, overheadRows, investmentForm]);
 
+  // Validate the form, then show the payment confirmation before actually saving.
+  const requestSaveInvestment = async () => {
+    try {
+      await investmentForm.validateFields();
+      if (selectedType !== 'OVERHEAD') {
+        const missingMrp = itemRows.some((r) => r.itemName && r.itemType === 'PRODUCT' && (r.mrp == null || r.mrp === ''));
+        if (missingMrp) {
+          notification.error({ message: 'Selling price (MRP) is required for every product item.', placement: 'topRight' });
+          return;
+        }
+      }
+      setInvestConfirmOpen(true);
+    } catch (_) { /* validation errors are shown on the form */ }
+  };
+
   // ── Save Investment ────────────────────
   const handleSaveInvestment = async () => {
     try {
@@ -892,6 +909,7 @@ const InvestmentPage = () => {
         // Payment is recorded as of today by the backend.
       };
 
+      setInvestConfirmOpen(false);
       createInvestmentMutation.mutate(payload);
     } catch (_) {
       // validation error — Ant Design shows field errors automatically
@@ -2424,6 +2442,11 @@ const InvestmentPage = () => {
               )}
             </div>
 
+            {/* Click-outside backdrop: closes the dues panel (sits just below it) */}
+            {showDues && (
+              <div onClick={() => setShowDues(false)} style={{ position: 'absolute', inset: 0, zIndex: 19 }} />
+            )}
+
             {/* Previous dues — slides in from the right, over the payment form (half width, themed) */}
             <div style={{
               position: 'absolute', top: 0, right: 0, bottom: 0, width: '50%', zIndex: 20,
@@ -2527,7 +2550,7 @@ const InvestmentPage = () => {
               <Button
                 type="primary"
                 loading={createInvestmentMutation.isPending}
-                onClick={handleSaveInvestment}
+                onClick={requestSaveInvestment}
                 disabled={!isFormValid}
                 style={{ borderRadius: 8, fontWeight: 700 }}
               >
@@ -2535,6 +2558,23 @@ const InvestmentPage = () => {
               </Button>
             </div>
           </Card>
+
+          <PaymentConfirmDialog
+            open={investConfirmOpen}
+            onCancel={() => setInvestConfirmOpen(false)}
+            onConfirm={handleSaveInvestment}
+            loading={createInvestmentMutation.isPending}
+            title="Confirm Investment"
+            confirmText="Confirm & Save"
+            rows={[
+              { label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') },
+              { label: 'Grand Total', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN')}` },
+              ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [{ label: 'Previous Dues', value: `${getCurrencySymbol()}${vendorOverdue.toLocaleString('en-IN')}` }] : []),
+              { label: 'Amount Paid', value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },
+            ]}
+            dueAmount={Math.max(0, (selectedType === 'OVERHEAD' ? subtotal : grandTotal) - payNow)}
+            dueText={`${getCurrencySymbol()}${Math.max(0, (selectedType === 'OVERHEAD' ? subtotal : grandTotal) - payNow).toLocaleString('en-IN')}`}
+          />
           </Box>
           </Box>
         </Form>

@@ -54,13 +54,17 @@ import {
   RightOutlined,
   FileTextOutlined,
   InboxOutlined,
+  QrcodeOutlined,
+  SlidersOutlined,
 } from '@ant-design/icons';
 import { Box } from '@mui/material';
 import dayjs from 'dayjs';
+import axiosInstance from '../../services/axios';
 import { productService } from '../../services/productService';
 import { productionService } from '../../services/productionService';
 import { getProductIcon } from '../../utils/product-icons';
 import { usePermissions } from '../../hooks/usePermissions';
+import GenerateLabelsDialog from '../../modules/qr/components/GenerateLabelsDialog';
 
 /* ─────────────────────────────────────────
    Mini Sparkline (CSS only, no library)
@@ -147,6 +151,13 @@ const ProductDetailsPage = () => {
   const [batchSource, setBatchSource] = useState('ALL'); // View All filter: ALL | PURCHASED | MANUFACTURED
   const [batchStatus, setBatchStatus] = useState('ACTIVE'); // View All tab: ACTIVE | SOLD
   const [searchQuery, setSearchQuery] = useState('');
+  // Adjust-stock + QR actions on a batch, done right here (mirrors the inventory details page).
+  const [adjustTarget, setAdjustTarget] = useState(null);
+  const [adjQty, setAdjQty] = useState('');
+  const [adjDir, setAdjDir] = useState('INCREASE');
+  const [adjSaving, setAdjSaving] = useState(false);
+  const [adjError, setAdjError] = useState('');
+  const [qrBatch, setQrBatch] = useState(null);
   const [dateRange, setDateRange] = useState([null, null]);
   const [previewCode, setPreviewCode] = useState('');
   const [previewRate, setPreviewRate] = useState(null);
@@ -530,6 +541,38 @@ const ProductDetailsPage = () => {
   const handleCloseDrawer = () => { setDrawerVisible(false); form.resetFields(); setPreviewCode(''); setPreviewRate(null); setPreviewDesc(''); };
   const handleOpenProductionDrawer = () => setProductionDrawerVisible(true);
   const handleCloseProductionDrawer = () => setProductionDrawerVisible(false);
+
+  // ── Batch adjust / QR (reflects across stock cards, inventory, dashboard) ──
+  const openAdjust = (batch) => { setAdjustTarget(batch); setAdjQty(''); setAdjDir('INCREASE'); setAdjError(''); };
+  const closeAdjust = () => { if (!adjSaving) setAdjustTarget(null); };
+
+  const refreshStock = () => {
+    queryClient.invalidateQueries({ queryKey: ['productStockSummary', productId] });
+    queryClient.invalidateQueries({ queryKey: ['productBatchReceipts', productId] });
+    queryClient.invalidateQueries({ queryKey: ['dashboardOverview'] });
+    queryClient.invalidateQueries({ queryKey: ['lowStockAlerts'] });
+    window.dispatchEvent(new Event('inventory-alerts-updated'));
+  };
+
+  const submitAdjust = async () => {
+    const qty = Number(adjQty);
+    if (!qty || qty <= 0) { setAdjError('Enter a quantity greater than zero'); return; }
+    const available = Number(adjustTarget?.quantityAvailable ?? 0);
+    if (adjDir === 'DECREASE' && qty > available) { setAdjError(`Only ${available} unit(s) available in this batch`); return; }
+    setAdjSaving(true); setAdjError('');
+    try {
+      await axiosInstance.patch(`/inventory/batches/${adjustTarget.batchId}/adjust`, {
+        quantity: qty, direction: adjDir,
+      });
+      notification.success({ message: `Stock ${adjDir === 'INCREASE' ? 'increased' : 'decreased'} by ${qty}`, placement: 'topRight', duration: 3 });
+      setAdjustTarget(null);
+      refreshStock();
+    } catch (err) {
+      setAdjError(err.response?.data?.message || err.message || 'Failed to adjust stock');
+    } finally {
+      setAdjSaving(false);
+    }
+  };
   const handleFormChange = (_, v) => { setPreviewCode(v.code || ''); setPreviewRate(v.rate || null); setPreviewDesc(v.description || ''); };
   const handleCreatePieceCode = (values) => {
     createPieceCodeMutation.mutate({ code: values.code.trim().toUpperCase(), rate: Number(values.rate), description: values.description?.trim() || undefined });
@@ -1194,14 +1237,17 @@ const ProductDetailsPage = () => {
               extra={
                 can('products', 'write') ? (
                 <Space>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setMaterialCostModalOpen(true)}
-                    style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
-                  >
-                    Add Pricing
-                  </Button>
+                  <Tooltip title={product.source === 'PURCHASED' ? 'Pricing applies to manufactured products. Enable manufacturing to add pricing.' : ''}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      disabled={product.source === 'PURCHASED'}
+                      onClick={() => setMaterialCostModalOpen(true)}
+                      style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
+                    >
+                      Add Pricing
+                    </Button>
+                  </Tooltip>
                 </Space>
                 ) : null
               }
@@ -1354,7 +1400,7 @@ const ProductDetailsPage = () => {
             </span>
           }
           placement="right"
-          width={560}
+          width={820}
           onClose={handleCloseProductionDrawer}
           open={productionDrawerVisible}
           bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
@@ -1443,6 +1489,22 @@ const ProductDetailsPage = () => {
                 align: 'right',
                 render: (s) => s != null ? `${getCurrencySymbol()}${Number(s).toLocaleString('en-IN')}` : '-',
               },
+              // Adjust qty + QR, only for in-stock batches when the user can edit inventory.
+              ...(batchStatus === 'ACTIVE' && can('inventory', 'write') ? [{
+                title: 'Actions',
+                key: 'actions',
+                align: 'center',
+                render: (_, r) => (Number(r.quantityAvailable) || 0) > 0 ? (
+                  <Space size={2}>
+                    <Tooltip title="Adjust stock (increase / decrease)">
+                      <Button type="text" size="small" icon={<SlidersOutlined />} onClick={() => openAdjust(r)} style={{ color: 'var(--theme-primary)' }} />
+                    </Tooltip>
+                    <Tooltip title="Generate QR labels">
+                      <Button type="text" size="small" icon={<QrcodeOutlined />} onClick={() => setQrBatch({ batchNumber: r.batchNumber, productName: product.name, quantityAvailable: r.quantityAvailable, quantityReceived: r.totalQuantity })} style={{ color: 'var(--theme-primary)' }} />
+                    </Tooltip>
+                  </Space>
+                ) : <span style={{ color: '#CBD5E1' }}>—</span>,
+              }] : []),
             ]}
             dataSource={filteredReceipts}
             rowKey={(item) => item.batchId}
@@ -1451,6 +1513,50 @@ const ProductDetailsPage = () => {
             size="small"
           />
         </Drawer>
+
+        {/* Adjust stock modal (batch increase / decrease) */}
+        <Modal
+          open={Boolean(adjustTarget)}
+          onCancel={closeAdjust}
+          title="Adjust Stock"
+          okText={adjDir === 'INCREASE' ? 'Increase' : 'Decrease'}
+          confirmLoading={adjSaving}
+          onOk={submitAdjust}
+          width={420}
+          destroyOnClose
+        >
+          {adjustTarget && (() => {
+            const available = Number(adjustTarget.quantityAvailable || 0);
+            const qty = Number(adjQty) || 0;
+            const newAvail = adjDir === 'INCREASE' ? available + qty : available - qty;
+            return (
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: 12 }}>
+                  Batch <b style={{ color: '#0F172A' }}>{adjustTarget.batchNumber}</b>
+                  <span style={{ color: '#CBD5E1', margin: '0 8px' }}>·</span>
+                  Available <b style={{ color: 'var(--theme-primary)' }}>{available.toLocaleString('en-IN')}</b>
+                </div>
+                <Segmented block value={adjDir} onChange={setAdjDir} options={[{ label: '+ Increase', value: 'INCREASE' }, { label: '− Decrease', value: 'DECREASE' }]} style={{ marginBottom: 12 }} />
+                <InputNumber min={1} value={adjQty} onChange={(v) => { setAdjQty(v); setAdjError(''); }} placeholder="Quantity" prefix={adjDir === 'INCREASE' ? '+' : '−'} style={{ width: '100%', marginBottom: 12 }} />
+                {qty > 0 && (
+                  <div style={{ fontSize: '0.85rem', color: '#475569', background: 'color-mix(in srgb, var(--theme-primary) 8%, white)', borderRadius: 8, padding: '8px 12px' }}>
+                    New available: <b style={{ color: newAvail < 0 ? '#DC2626' : 'var(--theme-primary)' }}>{newAvail.toLocaleString('en-IN')}</b>
+                    <span style={{ color: '#94A3B8', marginLeft: 6 }}>({available.toLocaleString('en-IN')} {adjDir === 'INCREASE' ? '+' : '−'} {qty.toLocaleString('en-IN')})</span>
+                  </div>
+                )}
+                {adjError && <div style={{ color: '#DC2626', fontSize: '0.8rem', marginTop: 8 }}>{adjError}</div>}
+              </div>
+            );
+          })()}
+        </Modal>
+
+        {/* QR labels generator for the selected batch */}
+        <GenerateLabelsDialog
+          open={Boolean(qrBatch)}
+          onClose={() => setQrBatch(null)}
+          batch={qrBatch}
+          onGenerated={refreshStock}
+        />
 
         {/* add material model */}
         <MaterialCostModal

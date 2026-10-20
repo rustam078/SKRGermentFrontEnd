@@ -657,30 +657,47 @@ const ProductsPage = () => {
                       >
                         {product.name}
                       </div>
-                      {/* Current selling price */}
-                      <div style={{ marginTop: 4, fontSize: '1rem', fontWeight: 800, color: 'var(--theme-primary)' }}>
-                        {product.sellingPrice != null
-                          ? `${getCurrencySymbol()}${Number(product.sellingPrice).toLocaleString('en-IN')}`
-                          : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>No price set</span>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                      {/* Current/latest list price; hover shows per-batch prices when they vary */}
+                      <Tooltip
+                        title={(product.batchSalePrices && product.batchSalePrices.length > 1) ? (
+                          <div style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
+                            <div style={{ fontWeight: 700, marginBottom: 2 }}>Batch prices ({product.batchSalePrices.length})</div>
+                            {product.batchSalePrices.map((p, i) => (
+                              <div key={i}>{getCurrencySymbol()}{Number(p).toLocaleString('en-IN')}</div>
+                            ))}
+                            <div style={{ marginTop: 3, opacity: 0.85 }}>
+                              Range {getCurrencySymbol()}{Number(product.batchSalePrices[0]).toLocaleString('en-IN')}–{getCurrencySymbol()}{Number(product.batchSalePrices[product.batchSalePrices.length - 1]).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        ) : ''}
+                      >
+                        <div style={{
+                          marginTop: 4, fontSize: '1rem', fontWeight: 800, color: 'var(--theme-primary)', display: 'inline-block',
+                          cursor: (product.batchSalePrices && product.batchSalePrices.length > 1) ? 'help' : 'default',
+                          borderBottom: (product.batchSalePrices && product.batchSalePrices.length > 1) ? '1px dotted #94A3B8' : 'none',
+                        }}>
+                          {product.sellingPrice != null
+                            ? `${getCurrencySymbol()}${Number(product.sellingPrice).toLocaleString('en-IN')}`
+                            : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>No price set</span>}
+                        </div>
+                      </Tooltip>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'nowrap', minWidth: 0 }}>
                         <span
                           style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap',
                             fontSize: '0.68rem', fontWeight: 700,
                             color: product.source === 'PURCHASED' ? 'var(--theme-primary)' : product.source === 'BOTH' ? 'var(--theme-primary)' : '#0C4A6E',
-                            backgroundColor: product.source === 'PURCHASED' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : product.source === 'BOTH' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+                            backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
                             padding: '2px 7px', borderRadius: 6,
                           }}
                         >
                           {product.source === 'PURCHASED' ? <ShoppingOutlined /> : <BuildOutlined />}
-                          {product.source === 'PURCHASED' ? 'Purchased' : product.source === 'BOTH' ? 'Both' : 'Manufactured'}
+                          {product.source === 'PURCHASED' ? 'Purchased' : product.source === 'BOTH' ? 'Both' : 'Made'}
                         </span>
-                        {product.source !== 'PURCHASED' && (
-                          <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6 }}>
-                            {(product.totalPieceCodes || 0)} codes
-                          </span>
-                        )}
+                        <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                          <InboxOutlined style={{ fontSize: '0.7rem' }} />
+                          {Number(product.availableQty || 0).toLocaleString('en-IN')} pcs
+                        </span>
                       </div>
                     </div>
                   </div>

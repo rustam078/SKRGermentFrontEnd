@@ -390,7 +390,7 @@ const LoginPage = () => {
             fontWeight: 500,
           }}
         >
-          Version 1.4
+          Version 1.6
         </Typography>
       </Box>
     </Box>

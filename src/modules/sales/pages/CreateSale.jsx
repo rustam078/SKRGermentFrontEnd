@@ -46,6 +46,7 @@ import productService from '../services/productService';
 import ScanBar from '../../qr/components/ScanBar';
 import { mergeScannedUnit } from '../../qr/scanCart';
 import { ProductThumb } from '../../../components/common/ProductLabel';
+import PaymentConfirmDialog from '../../../components/common/PaymentConfirmDialog';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { useGstConfig } from '../../../contexts/AppSettingsContext';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -102,6 +103,7 @@ const CreateSale = () => {
     items: [],
   });
   const [customerResults, setCustomerResults] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false); // payment confirmation before completing the sale
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerLoading, setCustomerLoading] = useState(false);
   const [productOptions, setProductOptions] = useState([]);
@@ -296,8 +298,12 @@ const CreateSale = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
+  // Open the payment confirmation (only once the form is valid) before actually creating the sale.
+  const handleCompleteClick = () => { if (validateForm()) setConfirmOpen(true); };
+
   const handleSave = () => {
     if (!validateForm()) return;
+    setConfirmOpen(false);
     const payload = {
       customerName: formValues.customerName,
       customerMobile: formValues.customerMobile,
@@ -813,7 +819,7 @@ const CreateSale = () => {
               ) : null}
 
               {can('sales', 'write') && (
-                <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleSave} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
+                <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleCompleteClick} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
                   {createSaleMutation.isLoading ? 'Saving…' : 'Complete Sale'}
                 </Button>
               )}
@@ -924,6 +930,23 @@ const CreateSale = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PaymentConfirmDialog
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={handleSave}
+        loading={createSaleMutation.isLoading}
+        title="Confirm Sale"
+        confirmText="Confirm & Complete"
+        rows={[
+          { label: 'Payment Mode', value: (formValues.paymentMode || '-').replace(/_/g, ' ') },
+          { label: 'Bill Total', value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
+          ...(previousDue > 0 ? [{ label: 'Previous Due', value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` }] : []),
+          { label: 'Amount Received', value: `${getCurrencySymbol()}${amountReceived.toLocaleString('en-IN')}`, strong: true },
+        ]}
+        dueAmount={remainingDue}
+        dueText={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN')}`}
+      />
 
       <Box sx={{ position: 'fixed', top: 20, right: 20, zIndex: 1300 }}>
         {toast.open ? (
