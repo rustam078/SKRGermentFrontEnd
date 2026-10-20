@@ -99,6 +99,10 @@ const SalesList = () => {
 
   const handleReset = () => setFilters(DEFAULT_FILTERS);
 
+  // Click the Due total to show only due invoices; click again to clear (toggle).
+  const dueActive = filters.paymentStatus === 'DUE';
+  const toggleDue = () => setFilters((prev) => ({ ...prev, paymentStatus: prev.paymentStatus === 'DUE' ? 'All' : 'DUE' }));
+
   return (
     <Box>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} sx={{ mb: 3 }} spacing={2}>
@@ -115,7 +119,24 @@ const SalesList = () => {
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
               <Box component="span" sx={{ color: '#047857' }}>{money(summary.received)} received</Box>
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
-              <Box component="span" sx={{ color: Number(summary.due) > 0 ? '#B91C1C' : '#475569' }}>{money(summary.due)} due</Box>
+              <Box
+                component="span"
+                onClick={toggleDue}
+                title={dueActive ? 'Showing only due invoices — click to clear' : 'Click to show only due invoices'}
+                sx={{
+                  color: Number(summary.due) > 0 ? '#B91C1C' : '#475569',
+                  cursor: 'pointer',
+                  fontWeight: dueActive ? 800 : 700,
+                  px: dueActive ? 0.75 : 0,
+                  py: dueActive ? 0.25 : 0,
+                  borderRadius: 1,
+                  bgcolor: dueActive ? 'rgba(185,28,28,0.1)' : 'transparent',
+                  border: dueActive ? '1px solid #B91C1C' : '1px solid transparent',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                {money(summary.due)} due{dueActive ? '  ✕' : ''}
+              </Box>
             </Typography>
           ) : null}
         </Stack>

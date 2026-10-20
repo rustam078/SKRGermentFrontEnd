@@ -2,10 +2,17 @@ import React from 'react';
 import { Box, Card, CardContent, Chip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Tooltip, Typography, Paper, Skeleton, Alert, Stack } from '@mui/material';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import dayjs from 'dayjs';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { modeLabel } from '../../../utils/payment';
 
 const STATUS_COLOR = { PAID: 'success', DUE: 'warning', PENDING: 'warning', PARTIALLY_PAID: 'info', FAILED: 'error', REFUNDED: 'default' };
+
+// Consistent sale date display: dd-MMM-yyyy (e.g. 05-Oct-2026).
+const fmtDate = (v) => {
+  const d = dayjs(v);
+  return v && d.isValid() ? d.format('DD-MMM-YYYY') : '-';
+};
 
 const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onDownload, onRowClick }) => {
   // Server-side paging: `rows` is only the current page, so fill up to the page size by its length.
@@ -70,7 +77,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                     return (
                       <TableRow key={saleId || sale.invoiceNo} hover sx={{ cursor: 'pointer' }} onClick={() => onRowClick(saleId)}>
                         <TableCell>{sale.invoice || sale.invoiceNo || '-'}</TableCell>
-                        <TableCell>{sale.saleDate || sale.createdAt?.split('T')[0] || sale.date || '-'}</TableCell>
+                        <TableCell>{fmtDate(sale.saleDate || sale.createdAt || sale.date)}</TableCell>
                         <TableCell>{sale.customerName || sale.customer || '-'}</TableCell>
                         <TableCell>{sale.customerMobile || sale.mobile || '-'}</TableCell>
                         <TableCell>{sale.grandTotal != null ? `${getCurrencySymbol()}${Number(sale.grandTotal).toLocaleString('en-IN')}` : '-'}</TableCell>

@@ -102,7 +102,7 @@ const SaleDetails = () => {
       key: String(idx),
       label: (
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', fontSize: '0.85rem', borderBottom: '1px solid #F1F5F9', pb: 0.75 }}>
-          <Box sx={{ flex: '1.4', fontWeight: 700, color: '#0F172A' }}>{grp.paymentDate ? dayjs(grp.paymentDate).format('DD MMM YYYY') : '—'}</Box>
+          <Box sx={{ flex: '1.4', fontWeight: 700, color: '#0F172A' }}>{grp.paymentDate ? dayjs(grp.paymentDate).format('DD-MMM-YYYY') : '—'}</Box>
           <Box sx={{ flex: '1' }}><Tag style={{ borderRadius: 6, margin: 0 }}>{modeLabel(grp.mode)}</Tag></Box>
           <Box sx={{ flex: '0.8', color: '#64748B' }}>{(grp.allocations || []).length}</Box>
           <Box sx={{ flex: '1', textAlign: 'right', fontWeight: 800, color: 'var(--theme-primary)' }}>{inr(grp.totalAmount)}</Box>
@@ -142,7 +142,8 @@ const SaleDetails = () => {
 
   const inv = sale || {};
   const invoiceNo = inv.invoiceNo || inv.invoice || '-';
-  const saleDate = inv.saleDate || inv.createdAt?.split('T')[0] || '-';
+  const rawSaleDate = inv.saleDate || inv.createdAt;
+  const saleDate = rawSaleDate ? dayjs(rawSaleDate).format('DD-MMM-YYYY') : '-';
   const status = inv.paymentStatus ? inv.paymentStatus.replace(/_/g, ' ') : 'Unknown';
   const paymentMode = modeLabel(inv.paymentMode);
   const items = inv.items || [];
@@ -323,7 +324,7 @@ const SaleDetails = () => {
                       {inv.clearances.map((c, i) => (
                         <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.25 }}>
                           <Typography sx={{ color: '#64748B', fontSize: '0.8rem' }}>
-                            {dayjs(c.date).format('DD MMM YYYY')} · {modeLabel(c.mode)}
+                            {dayjs(c.date).format('DD-MMM-YYYY')} · {modeLabel(c.mode)}
                           </Typography>
                           <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(c.amount)}</Typography>
                         </Stack>

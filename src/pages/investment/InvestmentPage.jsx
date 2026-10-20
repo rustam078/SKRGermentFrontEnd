@@ -1609,11 +1609,19 @@ const InvestmentPage = () => {
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span
                       onClick={() => setAppliedFilters((p) => ({ ...p, paymentStatus: p.paymentStatus === 'DUE' ? undefined : 'DUE' }))}
-                      title="Click to show only records with a pending due"
-                      style={{ cursor: 'pointer', textDecoration: appliedFilters.paymentStatus === 'DUE' ? 'underline' : 'none' }}
+                      title={appliedFilters.paymentStatus === 'DUE' ? 'Showing only records with a pending due — click to clear' : 'Click to show only records with a pending due'}
+                      style={{
+                        cursor: 'pointer',
+                        fontWeight: appliedFilters.paymentStatus === 'DUE' ? 800 : 'inherit',
+                        padding: appliedFilters.paymentStatus === 'DUE' ? '1px 7px' : 0,
+                        borderRadius: 6,
+                        backgroundColor: appliedFilters.paymentStatus === 'DUE' ? 'rgba(185,28,28,0.1)' : 'transparent',
+                        border: appliedFilters.paymentStatus === 'DUE' ? '1px solid #B91C1C' : '1px solid transparent',
+                      }}
                     >
                       <span style={{ color: '#B91C1C' }}>Due:</span>
                       <span style={{ marginLeft: 4, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
+                      {appliedFilters.paymentStatus === 'DUE' ? <span style={{ marginLeft: 6, color: '#B91C1C' }}>✕</span> : null}
                     </span>
                   </div>
                 </div>
