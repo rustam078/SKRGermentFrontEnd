@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
 import { notification } from 'antd';
@@ -29,6 +29,15 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Ask the user to confirm before the window closes (prevents accidental exit on the X).
+  // Only in the packaged build so the dev browser isn't nagged on every reload.
+  useEffect(() => {
+    if (!import.meta.env.PROD) return undefined;
+    const confirmExit = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', confirmExit);
+    return () => window.removeEventListener('beforeunload', confirmExit);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AppThemeProvider>
