@@ -354,11 +354,13 @@ const InvestmentPage = () => {
   const [payDate, setPayDate] = useState(null);
   const [payMode, setPayMode] = useState('CASH');
   const [payAmount, setPayAmount] = useState(null);
+  const [payRef, setPayRef] = useState(''); // optional reference / txn id for non-cash payments
 
   // Create-time payment fields
   const [createFullPayment, setCreateFullPayment] = useState(false);
   const [createPayAmount, setCreatePayAmount] = useState(null);
   const [createPayMode, setCreatePayMode] = useState('CASH');
+  const [createPayRef, setCreatePayRef] = useState(''); // optional txn id / reference for non-cash payments
   const [investConfirmOpen, setInvestConfirmOpen] = useState(false); // payment confirmation before saving the investment
   const [showDues, setShowDues] = useState(false); // slide-open the vendor's previous dues
 
@@ -393,6 +395,7 @@ const InvestmentPage = () => {
       setPayAmount(null);
       setPayDate(null);
       setPayMode('CASH');
+      setPayRef('');
     },
     onError: (err) => {
       notification.error({
@@ -415,6 +418,7 @@ const InvestmentPage = () => {
         paymentDate: (payDate || dayjs()).format('YYYY-MM-DD'),
         mode: payMode,
         amount: Number(payAmount),
+        reference: (payMode !== 'CASH' && payRef.trim()) ? payRef.trim() : undefined,
       },
     });
   };
@@ -700,6 +704,7 @@ const InvestmentPage = () => {
     setCreateFullPayment(false);
     setCreatePayAmount(null);
     setCreatePayMode('CASH');
+    setCreatePayRef('');
     setShowDues(false);
     if (queryAdd === 'true' && queryVendorId) {
       navigate(`/vendors/${queryVendorId}`, { replace: true });
@@ -906,6 +911,7 @@ const InvestmentPage = () => {
         fullPayment: false,
         paymentAmount: createPayAmount ? Number(createPayAmount) : undefined,
         paymentMode: createPayMode,
+        paymentReference: (createPayMode !== 'CASH' && createPayRef.trim()) ? createPayRef.trim() : undefined,
         // Payment is recorded as of today by the backend.
       };
 
@@ -2081,39 +2087,50 @@ const InvestmentPage = () => {
 
               {/* Add payment form (hidden once fully paid) */}
               {investmentDetail.paymentStatus !== 'PAID' && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10, paddingBottom: 10, borderBottom: '1px dashed #E2E8F0' }}>
-                  <InputNumber
-                    value={payAmount}
-                    onChange={setPayAmount}
-                    min={0}
-                    placeholder="Amount"
-                    prefix={getCurrencySymbol()}
-                    style={{ width: 130 }}
-                  />
-                  <Select value={payMode} onChange={setPayMode} style={{ width: 130 }}>
-                    <Option value="CASH">Cash</Option>
-                    <Option value="UPI">UPI</Option>
-                    <Option value="CREDIT_CARD">Credit Card</Option>
-                    <Option value="DEBIT_CARD">Debit Card</Option>
-                    <Option value="NET_BANKING">Net Banking</Option>
-                  </Select>
-                  <DatePicker
-                    value={payDate || dayjs()}
-                    onChange={setPayDate}
-                    format="DD-MMM-YYYY"
-                    allowClear={false}
-                    placeholder="Payment date"
-                    style={{ width: 150 }}
-                    disabledDate={(d) =>
-                      d && (
-                        d.isAfter(dayjs(), 'day') ||
-                        (investmentDetail.purchaseDate && d.isBefore(dayjs(investmentDetail.purchaseDate), 'day'))
-                      )
-                    }
-                  />
-                  <Button type="primary" icon={<PlusOutlined />} loading={addPaymentMutation.isPending} onClick={handleAddPayment} style={{ borderRadius: 8 }}>
-                    Add
-                  </Button>
+                <div style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px dashed #E2E8F0' }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <InputNumber
+                      value={payAmount}
+                      onChange={setPayAmount}
+                      min={0}
+                      placeholder="Amount"
+                      prefix={getCurrencySymbol()}
+                      style={{ width: 130 }}
+                    />
+                    <Select value={payMode} onChange={setPayMode} style={{ width: 130 }}>
+                      <Option value="CASH">Cash</Option>
+                      <Option value="UPI">UPI</Option>
+                      <Option value="CREDIT_CARD">Credit Card</Option>
+                      <Option value="DEBIT_CARD">Debit Card</Option>
+                      <Option value="NET_BANKING">Net Banking</Option>
+                    </Select>
+                    <DatePicker
+                      value={payDate || dayjs()}
+                      onChange={setPayDate}
+                      format="DD-MMM-YYYY"
+                      allowClear={false}
+                      placeholder="Payment date"
+                      style={{ width: 150 }}
+                      disabledDate={(d) =>
+                        d && (
+                          d.isAfter(dayjs(), 'day') ||
+                          (investmentDetail.purchaseDate && d.isBefore(dayjs(investmentDetail.purchaseDate), 'day'))
+                        )
+                      }
+                    />
+                    <Button type="primary" icon={<PlusOutlined />} loading={addPaymentMutation.isPending} onClick={handleAddPayment} style={{ borderRadius: 8 }}>
+                      Add
+                    </Button>
+                  </div>
+                  {payMode !== 'CASH' && (
+                    <Input
+                      value={payRef}
+                      onChange={(e) => setPayRef(e.target.value)}
+                      placeholder="Reference / txn id (optional)"
+                      maxLength={120}
+                      style={{ marginTop: 8, maxWidth: 267 }}
+                    />
+                  )}
                 </div>
               )}
 
@@ -2123,9 +2140,10 @@ const InvestmentPage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {investmentDetail.payments.map((p) => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
                         <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
+                        {p.reference ? <span style={{ color: '#64748B', fontSize: '0.78rem' }}>Ref: {p.reference}</span> : null}
                       </div>
                       <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(p.amount).toLocaleString('en-IN')}</span>
                     </div>
@@ -2517,6 +2535,7 @@ const InvestmentPage = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <InputNumber
+                className="skr-bottomline"
                 value={createPayAmount}
                 onChange={(v) => setCreatePayAmount(v == null ? null : Math.min(Number(v), maxPayable))}
                 min={0}
@@ -2525,9 +2544,9 @@ const InvestmentPage = () => {
                 placeholder="Amount paying now"
                 controls={false}
                 variant="borderless"
-                style={{ flex: 1, minWidth: 150, borderBottom: '1px solid #E2E8F0', borderRadius: 0 }}
+                style={{ flex: 1, minWidth: 150 }}
               />
-              <Select value={createPayMode} onChange={setCreatePayMode} style={{ width: 130, borderBottom: '1px solid #E2E8F0' }} variant="borderless">
+              <Select className="skr-bottomline" value={createPayMode} onChange={setCreatePayMode} style={{ width: 130 }} variant="borderless">
                 <Option value="CASH">Cash</Option>
                 <Option value="UPI">UPI</Option>
                 <Option value="CREDIT_CARD">Credit Card</Option>
@@ -2535,6 +2554,18 @@ const InvestmentPage = () => {
                 <Option value="NET_BANKING">Net Banking</Option>
               </Select>
             </div>
+
+            {createPayMode !== 'CASH' && (Number(createPayAmount) || 0) > 0 && (
+              <Input
+                className="skr-bottomline"
+                value={createPayRef}
+                onChange={(e) => setCreatePayRef(e.target.value)}
+                placeholder="Payment reference / txn id (optional)"
+                variant="borderless"
+                style={{ marginTop: 8 }}
+                maxLength={120}
+              />
+            )}
 
             {selectedType === 'PURCHASE' && paymentAllocation.leftover > 0 && (
               <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: 8 }}>
@@ -2567,7 +2598,8 @@ const InvestmentPage = () => {
             title="Confirm Investment"
             confirmText="Confirm & Save"
             rows={[
-              { label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') },
+              // Payment mode only matters when something is actually being paid.
+              ...(payNow > 0 ? [{ label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') }] : []),
               { label: 'Grand Total', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN')}` },
               ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [{ label: 'Previous Dues', value: `${getCurrencySymbol()}${vendorOverdue.toLocaleString('en-IN')}` }] : []),
               { label: 'Amount Paid', value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },

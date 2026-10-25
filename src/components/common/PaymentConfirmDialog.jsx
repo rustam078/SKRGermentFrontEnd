@@ -1,9 +1,7 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Stack, Typography,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, Typography,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 /**
  * Shared "confirm before submit" dialog for Sale + Investment.
@@ -30,24 +28,13 @@ const PaymentConfirmDialog = ({
       </Stack>
 
       {dueAmount > 0 ? (
-        <Box sx={{ mt: 1.75, p: 1.25, borderRadius: 1.5, bgcolor: 'rgba(185,28,28,0.08)', border: '1px solid #FCA5A5' }}>
-          <Stack direction="row" alignItems="center" spacing={0.75}>
-            <WarningAmberIcon sx={{ color: '#B91C1C', fontSize: 18 }} />
-            <Typography sx={{ color: '#B91C1C', fontWeight: 800, fontSize: '0.92rem' }}>
-              Due / Udhaar: {dueText}
-            </Typography>
-          </Stack>
-          <Typography sx={{ color: '#991B1B', fontSize: '0.78rem', mt: 0.5 }}>
-            {dueNote || 'Yeh amount baaki (udhaar) reh jayega. Confirm karne se pehle amount received check kar lo.'}
-          </Typography>
-        </Box>
+        <Typography sx={{ mt: 1.5, color: '#B91C1C', fontSize: '0.85rem', fontWeight: 600 }}>
+          {dueText} will remain on due.
+        </Typography>
       ) : (
-        <Box sx={{ mt: 1.75, p: 1.25, borderRadius: 1.5, bgcolor: 'rgba(22,163,74,0.08)', border: '1px solid #86EFAC' }}>
-          <Stack direction="row" alignItems="center" spacing={0.75}>
-            <CheckCircleOutlineIcon sx={{ color: '#16A34A', fontSize: 18 }} />
-            <Typography sx={{ color: '#15803D', fontWeight: 800, fontSize: '0.92rem' }}>Fully paid — no due</Typography>
-          </Stack>
-        </Box>
+        <Typography sx={{ mt: 1.5, color: '#15803D', fontSize: '0.85rem', fontWeight: 600 }}>
+          Fully paid.
+        </Typography>
       )}
     </DialogContent>
     <DialogActions sx={{ px: 3, pb: 2 }}>

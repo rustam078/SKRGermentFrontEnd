@@ -939,7 +939,8 @@ const CreateSale = () => {
         title="Confirm Sale"
         confirmText="Confirm & Complete"
         rows={[
-          { label: 'Payment Mode', value: (formValues.paymentMode || '-').replace(/_/g, ' ') },
+          // Payment mode only matters when something is actually being paid.
+          ...(amountReceived > 0 ? [{ label: 'Payment Mode', value: (formValues.paymentMode || '-').replace(/_/g, ' ') }] : []),
           { label: 'Bill Total', value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
           ...(previousDue > 0 ? [{ label: 'Previous Due', value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` }] : []),
           { label: 'Amount Received', value: `${getCurrencySymbol()}${amountReceived.toLocaleString('en-IN')}`, strong: true },

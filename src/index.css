@@ -97,3 +97,45 @@ body,
   box-shadow: none !important;
 }
 
+/* Bottom-border (borderless) inputs on the sale & investment forms: on focus keep ONLY the
+   bottom line — remove AntD's focus glow/ring and the browser outline. Outlined inputs still
+   show focus via their own border colour, so this only strips the glow, never the border. */
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input-affix-wrapper:focus-within,
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-input-number-focused .ant-input-number-input,
+.ant-input-number-affix-wrapper:focus,
+.ant-input-number-affix-wrapper-focused,
+.ant-input-number-affix-wrapper:focus-within,
+.ant-select-focused .ant-select-selector,
+.ant-picker:focus,
+.ant-picker-focused {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Payment-card inputs (amount / mode / reference): force ONLY a bottom line at all times,
+   grey normally and theme-primary on focus — matches every other bottom-border field. */
+.skr-bottomline,
+.skr-bottomline .ant-select-selector,
+.skr-bottomline.ant-input-number-affix-wrapper {
+  border-width: 0 0 1px 0 !important;
+  border-style: solid !important;
+  border-color: #E2E8F0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.skr-bottomline:focus,
+.skr-bottomline:focus-within,
+.skr-bottomline.ant-input-number-focused,
+.skr-bottomline.ant-input-number-affix-wrapper-focused,
+.skr-bottomline.ant-select-focused .ant-select-selector {
+  border-bottom-color: var(--theme-primary) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
