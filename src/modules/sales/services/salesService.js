@@ -1,5 +1,6 @@
 import axiosInstance from '../../../services/axios';
-import { downloadReport, periodToken } from '../../../utils/reportDownload';
+import { downloadReport, printReport, periodToken } from '../../../utils/reportDownload';
+import { printPdfFromUrl } from '../../../utils/printPdf';
 
 const salesService = {
   getDashboard: async () => {
@@ -83,10 +84,24 @@ const salesService = {
     URL.revokeObjectURL(url);
   },
 
+  /** Fetch the same invoice PDF and send it straight to the printer. */
+  printInvoicePdf: async (saleId) => {
+    const response = await axiosInstance.get(`/sales/${saleId}/invoice/pdf`, {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    printPdfFromUrl(url);
+  },
+
   /** Date-range sales report (PDF or Excel). GET /api/sales/report/{format} */
   downloadSalesReport: async (format, fromDate, toDate) => {
     await downloadReport(`/sales/report/${format}`, { fromDate, toDate },
       `sales_${periodToken(fromDate, toDate)}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
+  },
+
+  /** Print the date-range sales report PDF directly. */
+  printSalesReport: async (fromDate, toDate) => {
+    await printReport('/sales/report/pdf', { fromDate, toDate });
   },
 };
 

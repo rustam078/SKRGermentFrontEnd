@@ -1,5 +1,6 @@
 import axiosInstance from '../services/axios';
 import dayjs from 'dayjs';
+import { printPdfFromUrl } from './printPdf';
 
 // Report file-name token: "Jan_2026" for a full calendar month, else "01Jan2026_to_15Jan2026".
 export function periodToken(from, to) {
@@ -57,4 +58,16 @@ export async function downloadReport(path, params, fallbackName) {
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+// Fetch a PDF report and send it straight to the printer instead of downloading.
+export async function printReport(path, params) {
+  let response;
+  try {
+    response = await axiosInstance.get(path, { params, responseType: 'blob' });
+  } catch (err) {
+    throw await toReadableError(err);
+  }
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+  printPdfFromUrl(url);
 }

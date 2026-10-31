@@ -39,6 +39,7 @@ import {
   ShoppingOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  PrinterOutlined,
   SearchOutlined,
   ReloadOutlined,
   FilterOutlined,
@@ -375,6 +376,9 @@ const InvestmentPage = () => {
     queryKey: ['vendorForInvestment', watchedVendorId],
     queryFn: () => vendorService.getVendorById(watchedVendorId),
     enabled: !!watchedVendorId && (addModalVisible || isAddPage) && selectedType === 'PURCHASE',
+    // Always pull the live outstanding so a just-made payment is reflected (no stale previous-due).
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const vendorUnpaid = useMemo(() => {
     const purchases = vendorDetailData?.data?.purchases || [];
@@ -394,6 +398,7 @@ const InvestmentPage = () => {
       queryClient.invalidateQueries({ queryKey: ['investment', selectedInvestment?.id] });
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       queryClient.invalidateQueries({ queryKey: ['vendorPayments'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorForInvestment'] });
       if (selectedInvestment?.vendorId) {
         queryClient.invalidateQueries({ queryKey: ['vendor', selectedInvestment.vendorId] });
       }
@@ -502,26 +507,11 @@ const InvestmentPage = () => {
   // Round-off the grand total so bill, confirmation and listing all match.
   const grandTotal = Math.round(subtotal + gst - discount);
 
-  // Live oldest-first allocation of the create-time payment: old dues first, then this invoice.
   const payNow = Number(createPayAmount) || 0;
-  const paymentAllocation = useMemo(() => {
-    let remaining = payNow;
-    const rows = [];
-    for (const inv of vendorUnpaid) {
-      const due = Number(inv.amountDue) || 0;
-      const pay = Math.min(remaining, due);
-      if (pay > 0) rows.push({ key: inv.id, label: inv.invoiceNumber || 'Invoice', old: true, pay, due });
-      remaining -= pay;
-    }
-    const thisPay = Math.min(remaining, grandTotal);
-    if (thisPay > 0) rows.push({ key: 'new', label: 'This invoice', old: false, pay: thisPay, due: grandTotal });
-    remaining -= thisPay;
-    return { rows, leftover: Math.max(0, remaining) };
-  }, [payNow, vendorUnpaid, grandTotal]);
 
-  // Per-due status for the slider: how the entered amount clears oldest dues first.
+  // Per-due status for the slider: this bill is paid first, only the leftover clears older dues (oldest first).
   const duesWithStatus = useMemo(() => {
-    let remaining = payNow;
+    let remaining = Math.max(0, payNow - grandTotal);
     return vendorUnpaid.map((inv) => {
       const due = Number(inv.amountDue) || 0;
       const pay = Math.min(remaining, due);
@@ -529,10 +519,15 @@ const InvestmentPage = () => {
       const status = due > 0 && pay >= due ? 'cleared' : pay > 0 ? 'partial' : 'pending';
       return { ...inv, due, pay, status };
     });
-  }, [vendorUnpaid, payNow]);
+  }, [vendorUnpaid, payNow, grandTotal]);
 
   // Max payable now = this invoice + vendor's overdue (just this invoice for overhead).
   const maxPayable = Math.round(selectedType === 'PURCHASE' ? (grandTotal + vendorOverdue) : grandTotal);
+
+  // Confirmation due = (this bill + previous dues) - paid, regardless of which clears first.
+  const confirmTotalOutstanding = (selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal)
+    + (selectedType === 'PURCHASE' ? Math.round(vendorOverdue) : 0);
+  const confirmDueRemaining = Math.max(0, confirmTotalOutstanding - payNow);
 
   // Keep the entered amount within the outstanding balance if totals change.
   useEffect(() => {
@@ -1054,6 +1049,18 @@ const InvestmentPage = () => {
       sorter: (a, b) => (a.grandTotal || 0) - (b.grandTotal || 0),
     },
     {
+      // Actual cash received in this invoice's own transaction (can clear previous dues too).
+      title: 'Amount Received',
+      dataIndex: 'amountReceived',
+      key: 'amountReceived',
+      render: (val) => (
+        <span style={{ fontWeight: 700, color: Number(val) > 0 ? 'var(--theme-primary)' : '#94A3B8', fontSize: '0.88rem' }}>
+          {getCurrencySymbol()}{Math.round(Number(val || 0)).toLocaleString('en-IN')}
+        </span>
+      ),
+      sorter: (a, b) => (a.amountReceived || 0) - (b.amountReceived || 0),
+    },
+    {
       title: 'Payment',
       key: 'paymentStatus',
       align: 'center',
@@ -1065,47 +1072,59 @@ const InvestmentPage = () => {
       onFilter: (value, record) => (record.paymentStatus || 'PENDING') === value,
       render: (_, record) => {
         const meta = PAYMENT_STATUS_META[record.paymentStatus] || PAYMENT_STATUS_META.PENDING;
-        const paid = Number(record.amountPaid || 0);
-        const total = Number(record.grandTotal || 0);
-        return (
-          <Tooltip title={`Paid ${getCurrencySymbol()}${paid.toLocaleString('en-IN')} of ${getCurrencySymbol()}${total.toLocaleString('en-IN')}`}>
-            <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>{meta.label}</Tag>
-          </Tooltip>
-        );
+        const due = Math.max(0, Math.round(Number(record.grandTotal || 0) - Number(record.amountPaid || 0)));
+        const tag = <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>{meta.label}</Tag>;
+        // Show the due only for unpaid / partially-paid rows (nothing for a fully paid one).
+        return record.paymentStatus !== 'PAID' && due > 0
+          ? <Tooltip title={`Due: ${getCurrencySymbol()}${due.toLocaleString('en-IN')}`}>{tag}</Tooltip>
+          : tag;
       },
     },
     {
-      title: 'Invoice',
+      title: 'Action',
       key: 'actions',
-      width: 80,
+      width: 100,
       align: 'center',
       render: (_, record) => (
         record.investmentType !== 'OVERHEAD' ? (
-          <Tooltip title="Download Invoice PDF" placement="top">
-            <Button
-              type="text"
-              size="small"
-              icon={<DownloadOutlined style={{ fontSize: 17, fontWeight: 700 }} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((err) =>
-                  notification.error({
-                    message: 'Invoice download failed',
-                    description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
-                    placement: 'topRight',
-                  })
-                );
-              }}
-              style={{
-                color: 'var(--theme-primary)',
-                width: 30,
-                height: 30,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            />
-          </Tooltip>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <Tooltip title="Download Invoice PDF" placement="top">
+              <Button
+                type="text"
+                size="small"
+                icon={<DownloadOutlined style={{ fontSize: 17, fontWeight: 700 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((err) =>
+                    notification.error({
+                      message: 'Invoice download failed',
+                      description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
+                      placement: 'topRight',
+                    })
+                  );
+                }}
+                style={{ color: 'var(--theme-primary)', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </Tooltip>
+            <Tooltip title="Print Invoice" placement="top">
+              <Button
+                type="text"
+                size="small"
+                icon={<PrinterOutlined style={{ fontSize: 17, fontWeight: 700 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  investmentService.printInvoicePdf(record.id).catch((err) =>
+                    notification.error({
+                      message: 'Invoice print failed',
+                      description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
+                      placement: 'topRight',
+                    })
+                  );
+                }}
+                style={{ color: 'var(--theme-primary)', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </Tooltip>
+          </div>
         ) : <span style={{ color: '#CBD5E1' }}>—</span>
       ),
     },
@@ -2146,16 +2165,41 @@ const InvestmentPage = () => {
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Payment History</div>
               {(investmentDetail.payments && investmentDetail.payments.length > 0) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {investmentDetail.payments.map((p) => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
-                        <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
-                        {p.reference ? <span style={{ color: '#64748B', fontSize: '0.78rem' }}>Ref: {p.reference}</span> : null}
+                  {investmentDetail.payments.map((p) => {
+                    const isOrigin = p.groupOrigin && p.allocations && p.allocations.length > 1;
+                    const clearedElsewhere = !isOrigin && p.clearedFromInvoice;
+                    // Origin invoice shows the whole transaction; cleared invoices show only their part.
+                    const headline = isOrigin ? Number(p.groupTotal || 0) : Number(p.amount);
+                    return (
+                    <div key={p.id} style={{ padding: '8px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
+                          <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
+                          {p.reference ? <span style={{ color: '#64748B', fontSize: '0.78rem' }}>Ref: {p.reference}</span> : null}
+                        </div>
+                        <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{headline.toLocaleString('en-IN')}</span>
                       </div>
-                      <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(p.amount).toLocaleString('en-IN')}</span>
+                      {/* Origin invoice: where each part of the payment went (this invoice + previous dues). */}
+                      {isOrigin && (
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E2E8F0' }}>
+                          {p.allocations.map((a, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '0.78rem', color: a.thisInvoice ? 'var(--theme-primary)' : '#475569', fontWeight: a.thisInvoice ? 700 : 500 }}>
+                              <span>{a.thisInvoice ? 'This invoice' : `${a.invoiceNumber || 'Invoice'} (previous due)`}</span>
+                              <span>{getCurrencySymbol()}{Number(a.amount).toLocaleString('en-IN')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Cleared by a payment made on another invoice — reference only. */}
+                      {clearedElsewhere && (
+                        <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B', fontStyle: 'italic' }}>
+                          Cleared via payment on {dayjs(p.paymentDate).format('DD-MMM-YYYY')} · {p.clearedFromInvoice}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <div style={{ color: '#94A3B8', fontSize: '0.83rem', padding: '8px 0' }}>No payments recorded yet.</div>
@@ -2575,12 +2619,6 @@ const InvestmentPage = () => {
               />
             )}
 
-            {selectedType === 'PURCHASE' && paymentAllocation.leftover > 0 && (
-              <div style={{ color: '#DC2626', fontSize: '0.8rem', fontWeight: 600, marginTop: 8 }}>
-                ⚠ {getCurrencySymbol()}{paymentAllocation.leftover.toLocaleString('en-IN')} is more than the total outstanding — reduce the amount.
-              </div>
-            )}
-
             {/* Action buttons live inside the payment card */}
             <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 8, marginTop: 16 }}>
               <Button onClick={handleCloseAddModal} style={{ borderRadius: 8, fontWeight: 600 }}>
@@ -2608,12 +2646,16 @@ const InvestmentPage = () => {
             rows={[
               // Payment mode only matters when something is actually being paid.
               ...(payNow > 0 ? [{ label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') }] : []),
-              { label: 'Grand Total', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}` },
-              ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [{ label: 'Previous Dues', value: `${getCurrencySymbol()}${vendorOverdue.toLocaleString('en-IN')}` }] : []),
+              { label: 'Current Bill', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}` },
+              // Previous dues + a combined Total row only matter when the vendor already owes.
+              ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [
+                { label: 'Previous Dues', value: `${getCurrencySymbol()}${Math.round(vendorOverdue).toLocaleString('en-IN')}` },
+                { label: 'Total', value: `${getCurrencySymbol()}${confirmTotalOutstanding.toLocaleString('en-IN')}`, strong: true },
+              ] : []),
               { label: 'Amount Paid', value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },
             ]}
-            dueAmount={Math.max(0, (selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal) - payNow)}
-            dueText={`${getCurrencySymbol()}${Math.max(0, (selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal) - payNow).toLocaleString('en-IN')}`}
+            dueAmount={confirmDueRemaining}
+            dueText={`${getCurrencySymbol()}${confirmDueRemaining.toLocaleString('en-IN')}`}
           />
           </Box>
           </Box>

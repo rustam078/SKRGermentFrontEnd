@@ -1,4 +1,5 @@
 import axiosInstance from './axios';
+import { printPdfFromUrl } from '../utils/printPdf';
 
 // ─────────────────────────────────────────
 // VENDOR METHODS
@@ -126,5 +127,17 @@ export const investmentService = {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  },
+
+  /**
+   * Fetch the same invoice PDF and send it straight to the printer (hidden iframe).
+   * GET /api/investments/{id}/invoice/pdf
+   */
+  printInvoicePdf: async (investmentId) => {
+    const response = await axiosInstance.get(`/investments/${investmentId}/invoice/pdf`, {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    printPdfFromUrl(url);
   },
 };

@@ -305,16 +305,17 @@ const SaleDetails = () => {
                       <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(inv.paidToPreviousDues)}</Typography>
                     </Stack>
                   )}
+                  {/* Which older invoices this payment cleared (sum = towards previous dues). */}
+                  {Array.isArray(inv.previousDuesAllocation) && inv.previousDuesAllocation.map((d, i) => (
+                    <Stack key={i} direction="row" justifyContent="space-between" sx={{ py: 0.1 }}>
+                      <Typography sx={{ color: '#94A3B8', pl: 3, fontSize: '0.8rem' }}>◦ {d.invoiceNumber}</Typography>
+                      <Typography sx={{ color: '#64748B', fontSize: '0.8rem' }}>{inr(d.amount)}</Typography>
+                    </Stack>
+                  ))}
                   {Number(inv.amountDue) > 0.0001 && (
                     <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
                       <Typography sx={{ color: '#64748B' }}>This invoice due</Typography>
                       <Typography sx={{ fontWeight: 700, color: '#B91C1C' }}>{inr(inv.amountDue)}</Typography>
-                    </Stack>
-                  )}
-                  {Number(inv.customerBalanceDue) > 0.0001 && (
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
-                      <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>Balance Due</Typography>
-                      <Typography sx={{ fontWeight: 800, color: '#B91C1C' }}>{inr(inv.customerBalanceDue)}</Typography>
                     </Stack>
                   )}
                   {Array.isArray(inv.clearances) && inv.clearances.length > 0 && (

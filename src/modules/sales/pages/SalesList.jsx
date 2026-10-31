@@ -224,6 +224,7 @@ const SalesList = () => {
         title="Download sales report"
         onClose={() => setReportOpen(false)}
         onDownload={(format, from, to) => salesService.downloadSalesReport(format, from, to)}
+        onPrint={(from, to) => salesService.printSalesReport(from, to)}
       />
 
       <SalesTable
@@ -239,6 +240,7 @@ const SalesList = () => {
           setPage(0);
         }}
         onDownload={(saleId) => salesService.downloadInvoicePdf(saleId)}
+        onPrint={(saleId) => salesService.printInvoicePdf(saleId)}
         onRowClick={(saleId) => navigate(`/sales/${saleId}`)}
       />
     </Box>

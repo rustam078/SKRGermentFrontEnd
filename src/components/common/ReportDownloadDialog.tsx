@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Radio, DatePicker, Button, Space, Typography } from 'antd';
-import { FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { FilePdfOutlined, FileExcelOutlined, PrinterOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -13,14 +13,15 @@ interface Props {
   title?: string;
   onClose: () => void;
   onDownload: (format: Format, fromDate: string, toDate: string) => Promise<void> | void;
+  onPrint?: (fromDate: string, toDate: string) => Promise<void> | void; // adds a Print button when provided
 }
 
 /** Report range picker (current month / particular month / custom ≤90 days) + PDF/Excel buttons. */
-const ReportDownloadDialog: React.FC<Props> = ({ open, title = 'Download report', onClose, onDownload }) => {
+const ReportDownloadDialog: React.FC<Props> = ({ open, title = 'Download report', onClose, onDownload, onPrint }) => {
   const [mode, setMode] = useState<'current' | 'month' | 'range'>('current');
   const [month, setMonth] = useState<Dayjs>(dayjs());
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
-  const [busy, setBusy] = useState<Format | null>(null);
+  const [busy, setBusy] = useState<Format | 'print' | null>(null);
   const [error, setError] = useState('');
 
   const resolveRange = (): { from: string; to: string } | null => {
@@ -47,6 +48,21 @@ const ReportDownloadDialog: React.FC<Props> = ({ open, title = 'Download report'
       onClose();
     } catch (e: any) {
       setError(e.message || 'Download failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePrint = async () => {
+    setError('');
+    const r = resolveRange();
+    if (!r || !onPrint) return;
+    setBusy('print');
+    try {
+      await onPrint(r.from, r.to);
+      onClose();
+    } catch (e: any) {
+      setError(e.message || 'Print failed');
     } finally {
       setBusy(null);
     }
@@ -88,6 +104,11 @@ const ReportDownloadDialog: React.FC<Props> = ({ open, title = 'Download report'
       {error && <Typography.Text type="danger" style={{ display: 'block', marginTop: 10 }}>{error}</Typography.Text>}
 
       <Space style={{ marginTop: 18, width: '100%', justifyContent: 'flex-end' }}>
+        {onPrint && (
+          <Button icon={<PrinterOutlined />} loading={busy === 'print'} onClick={handlePrint}>
+            Print
+          </Button>
+        )}
         <Button icon={<FilePdfOutlined style={{ color: '#DC2626' }} />} loading={busy === 'pdf'} onClick={() => handle('pdf')}>
           Download PDF
         </Button>

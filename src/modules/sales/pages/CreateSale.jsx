@@ -941,8 +941,12 @@ const CreateSale = () => {
         rows={[
           // Payment mode only matters when something is actually being paid.
           ...(amountReceived > 0 ? [{ label: 'Payment Mode', value: (formValues.paymentMode || '-').replace(/_/g, ' ') }] : []),
-          { label: 'Bill Total', value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
-          ...(previousDue > 0 ? [{ label: 'Previous Due', value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` }] : []),
+          { label: 'Current Bill', value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
+          // Previous dues + a combined Total row only matter when the customer already owes.
+          ...(previousDue > 0 ? [
+            { label: 'Previous Dues', value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` },
+            { label: 'Total', value: `${getCurrencySymbol()}${grandOwed.toLocaleString('en-IN')}`, strong: true },
+          ] : []),
           { label: 'Amount Received', value: `${getCurrencySymbol()}${amountReceived.toLocaleString('en-IN')}`, strong: true },
         ]}
         dueAmount={remainingDue}
