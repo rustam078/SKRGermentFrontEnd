@@ -288,7 +288,7 @@ const CreateSale = () => {
     if (!formValues.customerName.trim()) nextErrors.customerName = 'Required';
     if (!formValues.customerMobile.trim()) nextErrors.customerMobile = 'Required';
     else if (!/^\d{10}$/.test(formValues.customerMobile.trim())) nextErrors.customerMobile = 'Enter a valid 10-digit number';
-    if (formValues.customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.customerEmail.trim())) nextErrors.customerEmail = 'Enter a valid email';
+    if ((formValues.customerEmail || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((formValues.customerEmail || '').trim())) nextErrors.customerEmail = 'Enter a valid email';
     if (!formValues.items.length) nextErrors.items = 'Add at least one product';
     formValues.items.forEach((item, index) => {
       if (!item.quantity || Number(item.quantity) <= 0) nextErrors[`quantity_${index}`] = 'Qty > 0';
@@ -375,9 +375,9 @@ const CreateSale = () => {
     setReceivedText('0'); // amount received is manual — reset for the new customer
     setFormValues((prev) => ({
       ...prev,
-      customerName: customer.name,
-      customerMobile: customer.mobile,
-      customerEmail: customer.email,
+      customerName: customer.name || '',
+      customerMobile: customer.mobile || '',
+      customerEmail: customer.email || '',
     }));
   };
 
