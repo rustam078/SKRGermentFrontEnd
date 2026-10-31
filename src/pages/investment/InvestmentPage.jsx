@@ -350,6 +350,11 @@ const InvestmentPage = () => {
   });
   const investmentDetail = investmentDetailData?.data || selectedInvestment;
 
+  // Round-off outstanding due for the details drawer (display + payment cap).
+  const detailDue = Math.max(0, Math.round(
+    Number(investmentDetail?.amountDue ?? ((investmentDetail?.grandTotal || 0) - (investmentDetail?.amountPaid || 0)))
+  ));
+
   // ── Payment form state + mutations ─────
   const [payDate, setPayDate] = useState(null);
   const [payMode, setPayMode] = useState('CASH');
@@ -417,7 +422,7 @@ const InvestmentPage = () => {
       data: {
         paymentDate: (payDate || dayjs()).format('YYYY-MM-DD'),
         mode: payMode,
-        amount: Number(payAmount),
+        amount: Math.min(Number(payAmount), detailDue),
         reference: (payMode !== 'CASH' && payRef.trim()) ? payRef.trim() : undefined,
       },
     });
@@ -494,7 +499,8 @@ const InvestmentPage = () => {
   }, [vendors, vendorSearch]);
 
   // ── Grand total calculation ────────────
-  const grandTotal = subtotal + gst - discount;
+  // Round-off the grand total so bill, confirmation and listing all match.
+  const grandTotal = Math.round(subtotal + gst - discount);
 
   // Live oldest-first allocation of the create-time payment: old dues first, then this invoice.
   const payNow = Number(createPayAmount) || 0;
@@ -893,8 +899,8 @@ const InvestmentPage = () => {
       }
 
       const computedGrandTotal = selectedType === 'OVERHEAD'
-        ? subtotal
-        : subtotal + gst - discount;
+        ? Math.round(subtotal)
+        : Math.round(subtotal + gst - discount);
 
       const payload = {
         ...(selectedType === 'PURCHASE' ? { vendorId: values.vendorId } : {}),
@@ -1042,7 +1048,7 @@ const InvestmentPage = () => {
       key: 'grandTotal',
       render: (val) => (
         <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.88rem' }}>
-          {getCurrencySymbol()}{Number(val || 0).toLocaleString('en-IN')}
+          {getCurrencySymbol()}{Math.round(Number(val || 0)).toLocaleString('en-IN')}
         </span>
       ),
       sorter: (a, b) => (a.grandTotal || 0) - (b.grandTotal || 0),
@@ -1500,7 +1506,7 @@ const InvestmentPage = () => {
       key: 'grandTotal',
       render: (v) => (
         <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
-          {getCurrencySymbol()}{Number(v || 0).toLocaleString('en-IN')}
+          {getCurrencySymbol()}{Math.round(Number(v || 0)).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -2057,7 +2063,7 @@ const InvestmentPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>Grand Total</span>
                 <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--theme-primary)' }}>
-                  {getCurrencySymbol()}{Number(investmentDetail.grandTotal || 0).toLocaleString('en-IN')}
+                  {getCurrencySymbol()}{Math.round(Number(investmentDetail.grandTotal || 0)).toLocaleString('en-IN')}
                 </span>
               </div>
             </Card>
@@ -2076,7 +2082,7 @@ const InvestmentPage = () => {
                 </div>
                 <div style={{ flex: '1 1 110px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
                   <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{Number(investmentDetail.amountDue ?? ((investmentDetail.grandTotal || 0) - (investmentDetail.amountPaid || 0))).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{detailDue.toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ flex: '1 1 110px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '6px 10px' }}>
                   <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700 }}>Status</div>
@@ -2092,8 +2098,9 @@ const InvestmentPage = () => {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <InputNumber
                       value={payAmount}
-                      onChange={setPayAmount}
+                      onChange={(v) => setPayAmount(v == null ? null : Math.min(v, detailDue))}
                       min={0}
+                      max={detailDue}
                       placeholder="Amount"
                       prefix={getCurrencySymbol()}
                       style={{ width: 130 }}
@@ -2434,7 +2441,7 @@ const InvestmentPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.92rem' }}>Grand Total</span>
               <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontSize: '1.1rem', fontVariantNumeric: 'tabular-nums' }}>
-                {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}
               </span>
             </div>
           </Card>
@@ -2601,12 +2608,12 @@ const InvestmentPage = () => {
             rows={[
               // Payment mode only matters when something is actually being paid.
               ...(payNow > 0 ? [{ label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') }] : []),
-              { label: 'Grand Total', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? subtotal : grandTotal).toLocaleString('en-IN')}` },
+              { label: 'Grand Total', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}` },
               ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [{ label: 'Previous Dues', value: `${getCurrencySymbol()}${vendorOverdue.toLocaleString('en-IN')}` }] : []),
               { label: 'Amount Paid', value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },
             ]}
-            dueAmount={Math.max(0, (selectedType === 'OVERHEAD' ? subtotal : grandTotal) - payNow)}
-            dueText={`${getCurrencySymbol()}${Math.max(0, (selectedType === 'OVERHEAD' ? subtotal : grandTotal) - payNow).toLocaleString('en-IN')}`}
+            dueAmount={Math.max(0, (selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal) - payNow)}
+            dueText={`${getCurrencySymbol()}${Math.max(0, (selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal) - payNow).toLocaleString('en-IN')}`}
           />
           </Box>
           </Box>
