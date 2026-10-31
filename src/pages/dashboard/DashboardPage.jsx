@@ -586,7 +586,7 @@ const DashboardPage = () => {
     if (!data) return [];
     if (board === 'sales') return [
       kpi(<DollarCircleOutlined />, '#2563EB', 'Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
-      kpi(<RiseOutlined />, '#10B981', 'Avg Order Value', money(data.avgOrderValue), 'per invoice'),
+      kpi(<DollarCircleOutlined />, '#047857', 'Received', money(data.salesReceived), `${money(data.salesDue)} due`),
       kpi(<WalletOutlined />, '#F59E0B', 'Discount Given', money(data.salesDiscount), 'in range'),
       kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Gross Profit', money(data.grossProfit), 'revenue − COGS'),
       kpi(<TeamOutlined />, '#6366F1', 'New Customers', num(data.newCustomerCount), 'first order in range'),
