@@ -825,7 +825,8 @@ const InvestmentPage = () => {
     if (!formValues.type) return false;
 
     if (selectedType === 'PURCHASE') {
-      if (!formValues.vendorId) return false;
+      // watchedVendorId is reactive, so quick-add selecting a vendor re-enables the button.
+      if (!watchedVendorId) return false;
       const validItems = itemRows.filter((r) => r.itemName && r.quantity > 0 && r.rate > 0);
       if (validItems.length === 0) return false;
     } else {
@@ -833,7 +834,7 @@ const InvestmentPage = () => {
       if (validExpenses.length === 0) return false;
     }
     return true;
-  }, [selectedType, itemRows, overheadRows, investmentForm]);
+  }, [selectedType, itemRows, overheadRows, watchedVendorId, investmentForm]);
 
   // Validate the form, then show the payment confirmation before actually saving.
   const requestSaveInvestment = async () => {
