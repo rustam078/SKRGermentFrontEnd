@@ -1063,7 +1063,8 @@ const InvestmentPage = () => {
     {
       title: 'Payment',
       key: 'paymentStatus',
-      align: 'center',
+      align: 'left',
+      width: 200,
       filters: [
         { text: 'Paid', value: 'PAID' },
         { text: 'Partial', value: 'PARTIALLY_PAID' },
@@ -1073,11 +1074,15 @@ const InvestmentPage = () => {
       render: (_, record) => {
         const meta = PAYMENT_STATUS_META[record.paymentStatus] || PAYMENT_STATUS_META.PENDING;
         const due = Math.max(0, Math.round(Number(record.grandTotal || 0) - Number(record.amountPaid || 0)));
-        const tag = <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>{meta.label}</Tag>;
-        // Show the due only for unpaid / partially-paid rows (nothing for a fully paid one).
-        return record.paymentStatus !== 'PAID' && due > 0
-          ? <Tooltip title={`Due: ${getCurrencySymbol()}${due.toLocaleString('en-IN')}`}>{tag}</Tooltip>
-          : tag;
+        // Status on the left, due to its right, on one line (nowrap) even for 6-7 digit amounts.
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+            <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px', margin: 0, flexShrink: 0 }}>{meta.label}</Tag>
+            {record.paymentStatus !== 'PAID' && due > 0 && (
+              <span style={{ color: '#B91C1C', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0 }}>Due {getCurrencySymbol()}{due.toLocaleString('en-IN')}</span>
+            )}
+          </div>
+        );
       },
     },
     {

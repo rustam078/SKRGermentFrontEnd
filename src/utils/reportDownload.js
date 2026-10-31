@@ -2,6 +2,9 @@ import axiosInstance from '../services/axios';
 import dayjs from 'dayjs';
 import { printPdfFromUrl } from './printPdf';
 
+// Reports can span thousands of rows, so give them far longer than the default request timeout.
+const REPORT_TIMEOUT_MS = 180000;
+
 // Report file-name token: "Jan_2026" for a full calendar month, else "01Jan2026_to_15Jan2026".
 export function periodToken(from, to) {
   const f = dayjs(from);
@@ -47,7 +50,7 @@ async function toReadableError(err) {
 export async function downloadReport(path, params, fallbackName) {
   let response;
   try {
-    response = await axiosInstance.get(path, { params, responseType: 'blob' });
+    response = await axiosInstance.get(path, { params, responseType: 'blob', timeout: REPORT_TIMEOUT_MS });
   } catch (err) {
     throw await toReadableError(err);
   }
@@ -64,7 +67,7 @@ export async function downloadReport(path, params, fallbackName) {
 export async function printReport(path, params) {
   let response;
   try {
-    response = await axiosInstance.get(path, { params, responseType: 'blob' });
+    response = await axiosInstance.get(path, { params, responseType: 'blob', timeout: REPORT_TIMEOUT_MS });
   } catch (err) {
     throw await toReadableError(err);
   }

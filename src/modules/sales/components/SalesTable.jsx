@@ -85,10 +85,15 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                         <TableCell sx={{ color: '#047857', fontWeight: 600 }}>{sale.amountReceived != null ? `${getCurrencySymbol()}${Number(sale.amountReceived).toLocaleString('en-IN')}` : '-'}</TableCell>
                         <TableCell>{modeLabel(sale.paymentMode)}</TableCell>
                         <TableCell>
-                          {/* Due amount lives in the tooltip, shown only when something is still owed. */}
-                          <Tooltip title={Number(sale.amountDue) > 0 ? `Due: ${getCurrencySymbol()}${Number(sale.amountDue).toLocaleString('en-IN')}` : ''}>
+                          {/* Due shown inline (not on hover) so it's visible at a glance. */}
+                          <Stack direction="row" spacing={1} alignItems="center">
                             <Chip size="small" label={(sale.paymentStatus || '-').replace(/_/g, ' ')} color={STATUS_COLOR[sale.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />
-                          </Tooltip>
+                            {Number(sale.amountDue) > 0 && (
+                              <Typography variant="caption" sx={{ color: '#B91C1C', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                Due {getCurrencySymbol()}{Number(sale.amountDue).toLocaleString('en-IN')}
+                              </Typography>
+                            )}
+                          </Stack>
                         </TableCell>
                         <TableCell align="center" onClick={(event) => event.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="center">

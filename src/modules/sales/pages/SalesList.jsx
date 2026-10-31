@@ -20,7 +20,8 @@ import { usePermissions } from '../../../hooks/usePermissions';
 
 dayjs.extend(quarterOfYear);
 
-const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING'];
+const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'CREDIT'];
+const MODE_LABELS = { CREDIT: 'Credit (Udhaar)' }; // friendly label for the udhaar mode
 const paymentStatuses = ['All', 'PAID', 'DUE'];
 const DEFAULT_FILTERS = { search: '', fromDate: '', toDate: '', paymentMode: 'All', paymentStatus: 'All' };
 
@@ -199,7 +200,7 @@ const SalesList = () => {
             <InputLabel>Payment Mode</InputLabel>
             <Select name="paymentMode" value={filters.paymentMode} label="Payment Mode" onChange={handleFilterChange}>
               {paymentModes.map((mode) => (
-                <MenuItem key={mode} value={mode}>{mode === 'All' ? 'All' : mode.replace(/_/g, ' ')}</MenuItem>
+                <MenuItem key={mode} value={mode}>{mode === 'All' ? 'All' : (MODE_LABELS[mode] || mode.replace(/_/g, ' '))}</MenuItem>
               ))}
             </Select>
           </FormControl>

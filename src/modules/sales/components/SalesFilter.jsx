@@ -3,7 +3,9 @@ import { Box, Button, Card, CardContent, Grid, Stack, TextField, FormControl, In
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
 
-const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'WALLET'];
+const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'WALLET', 'CREDIT'];
+// Friendly labels for modes whose raw name isn't self-explanatory.
+const MODE_LABELS = { CREDIT: 'Credit (Udhaar)' };
 const paymentStatuses = ['All', 'PAID', 'DUE'];
 
 const SalesFilter = ({ filters, onChange, onReset, onRefresh }) => {
@@ -69,7 +71,7 @@ const SalesFilter = ({ filters, onChange, onReset, onRefresh }) => {
                 >
                   {paymentModes.map((mode) => (
                     <MenuItem key={mode} value={mode}>
-                      {mode === 'All' ? 'All' : mode.replace(/_/g, ' ')}
+                      {mode === 'All' ? 'All' : (MODE_LABELS[mode] || mode.replace(/_/g, ' '))}
                     </MenuItem>
                   ))}
                 </Select>
