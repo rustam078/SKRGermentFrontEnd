@@ -614,7 +614,7 @@ const DashboardPage = () => {
     return [
       // Row 1
       kpi(<WalletOutlined />, '#B45309', 'Total Spend', money(totalSpend), 'expense + wages'),
-      kpi(<ShopOutlined />, '#F59E0B', 'Expenses', money(data.investmentTotal), `${num(data.investmentCount)} entries`),
+      kpi(<ShopOutlined />, '#F59E0B', 'Expenses', money(data.investmentTotal), `${money(data.expensesDue)} due`),
       kpi(<ToolOutlined />, '#8B5CF6', 'Employee Earning', money(data.productionAmount), `${num(data.productionQty)} pcs`),
       kpi(<DollarCircleOutlined />, '#2563EB', 'Sales Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
       kpi(<DollarCircleOutlined />, '#047857', 'Received', money(data.salesReceived), `${money(data.salesDue)} due`),
