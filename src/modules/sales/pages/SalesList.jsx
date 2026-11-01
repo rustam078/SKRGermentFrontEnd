@@ -17,11 +17,11 @@ import SalesTable from '../components/SalesTable';
 import HeadingInfo from '../../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { useT } from '../../../contexts/LanguageContext';
 
 dayjs.extend(quarterOfYear);
 
 const paymentModes = ['All', 'CASH', 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'NET_BANKING', 'CREDIT'];
-const MODE_LABELS = { CREDIT: 'Credit (Udhaar)' }; // friendly label for the udhaar mode
 const paymentStatuses = ['All', 'PAID', 'DUE'];
 const DEFAULT_FILTERS = { search: '', fromDate: '', toDate: '', paymentMode: 'All', paymentStatus: 'All' };
 
@@ -41,6 +41,7 @@ const money = (v) => `${getCurrencySymbol()}${new Intl.NumberFormat('en-IN').for
 const SalesList = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const t = useT();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -109,21 +110,21 @@ const SalesList = () => {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} sx={{ mb: 3 }} spacing={2}>
         <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" sx={{ rowGap: 0.5 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-            Sales
-            <HeadingInfo text="Manage all invoices and sales transactions." />
+            {t('sales.sales', 'Sales')}
+            <HeadingInfo text={t('sales.salesInfo', 'Manage all invoices and sales transactions.')} />
           </Typography>
           {summary ? (
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569' }}>
-              {num(summary.count)} sales
+              {num(summary.count)} {t('sales.salesWord', 'sales')}
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
-              {money(summary.revenue)} revenue
+              {money(summary.revenue)} {t('sales.revenue', 'revenue')}
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
-              <Box component="span" sx={{ color: '#047857' }}>{money(summary.received)} received</Box>
+              <Box component="span" sx={{ color: '#047857' }}>{money(summary.received)} {t('sales.received', 'received')}</Box>
               <Box component="span" sx={{ color: '#CBD5E1', mx: 0.75 }}>|</Box>
               <Box
                 component="span"
                 onClick={toggleDue}
-                title={dueActive ? 'Showing only due invoices — click to clear' : 'Click to show only due invoices'}
+                title={dueActive ? t('sales.dueTooltipActive', 'Showing only due invoices — click to clear') : t('sales.dueTooltipInactive', 'Click to show only due invoices')}
                 sx={{
                   color: Number(summary.due) > 0 ? '#B91C1C' : '#475569',
                   cursor: 'pointer',
@@ -136,7 +137,7 @@ const SalesList = () => {
                   '&:hover': { textDecoration: 'underline' },
                 }}
               >
-                {money(summary.due)} due{dueActive ? '  ✕' : ''}
+                {money(summary.due)} {t('sales.dueWord', 'due')}{dueActive ? '  ✕' : ''}
               </Box>
             </Typography>
           ) : null}
@@ -150,7 +151,7 @@ const SalesList = () => {
               onClick={(e) => setFilterAnchor(e.currentTarget)}
               sx={{ borderColor: 'divider', color: '#334155' }}
             >
-              Filters
+              {t('common.filters', 'Filters')}
             </Button>
           </Badge>
           <Button
@@ -159,11 +160,11 @@ const SalesList = () => {
             onClick={() => setReportOpen(true)}
             sx={{ borderColor: 'divider', color: '#334155' }}
           >
-            Download
+            {t('common.download', 'Download')}
           </Button>
           {can('sales', 'write') && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/sales/new')}>
-              New Sale
+              {t('sales.newSale', 'New Sale')}
             </Button>
           )}
         </Stack>
@@ -178,51 +179,51 @@ const SalesList = () => {
         slotProps={{ paper: { sx: { p: 2.5, width: 340, borderRadius: 2, mt: 1 } } }}
       >
         <Stack spacing={2}>
-          <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Filter Sales</Typography>
+          <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.filterSales', 'Filter Sales')}</Typography>
 
           <Box>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B' }}>Quick range</Typography>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748B' }}>{t('sales.quickRange', 'Quick range')}</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, mt: 0.75 }}>
               {Object.keys(QUICK).map((k) => (
                 <Button key={k} size="small" variant="outlined" onClick={() => applyQuick(k)} sx={{ textTransform: 'none', fontSize: '0.72rem', py: 0.4 }}>
-                  {k}
+                  {t(`sales.range.${k}`, k)}
                 </Button>
               ))}
             </Box>
           </Box>
 
-          <TextField label="Search invoice / customer / mobile" name="search" value={filters.search} onChange={handleFilterChange} fullWidth size="small" />
+          <TextField label={t('sales.searchInvoiceCustomerMobile', 'Search invoice / customer / mobile')} name="search" value={filters.search} onChange={handleFilterChange} fullWidth size="small" />
           <Stack direction="row" spacing={1.5}>
-            <TextField label="From" name="fromDate" value={filters.fromDate} onChange={handleFilterChange} type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} />
-            <TextField label="To" name="toDate" value={filters.toDate} onChange={handleFilterChange} type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <TextField label={t('common.from', 'From')} name="fromDate" value={filters.fromDate} onChange={handleFilterChange} type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <TextField label={t('common.to', 'To')} name="toDate" value={filters.toDate} onChange={handleFilterChange} type="date" fullWidth size="small" InputLabelProps={{ shrink: true }} />
           </Stack>
           <FormControl fullWidth size="small">
-            <InputLabel>Payment Mode</InputLabel>
-            <Select name="paymentMode" value={filters.paymentMode} label="Payment Mode" onChange={handleFilterChange}>
+            <InputLabel>{t('sales.paymentMode', 'Payment Mode')}</InputLabel>
+            <Select name="paymentMode" value={filters.paymentMode} label={t('sales.paymentMode', 'Payment Mode')} onChange={handleFilterChange}>
               {paymentModes.map((mode) => (
-                <MenuItem key={mode} value={mode}>{mode === 'All' ? 'All' : (MODE_LABELS[mode] || mode.replace(/_/g, ' '))}</MenuItem>
+                <MenuItem key={mode} value={mode}>{mode === 'All' ? t('common.all', 'All') : (mode === 'CREDIT' ? t('sales.creditUdhaar', 'Credit (Udhaar)') : mode.replace(/_/g, ' '))}</MenuItem>
               ))}
             </Select>
           </FormControl>
           <FormControl fullWidth size="small">
-            <InputLabel>Payment Status</InputLabel>
-            <Select name="paymentStatus" value={filters.paymentStatus} label="Payment Status" onChange={handleFilterChange}>
+            <InputLabel>{t('sales.paymentStatus', 'Payment Status')}</InputLabel>
+            <Select name="paymentStatus" value={filters.paymentStatus} label={t('sales.paymentStatus', 'Payment Status')} onChange={handleFilterChange}>
               {paymentStatuses.map((status) => (
-                <MenuItem key={status} value={status}>{status.replace(/_/g, ' ')}</MenuItem>
+                <MenuItem key={status} value={status}>{status === 'All' ? t('common.all', 'All') : t(`sales.status.${status}`, status.replace(/_/g, ' '))}</MenuItem>
               ))}
             </Select>
           </FormControl>
           <Divider />
           <Stack direction="row" justifyContent="space-between">
-            <Button startIcon={<ReplayIcon />} onClick={handleReset} disabled={activeCount === 0}>Reset</Button>
-            <Button variant="contained" onClick={() => setFilterAnchor(null)}>Done</Button>
+            <Button startIcon={<ReplayIcon />} onClick={handleReset} disabled={activeCount === 0}>{t('common.reset', 'Reset')}</Button>
+            <Button variant="contained" onClick={() => setFilterAnchor(null)}>{t('common.done', 'Done')}</Button>
           </Stack>
         </Stack>
       </Popover>
 
       <ReportDownloadDialog
         open={reportOpen}
-        title="Download sales report"
+        title={t('sales.downloadSalesReport', 'Download sales report')}
         onClose={() => setReportOpen(false)}
         onDownload={(format, from, to) => salesService.downloadSalesReport(format, from, to)}
         onPrint={(from, to) => salesService.printSalesReport(from, to)}

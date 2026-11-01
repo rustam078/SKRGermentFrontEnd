@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { IProductSummary } from '../../types/employee-details.types';
+import { useT } from '../../contexts/LanguageContext';
 
 interface EmployeeProductChartProps {
   data: IProductSummary[];
@@ -24,6 +25,7 @@ const COLORS = ['#2563EB', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899'
 const WINDOW = 6; // products shown at once before paging kicks in
 
 export const EmployeeProductChart: React.FC<EmployeeProductChartProps> = ({ data }) => {
+  const t = useT();
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
   const [offset, setOffset] = useState(0);
 
@@ -73,8 +75,8 @@ export const EmployeeProductChart: React.FC<EmployeeProductChartProps> = ({ data
       return (
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #E2E8F0', padding: '8px 12px', borderRadius: 8, boxShadow: '0px 4px 6px -1px rgba(15, 23, 42, 0.1)' }}>
           <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: '#64748B' }}>{d.name}</p>
-          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: payload[0].color || '#2563EB' }}>Contribution: {d.value}%</p>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>Qty Produced: {d.qty} Pcs</p>
+          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: payload[0].color || '#2563EB' }}>{t('employees.chart.contribution', 'Contribution')}: {d.value}%</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>{t('employees.chart.qtyProduced', 'Qty Produced')}: {d.qty} {t('employees.pcs', 'Pcs')}</p>
         </div>
       );
     }
@@ -83,7 +85,7 @@ export const EmployeeProductChart: React.FC<EmployeeProductChartProps> = ({ data
 
   return (
     <Card
-      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>Product Contribution %</span>}
+      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>{t('employees.chart.productContribution', 'Product Contribution %')}</span>}
       extra={
         <Space size="small">
           {total > WINDOW && (
@@ -108,7 +110,7 @@ export const EmployeeProductChart: React.FC<EmployeeProductChartProps> = ({ data
     >
       <div style={{ width: '100%', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {view.length === 0 ? (
-          <div style={{ color: '#94A3B8', fontSize: '0.95rem' }}>No data available for the selected range.</div>
+          <div style={{ color: '#94A3B8', fontSize: '0.95rem' }}>{t('employees.chart.noData', 'No data available for the selected range.')}</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'pie' ? (

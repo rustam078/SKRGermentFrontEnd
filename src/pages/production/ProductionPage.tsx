@@ -55,11 +55,13 @@ import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const ProductionPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { can } = usePermissions();
+  const t = useT();
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
 
@@ -96,14 +98,14 @@ const ProductionPage: React.FC = () => {
     try {
       await productionService.downloadProductionPdf(record.id);
     } catch (e: any) {
-      notification.error({ message: 'PDF download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('production.pdfDownloadFailed', 'PDF download failed'), description: e.message, placement: 'topRight' });
     }
   };
   const handleDownloadExcel = async (record: IProductionEntry) => {
     try {
       await productionService.downloadProductionExcel(record.id);
     } catch (e: any) {
-      notification.error({ message: 'Excel download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('production.excelDownloadFailed', 'Excel download failed'), description: e.message, placement: 'topRight' });
     }
   };
 
@@ -163,8 +165,8 @@ const ProductionPage: React.FC = () => {
     mutationFn: productionService.createProduction,
     onSuccess: (res) => {
       notification.success({
-        message: 'Success',
-        description: res.message || 'Production entry created successfully',
+        message: t('production.success', 'Success'),
+        description: res.message || t('production.createdSuccess', 'Production entry created successfully'),
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['productionRecent'] });
@@ -179,9 +181,9 @@ const ProductionPage: React.FC = () => {
       setPieceCodesByRow({});
     },
     onError: (error: any) => {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to create entry';
+      const errorMsg = error.response?.data?.message || error.message || t('production.createFailed', 'Failed to create entry');
       notification.error({
-        message: 'Error Saving Production',
+        message: t('production.errorSaving', 'Error Saving Production'),
         description: errorMsg,
         placement: 'topRight',
       });
@@ -192,8 +194,8 @@ const ProductionPage: React.FC = () => {
     mutationFn: productionService.deleteProduction,
     onSuccess: (res) => {
       notification.success({
-        message: 'Success',
-        description: res?.message || 'Production entry deleted successfully',
+        message: t('production.success', 'Success'),
+        description: res?.message || t('production.deletedSuccess', 'Production entry deleted successfully'),
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['productionRecent'] });
@@ -206,8 +208,8 @@ const ProductionPage: React.FC = () => {
     },
     onError: (error: any) => {
       notification.error({
-        message: 'Error',
-        description: error.message || 'Failed to delete entry',
+        message: t('production.error', 'Error'),
+        description: error.message || t('production.deleteFailed', 'Failed to delete entry'),
         placement: 'topRight',
       });
     },
@@ -288,12 +290,12 @@ const ProductionPage: React.FC = () => {
 
   const handleDeleteRow = (record: IProductionEntry) => {
     Modal.confirm({
-      title: 'Delete Production Entry',
+      title: t('production.deleteTitle', 'Delete Production Entry'),
       icon: <ExclamationCircleOutlined style={{ color: '#EF4444' }} />,
-      content: 'This action cannot be undone.',
-      okText: 'Delete',
+      content: t('production.deleteContent', 'This action cannot be undone.'),
+      okText: t('common.delete', 'Delete'),
       okType: 'danger',
-      cancelText: 'Cancel',
+      cancelText: t('common.cancel', 'Cancel'),
       onOk: async () => {
         await deleteMutation.mutateAsync(record.id);
       },
@@ -309,8 +311,8 @@ const ProductionPage: React.FC = () => {
     const missingPieceCode = items.some((item: any) => item && item.productId && !item.pieceCodeId);
     if (missingPieceCode) {
       notification.error({
-        message: 'Validation Error',
-        description: 'Please select a Piece Code for each product row.',
+        message: t('production.validationError', 'Validation Error'),
+        description: t('production.selectPieceCode', 'Please select a Piece Code for each product row.'),
         placement: 'topRight',
       });
       return;
@@ -321,8 +323,8 @@ const ProductionPage: React.FC = () => {
     const uniquePieceCodeIds = new Set(pieceCodeIds);
     if (uniquePieceCodeIds.size !== pieceCodeIds.length) {
       notification.error({
-        message: 'Validation Error',
-        description: 'Duplicate piece codes are not allowed in the same production entry.',
+        message: t('production.validationError', 'Validation Error'),
+        description: t('production.duplicatePieceCode', 'Duplicate piece codes are not allowed in the same production entry.'),
         placement: 'topRight',
       });
       return;
@@ -456,7 +458,7 @@ const ProductionPage: React.FC = () => {
 
   const historyColumns = [
     {
-      title: 'Production Date',
+      title: t('production.colProductionDate', 'Production Date'),
       dataIndex: 'productionDate',
       key: 'productionDate',
       width: '14%',
@@ -470,7 +472,7 @@ const ProductionPage: React.FC = () => {
       defaultSortOrder: 'descend' as const,
     },
     {
-      title: 'Employee',
+      title: t('production.colEmployee', 'Employee'),
       dataIndex: 'employeeName',
       key: 'employeeName',
       width: '20%',
@@ -484,7 +486,7 @@ const ProductionPage: React.FC = () => {
         (a.employeeName || '').localeCompare(b.employeeName || ''),
     },
     {
-      title: 'Items',
+      title: t('production.colItems', 'Items'),
       dataIndex: 'productCount',
       key: 'productCount',
       width: '28%',
@@ -510,11 +512,11 @@ const ProductionPage: React.FC = () => {
                 onClick={() => openItems(record)}
                 style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BFDBFE', color: 'var(--theme-primary)', fontWeight: 700, padding: '1px 8px' }}
               >
-                +{extra} more
+                +{extra} {t('production.more', 'more')}
               </Tag>
             )}
             {items.length > 0 && (
-              <Tooltip title="View all items">
+              <Tooltip title={t('production.viewAllItems', 'View all items')}>
                 <Button
                   type="text"
                   size="small"
@@ -531,19 +533,19 @@ const ProductionPage: React.FC = () => {
         (a.productCount || 0) - (b.productCount || 0),
     },
     {
-      title: 'Quantity',
+      title: t('production.colQuantity', 'Quantity'),
       dataIndex: 'totalQuantity',
       key: 'totalQuantity',
       align: 'right' as const,
       width: '12%',
       render: (qty: number) => (
-        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{(qty || 0).toLocaleString()} Pcs</span>
+        <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{(qty || 0).toLocaleString()} {t('production.pcs', 'Pcs')}</span>
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         (a.totalQuantity || 0) - (b.totalQuantity || 0),
     },
     {
-      title: 'Amount',
+      title: t('common.amount', 'Amount'),
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       align: 'right' as const,
@@ -555,7 +557,7 @@ const ProductionPage: React.FC = () => {
         (a.totalAmount || 0) - (b.totalAmount || 0),
     },
     {
-      title: 'Actions',
+      title: t('common.actions', 'Actions'),
       key: 'actions',
       align: 'center' as const,
       width: '8%',
@@ -564,11 +566,11 @@ const ProductionPage: React.FC = () => {
           trigger={['click']}
           menu={{
             items: [
-              { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
-              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
+              { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: t('production.downloadPdf', 'Download PDF'), onClick: () => handleDownloadPdf(record) },
+              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: t('production.downloadExcel', 'Download Excel'), onClick: () => handleDownloadExcel(record) },
               ...(can('production', 'delete') ? [
                 { type: 'divider' as const },
-                { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDeleteRow(record) },
+                { key: 'delete', icon: <DeleteOutlined />, label: t('common.delete', 'Delete'), danger: true, onClick: () => handleDeleteRow(record) },
               ] : []),
             ],
           }}
@@ -600,8 +602,8 @@ const ProductionPage: React.FC = () => {
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <FileAddOutlined style={{ color: 'var(--theme-primary)' }} />
-              Production Management
-              <HeadingInfo text="Manage daily production entries with piece code based pricing." />
+              {t('production.pageTitle', 'Production Management')}
+              <HeadingInfo text={t('production.pageInfo', 'Manage daily production entries with piece code based pricing.')} />
             </Typography>
           </div>
           <Space size={10}>
@@ -620,17 +622,17 @@ const ProductionPage: React.FC = () => {
                   >
                     <Form.Item
                       name="quickFilter"
-                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Quick Filter</span>}
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>{t('production.quickFilter', 'Quick Filter')}</span>}
                       style={{ marginBottom: 12 }}
                     >
-                      <Select placeholder="Quick Filter" onChange={handleQuickFilterChange}>
-                        <Select.Option value="Today">Today</Select.Option>
-                        <Select.Option value="Yesterday">Yesterday</Select.Option>
-                        <Select.Option value="This Week">This Week</Select.Option>
-                        <Select.Option value="This Month">This Month</Select.Option>
-                        <Select.Option value="This Quarter">This Quarter</Select.Option>
-                        <Select.Option value="This Year">This Year</Select.Option>
-                        <Select.Option value="Custom Range">Custom Range</Select.Option>
+                      <Select placeholder={t('production.quickFilter', 'Quick Filter')} onChange={handleQuickFilterChange}>
+                        <Select.Option value="Today">{t('production.today', 'Today')}</Select.Option>
+                        <Select.Option value="Yesterday">{t('production.yesterday', 'Yesterday')}</Select.Option>
+                        <Select.Option value="This Week">{t('production.thisWeek', 'This Week')}</Select.Option>
+                        <Select.Option value="This Month">{t('production.thisMonth', 'This Month')}</Select.Option>
+                        <Select.Option value="This Quarter">{t('production.thisQuarter', 'This Quarter')}</Select.Option>
+                        <Select.Option value="This Year">{t('production.thisYear', 'This Year')}</Select.Option>
+                        <Select.Option value="Custom Range">{t('production.customRange', 'Custom Range')}</Select.Option>
                       </Select>
                     </Form.Item>
 
@@ -638,7 +640,7 @@ const ProductionPage: React.FC = () => {
                       <Col span={12}>
                         <Form.Item
                           name="fromDate"
-                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>From</span>}
+                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>{t('common.from', 'From')}</span>}
                           style={{ marginBottom: 12 }}
                         >
                           <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
@@ -647,7 +649,7 @@ const ProductionPage: React.FC = () => {
                       <Col span={12}>
                         <Form.Item
                           name="toDate"
-                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>To</span>}
+                          label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>{t('common.to', 'To')}</span>}
                           style={{ marginBottom: 12 }}
                         >
                           <DatePicker format="DD-MMM-YYYY" disabled={!isCustom} style={{ width: '100%', borderRadius: 6 }} />
@@ -657,10 +659,10 @@ const ProductionPage: React.FC = () => {
 
                     <Form.Item
                       name="employeeId"
-                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Employee</span>}
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>{t('production.employee', 'Employee')}</span>}
                       style={{ marginBottom: 12 }}
                     >
-                      <Select placeholder="Employee" allowClear showSearch optionFilterProp="children">
+                      <Select placeholder={t('production.employee', 'Employee')} allowClear showSearch optionFilterProp="children">
                         {employees.map((emp: any) => (
                           <Select.Option key={emp.id} value={emp.id}>
                             {emp.fullName}
@@ -671,10 +673,10 @@ const ProductionPage: React.FC = () => {
 
                     <Form.Item
                       name="productId"
-                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>Product</span>}
+                      label={<span style={{ fontWeight: 600, color: '#475569', fontSize: '0.85rem' }}>{t('production.product', 'Product')}</span>}
                       style={{ marginBottom: 16 }}
                     >
-                      <Select placeholder="Product" allowClear showSearch optionFilterProp="children" listHeight={190}>
+                      <Select placeholder={t('production.product', 'Product')} allowClear showSearch optionFilterProp="children" listHeight={190}>
                         {products.filter((p: any) => p.active && p.source != 'PURCHASED')
                           .map((p: any) => (
                             <Select.Option key={p.id} value={p.id}>
@@ -686,10 +688,10 @@ const ProductionPage: React.FC = () => {
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                       <Button onClick={handleResetHistoryFilters} icon={<ReloadOutlined />} style={{ borderRadius: 6 }}>
-                        Reset
+                        {t('common.reset', 'Reset')}
                       </Button>
                       <Button type="primary" htmlType="submit" icon={<SearchOutlined />} style={{ borderRadius: 6 }}>
-                        Apply
+                        {t('production.apply', 'Apply')}
                       </Button>
                     </div>
                   </Form>
@@ -698,7 +700,7 @@ const ProductionPage: React.FC = () => {
             >
               <Badge count={activeFilterCount} size="small">
                 <Button icon={<FilterOutlined />} size="large" style={{ borderRadius: 6, fontWeight: 600, height: 44 }}>
-                  Filters
+                  {t('common.filters', 'Filters')}
                 </Button>
               </Badge>
             </Popover>
@@ -709,7 +711,7 @@ const ProductionPage: React.FC = () => {
               onClick={() => setReportOpen(true)}
               style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
             >
-              Download report
+              {t('production.downloadReport', 'Download report')}
             </Button>
 
             {can('production', 'write') && (
@@ -720,7 +722,7 @@ const ProductionPage: React.FC = () => {
                 onClick={handleOpenDrawer}
                 style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
               >
-                Create Production Entry
+                {t('production.createEntry', 'Create Production Entry')}
               </Button>
             )}
           </Space>
@@ -729,11 +731,11 @@ const ProductionPage: React.FC = () => {
         {/* ── Summary Cards ── */}
         <Row gutter={[16, 16]}>
           {[
-            { label: "Today's Production", value: statsTodayQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
-            { label: "Today's Amount", value: statsTodayAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
-            { label: 'Total Quantity', value: statsTotalQty, suffix: ' Pcs', icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
-            { label: 'Total Amount', value: statsTotalAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
-            { label: 'Total Entries', value: statsTotalEntries, icon: <FileAddOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: '#0F172A' },
+            { label: t('production.todaysProduction', "Today's Production"), value: statsTodayQty, suffix: ' ' + t('production.pcs', 'Pcs'), icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
+            { label: t('production.todaysAmount', "Today's Amount"), value: statsTodayAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
+            { label: t('production.totalQuantity', 'Total Quantity'), value: statsTotalQty, suffix: ' ' + t('production.pcs', 'Pcs'), icon: <CheckCircleOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: 'var(--theme-primary)' },
+            { label: t('production.totalAmount', 'Total Amount'), value: statsTotalAmount, formatter: (v: any) => formatCurrency(Number(v)), color: 'var(--theme-primary)' },
+            { label: t('production.totalEntries', 'Total Entries'), value: statsTotalEntries, icon: <FileAddOutlined style={{ color: 'var(--theme-primary)', marginRight: 8 }} />, color: '#0F172A' },
           ].map((stat, i) => (
             <Col key={i} xs={24} sm={12} lg={4} style={{ flex: '1 1 180px', maxWidth: '100%' }}>
               <Card style={cardStyle} bodyStyle={{ padding: 20 }}>
@@ -763,7 +765,7 @@ const ProductionPage: React.FC = () => {
               total: totalEntriesCount,
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50', '100'],
-              showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} entries`,
+              showTotal: (total, range) => `${range[0]}–${range[1]} ${t('production.of', 'of')} ${total} ${t('production.entries', 'entries')}`,
               onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); },
             }}
             loading={listLoading}
@@ -774,7 +776,7 @@ const ProductionPage: React.FC = () => {
             locale={{
               emptyText: (
                 <div style={{ padding: '48px 16px', color: '#94A3B8', textAlign: 'center' }}>
-                  No production logs found. Click "Create Production Entry" to log new worker outputs.
+                  {t('production.emptyTable', 'No production logs found. Click "Create Production Entry" to log new worker outputs.')}
                 </div>
               ),
             }}
@@ -784,7 +786,7 @@ const ProductionPage: React.FC = () => {
 
         <ReportDownloadDialog
           open={reportOpen}
-          title="Download production report"
+          title={t('production.downloadReportTitle', 'Download production report')}
           onClose={() => setReportOpen(false)}
           onDownload={(format, from, to) => productionService.downloadProductionReport(format, from, to)}
         />
@@ -793,7 +795,7 @@ const ProductionPage: React.FC = () => {
         <Drawer
           title={
             <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A' }}>
-              Create Production Entry
+              {t('production.createEntry', 'Create Production Entry')}
             </span>
           }
           placement="right"
@@ -804,7 +806,7 @@ const ProductionPage: React.FC = () => {
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '10px 16px' }}>
               <Button onClick={handleCloseDrawer} style={{ borderRadius: 6, fontWeight: 500 }}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
               <Button
                 type="primary"
@@ -813,7 +815,7 @@ const ProductionPage: React.FC = () => {
                 loading={createMutation.isPending}
                 style={{ borderRadius: 6, fontWeight: 700 }}
               >
-                Save Production Entry
+                {t('production.saveEntry', 'Save Production Entry')}
               </Button>
             </div>
           }
@@ -833,8 +835,8 @@ const ProductionPage: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="productionDate"
-                  label={<span style={{ fontWeight: 600, color: '#475569' }}>Production Date</span>}
-                  rules={[{ required: true, message: 'Production Date is required' }]}
+                  label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.productionDate', 'Production Date')}</span>}
+                  rules={[{ required: true, message: t('production.productionDateRequired', 'Production Date is required') }]}
                 >
                   <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" />
                 </Form.Item>
@@ -842,10 +844,10 @@ const ProductionPage: React.FC = () => {
               <Col span={12}>
                 <Form.Item
                   name="employeeId"
-                  label={<span style={{ fontWeight: 600, color: '#475569' }}>Employee</span>}
-                  rules={[{ required: true, message: 'Employee is required' }]}
+                  label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.employee', 'Employee')}</span>}
+                  rules={[{ required: true, message: t('production.employeeRequired', 'Employee is required') }]}
                 >
-                  <Select placeholder="Select worker" showSearch optionFilterProp="children">
+                  <Select placeholder={t('production.selectWorker', 'Select worker')} showSearch optionFilterProp="children">
                     {employees
                       .filter((emp: any) => emp.active)
                       .map((emp: any) => (
@@ -871,11 +873,11 @@ const ProductionPage: React.FC = () => {
             >
               <span style={{ fontWeight: 800, color: '#1E293B', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <BarcodeOutlined style={{ color: 'var(--theme-primary)' }} />
-                Production Items
+                {t('production.productionItems', 'Production Items')}
               </span>
-              <Tooltip title="Production entries cannot be edited after saving. To fix a mistake, delete the entry and create a new one.">
+              <Tooltip title={t('production.cannotEditTooltip', 'Production entries cannot be edited after saving. To fix a mistake, delete the entry and create a new one.')}>
                 <span style={{ fontSize: '0.78rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
-                  <InfoCircleOutlined /> Can't edit after saving
+                  <InfoCircleOutlined /> {t('production.cannotEdit', "Can't edit after saving")}
                 </span>
               </Tooltip>
             </div>
@@ -907,7 +909,7 @@ const ProductionPage: React.FC = () => {
                           <Col xs={24} sm={8}>
                             <Form.Item {...restField} name={[name, 'productId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
                               <Select
-                                placeholder="Product"
+                                placeholder={t('production.product', 'Product')}
                                 size="middle"
                                 variant="borderless"
                                 onChange={(val) => handleProductChange(val, idx)}
@@ -931,7 +933,7 @@ const ProductionPage: React.FC = () => {
                           <Col xs={14} sm={6}>
                             <Form.Item {...restField} name={[name, 'pieceCodeId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
                               <Select
-                                placeholder={isLoadingPC ? '...' : 'Code'}
+                                placeholder={isLoadingPC ? '...' : t('production.code', 'Code')}
                                 loading={isLoadingPC}
                                 disabled={rowPieceCodes.length === 0 && !isLoadingPC}
                                 onChange={(val) => handlePieceCodeChange(val, idx)}
@@ -940,7 +942,7 @@ const ProductionPage: React.FC = () => {
                                 size="middle"
                                 variant="borderless"
                                 style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
-                                notFoundContent={isLoadingPC ? 'Loading...' : 'No codes'}
+                                notFoundContent={isLoadingPC ? t('production.loading', 'Loading...') : t('production.noCodes', 'No codes')}
                               >
                                 {rowPieceCodes.map((pc: any) => (
                                   <Select.Option key={pc.id} value={pc.id} label={`${pc.code} ${getCurrencySymbol()}${pc.rate}`}>
@@ -957,7 +959,7 @@ const ProductionPage: React.FC = () => {
                           {/* Quantity */}
                           <Col xs={10} sm={3}>
                             <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
-                              <InputNumber min={1} placeholder="Qty" size="middle" variant="borderless" style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }} />
+                              <InputNumber min={1} placeholder={t('production.qty', 'Qty')} size="middle" variant="borderless" style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }} />
                             </Form.Item>
                           </Col>
 
@@ -1016,7 +1018,7 @@ const ProductionPage: React.FC = () => {
                     icon={<PlusOutlined />}
                     style={{ width: '100%', borderRadius: 8, fontWeight: 500, height: 34 }}
                   >
-                    Add Product Row
+                    {t('production.addRow', 'Add Product Row')}
                   </Button>
                 </div>
               )}
@@ -1027,7 +1029,7 @@ const ProductionPage: React.FC = () => {
               {/* Total Amount hero — light theme tint (consistent with sale & investment) */}
               <div style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)', padding: '16px 20px' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Total Amount
+                  {t('production.totalAmount', 'Total Amount')}
                 </div>
                 <div style={{ color: 'var(--theme-primary)', fontWeight: 800, fontSize: '1.9rem', lineHeight: 1.2, marginTop: 4 }}>
                   {formatCurrency(liveTotalAmount)}
@@ -1036,12 +1038,12 @@ const ProductionPage: React.FC = () => {
               {/* Detail rows */}
               <div style={{ border: '1px solid #E2E8F0', borderTop: 'none', padding: '12px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>Piece Codes</span>
+                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>{t('production.pieceCodes', 'Piece Codes')}</span>
                   <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalPieceCodes}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>Total Quantity</span>
-                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalQuantity} Pcs</span>
+                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>{t('production.totalQuantity', 'Total Quantity')}</span>
+                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalQuantity} {t('production.pcs', 'Pcs')}</span>
                 </div>
               </div>
             </div>
@@ -1057,7 +1059,7 @@ const ProductionPage: React.FC = () => {
           title={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A' }}>
               <AppstoreOutlined style={{ color: 'var(--theme-primary)' }} />
-              Products Produced
+              {t('production.productsProduced', 'Products Produced')}
               {itemsModal.record && (
                 <span style={{ fontWeight: 500, color: '#64748B', fontSize: '0.8rem' }}>
                   · {itemsModal.record.employeeName} · {itemsModal.record.productionDate ? dayjs(itemsModal.record.productionDate).format('DD MMM YYYY') : ''}
@@ -1075,7 +1077,7 @@ const ProductionPage: React.FC = () => {
               scroll={{ y: 340 }}
               columns={[
                 {
-                  title: 'Product',
+                  title: t('production.colProduct', 'Product'),
                   dataIndex: 'productName',
                   key: 'productName',
                   render: (name: string, item: any) => (
@@ -1083,19 +1085,19 @@ const ProductionPage: React.FC = () => {
                   ),
                 },
                 {
-                  title: 'Piece Code',
+                  title: t('production.colPieceCode', 'Piece Code'),
                   dataIndex: 'pieceCode',
                   key: 'pieceCode',
                   render: (code: string) => code ? <Tag style={{ borderRadius: 6 }}>{code}</Tag> : <span style={{ color: '#94A3B8' }}>—</span>,
                 },
-                { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
-                { title: 'Rate', dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
-                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
+                { title: t('production.qty', 'Qty'), dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
+                { title: t('production.rate', 'Rate'), dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
+                { title: t('common.amount', 'Amount'), dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
               ]}
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row style={{ background: '#F8FAFC' }}>
-                    <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>Total</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>{t('common.total', 'Total')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={3} />
                     <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: 'var(--theme-primary)' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>

@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { IMonthlyEarningsTrend } from '../../types/employee-details.types';
 import { getCurrencySymbol } from '../../utils/currency';
+import { useT } from '../../contexts/LanguageContext';
 
 interface EmployeeEarningsChartProps {
   data: IMonthlyEarningsTrend[];
@@ -24,6 +25,7 @@ interface EmployeeEarningsChartProps {
 const WINDOW = 12; // months shown at once before paging kicks in
 
 export const EmployeeEarningsChart: React.FC<EmployeeEarningsChartProps> = ({ data }) => {
+  const t = useT();
   const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar');
   const [offset, setOffset] = useState(0); // months skipped from the most-recent end
 
@@ -62,7 +64,7 @@ export const EmployeeEarningsChart: React.FC<EmployeeEarningsChartProps> = ({ da
 
   return (
     <Card
-      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>Monthly Earnings Trend</span>}
+      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>{t('employees.chart.earningsTrend', 'Monthly Earnings Trend')}</span>}
       extra={
         <Space size="small">
           {total > WINDOW && (
@@ -89,7 +91,7 @@ export const EmployeeEarningsChart: React.FC<EmployeeEarningsChartProps> = ({ da
       <div style={{ width: '100%', height: 300 }}>
         {view.length === 0 ? (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontSize: '0.95rem' }}>
-            No data available for the selected range.
+            {t('employees.chart.noData', 'No data available for the selected range.')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

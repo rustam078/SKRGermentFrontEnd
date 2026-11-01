@@ -36,11 +36,13 @@ import { employeeService } from '../../services/employee.service';
 import { IEmployee } from '../../types/employee.types';
 import { EmployeeFormDrawer } from './EmployeeFormDrawer';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const EmployeePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { can } = usePermissions();
+  const t = useT();
   const [searchText, setSearchText] = useState('');
   
   // Drawer visibility states
@@ -78,8 +80,8 @@ const EmployeePage: React.FC = () => {
     mutationFn: employeeService.createEmployee,
     onSuccess: (res) => {
       notification.success({
-        message: 'Success',
-        description: res.message || 'Employee created successfully',
+        message: t('employees.toast.success', 'Success'),
+        description: res.message || t('employees.toast.created', 'Employee created successfully'),
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -88,8 +90,8 @@ const EmployeePage: React.FC = () => {
     },
     onError: (error: any) => {
       notification.error({
-        message: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to create employee',
+        message: t('employees.toast.error', 'Error'),
+        description: error.response?.data?.message || error.message || t('employees.toast.createFailed', 'Failed to create employee'),
         placement: 'topRight',
       });
     },
@@ -99,8 +101,8 @@ const EmployeePage: React.FC = () => {
     mutationFn: ({ id, data }: { id: string; data: any }) => employeeService.updateEmployee(id, data),
     onSuccess: (res) => {
       notification.success({
-        message: 'Success',
-        description: res.message || 'Employee updated successfully',
+        message: t('employees.toast.success', 'Success'),
+        description: res.message || t('employees.toast.updated', 'Employee updated successfully'),
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -110,8 +112,8 @@ const EmployeePage: React.FC = () => {
     },
     onError: (error: any) => {
       notification.error({
-        message: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to update employee',
+        message: t('employees.toast.error', 'Error'),
+        description: error.response?.data?.message || error.message || t('employees.toast.updateFailed', 'Failed to update employee'),
         placement: 'topRight',
       });
     },
@@ -121,8 +123,8 @@ const EmployeePage: React.FC = () => {
     mutationFn: employeeService.deactivateEmployee,
     onSuccess: (res) => {
       notification.success({
-        message: 'Success',
-        description: res.message || 'Employee deactivated successfully',
+        message: t('employees.toast.success', 'Success'),
+        description: res.message || t('employees.toast.deactivated', 'Employee deactivated successfully'),
         placement: 'topRight',
       });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -130,8 +132,8 @@ const EmployeePage: React.FC = () => {
     },
     onError: (error: any) => {
       notification.error({
-        message: 'Error',
-        description: error.response?.data?.message || error.message || 'Failed to deactivate employee',
+        message: t('employees.toast.error', 'Error'),
+        description: error.response?.data?.message || error.message || t('employees.toast.deactivateFailed', 'Failed to deactivate employee'),
         placement: 'topRight',
       });
     },
@@ -170,12 +172,12 @@ const EmployeePage: React.FC = () => {
 
   const handleDeactivate = (employee: IEmployee) => {
     Modal.confirm({
-      title: 'Deactivate Employee',
+      title: t('employees.deactivate.title', 'Deactivate Employee'),
       icon: <ExclamationCircleOutlined style={{ color: '#EF4444' }} />,
-      content: `Are you sure you want to deactivate ${employee.fullName} (${employee.employeeCode})?`,
-      okText: 'Yes, Deactivate',
+      content: `${t('employees.deactivate.confirmBefore', 'Are you sure you want to deactivate')} ${employee.fullName} (${employee.employeeCode})${t('employees.deactivate.confirmAfter', '?')}`,
+      okText: t('employees.deactivate.ok', 'Yes, Deactivate'),
       okType: 'danger',
-      cancelText: 'Cancel',
+      cancelText: t('common.cancel', 'Cancel'),
       onOk: async () => {
         await deactivateMutation.mutateAsync(employee.id);
       },
@@ -199,14 +201,14 @@ const EmployeePage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Employee Code',
+      title: t('employees.employeeCode', 'Employee Code'),
       dataIndex: 'employeeCode',
       key: 'employeeCode',
       width: '12%',
       render: (code: string) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{code}</span>,
     },
     {
-      title: 'Employee Name',
+      title: t('employees.table.employeeName', 'Employee Name'),
       dataIndex: 'fullName',
       key: 'fullName',
       width: '18%',
@@ -214,7 +216,7 @@ const EmployeePage: React.FC = () => {
       render: (name: string) => <span style={{ fontWeight: 600, color: '#0F172A' }}>{name}</span>,
     },
     {
-      title: 'Email',
+      title: t('employees.table.email', 'Email'),
       dataIndex: 'email',
       key: 'email',
       width: '18%',
@@ -223,40 +225,40 @@ const EmployeePage: React.FC = () => {
           {email}
         </a>
       ) : (
-        <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>Not Provided</span>
+        <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>{t('employees.notProvided', 'Not Provided')}</span>
       ),
     },
     {
-      title: 'Mobile',
+      title: t('employees.table.mobile', 'Mobile'),
       dataIndex: 'mobileNumber',
       key: 'mobileNumber',
       width: '10%',
       render: (mobile?: string) => mobile ? (
         <span style={{ color: '#0F172A', fontWeight: 500 }}>{mobile}</span>
       ) : (
-        <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>Not Provided</span>
+        <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>{t('employees.notProvided', 'Not Provided')}</span>
       ),
     },
     {
-      title: 'Status',
+      title: t('common.status', 'Status'),
       dataIndex: 'active',
       key: 'active',
       width: '10%',
       filters: [
-        { text: 'Active', value: true },
-        { text: 'Inactive', value: false },
+        { text: t('employees.status.active', 'Active'), value: true },
+        { text: t('employees.status.inactive', 'Inactive'), value: false },
       ],
       onFilter: (value: any, record: IEmployee) => record.active === value,
       render: (active: boolean) => (
         active ? (
-          <Tag style={{ background: 'transparent', color: '#16A34A', border: 'none', fontWeight: 600, padding: '2px 8px' }}>Active</Tag>
+          <Tag style={{ background: 'transparent', color: '#16A34A', border: 'none', fontWeight: 600, padding: '2px 8px' }}>{t('employees.status.active', 'Active')}</Tag>
         ) : (
-          <Tag style={{ background: 'transparent', color: '#DC2626', border: 'none', fontWeight: 600, padding: '2px 8px' }}>Inactive</Tag>
+          <Tag style={{ background: 'transparent', color: '#DC2626', border: 'none', fontWeight: 600, padding: '2px 8px' }}>{t('employees.status.inactive', 'Inactive')}</Tag>
         )
       ),
     },
     {
-      title: 'Current Month Earning',
+      title: t('employees.table.currentMonthEarning', 'Current Month Earning'),
       dataIndex: 'currentMonthEarning',
       key: 'currentMonthEarning',
       width: '15%',
@@ -269,7 +271,7 @@ const EmployeePage: React.FC = () => {
       ),
     },
     {
-      title: 'Overall Earning',
+      title: t('employees.table.overallEarning', 'Overall Earning'),
       dataIndex: 'totalEarning',
       key: 'totalEarning',
       width: '15%',
@@ -282,13 +284,13 @@ const EmployeePage: React.FC = () => {
       ),
     },
     {
-      title: 'Actions',
+      title: t('common.actions', 'Actions'),
       key: 'actions',
       width: '10%',
       render: (_: any, record: IEmployee) => (
         <Space size={4} align="center">
           {can('employees', 'write') && (
-            <Tooltip title="Edit Employee">
+            <Tooltip title={t('employees.tooltip.edit', 'Edit Employee')}>
               <Button
                 type="text"
                 icon={<EditOutlined style={{ color: 'var(--theme-primary)' }} />}
@@ -298,7 +300,7 @@ const EmployeePage: React.FC = () => {
             </Tooltip>
           )}
           {record.active && can('employees', 'write') && (
-            <Tooltip title="Deactivate Employee">
+            <Tooltip title={t('employees.tooltip.deactivate', 'Deactivate Employee')}>
               <Button
                 type="text"
                 danger
@@ -326,12 +328,12 @@ const EmployeePage: React.FC = () => {
         {/* Title Header + search/actions in one row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-            Employee Management
-            <HeadingInfo text="Manage garment production workers and employee records." />
+            {t('employees.pageTitle', 'Employee Management')}
+            <HeadingInfo text={t('employees.pageInfo', 'Manage garment production workers and employee records.')} />
           </Typography>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <Input
-              placeholder="Search by name, code or mobile number"
+              placeholder={t('employees.searchPlaceholder', 'Search by name, code or mobile number')}
               prefix={<SearchOutlined style={{ color: '#94A3B8', marginRight: 4 }} />}
               style={{ width: 320, borderRadius: 6, height: 40 }}
               value={searchText}
@@ -345,7 +347,7 @@ const EmployeePage: React.FC = () => {
                 style={{ backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', fontWeight: 600, borderRadius: 6, height: 40 }}
                 onClick={handleOpenAdd}
               >
-                Add Employee
+                {t('employees.addBtn', 'Add Employee')}
               </Button>
             )}
           </div>
@@ -355,21 +357,21 @@ const EmployeePage: React.FC = () => {
         <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
           {[
             {
-              title: 'Total Employees',
+              title: t('employees.kpi.totalEmployees', 'Total Employees'),
               value: stats?.totalEmployees ?? 0,
               icon: <TeamOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
               bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
               borderColor: '#DBEAFE',
             },
             {
-              title: 'Employee Status',
+              title: t('employees.kpi.employeeStatus', 'Employee Status'),
               isStatusCard: true,
               icon: <UserOutlined style={{ fontSize: '22px', color: '#64748B' }} />,
               bgColor: '#F8FAFC',
               borderColor: '#E2E8F0',
             },
             {
-              title: 'Current Month Payroll',
+              title: t('employees.kpi.currentMonthPayroll', 'Current Month Payroll'),
               value: formatIndianCurrency(stats?.currentMonthTotalEarning ?? 0),
               icon: <WalletOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
               bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
@@ -377,7 +379,7 @@ const EmployeePage: React.FC = () => {
               valueColor: 'var(--theme-primary)',
             },
             {
-              title: 'Overall Payroll',
+              title: t('employees.kpi.overallPayroll', 'Overall Payroll'),
               value: formatIndianCurrency(stats?.overallTotalEarning ?? 0),
               icon: <DollarCircleOutlined style={{ fontSize: '22px', color: 'var(--theme-primary)' }} />,
               bgColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)',
@@ -419,11 +421,11 @@ const EmployeePage: React.FC = () => {
                   {kpi.isStatusCard ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Tag style={{ background: 'transparent', color: '#16A34A', border: 'none', fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
-                        Active: {stats?.activeEmployees ?? 0}
+                        {t('employees.status.active', 'Active')}: {stats?.activeEmployees ?? 0}
                       </Tag>
                       <span style={{ color: '#CBD5E1', fontWeight: 300 }}>|</span>
                       <Tag style={{ background: 'transparent', color: '#DC2626', border: 'none', fontWeight: 700, fontSize: '0.85rem', padding: '2px 6px', margin: 0 }}>
-                        Inactive: {stats?.inactiveEmployees ?? 0}
+                        {t('employees.status.inactive', 'Inactive')}: {stats?.inactiveEmployees ?? 0}
                       </Tag>
                     </div>
                   ) : (
@@ -452,7 +454,7 @@ const EmployeePage: React.FC = () => {
               defaultPageSize: 10,
               showSizeChanger: true,
               pageSizeOptions: ['10', '25', '50'],
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} employees`,
+              showTotal: (total, range) => `${range[0]}-${range[1]} ${t('employees.pagination.of', 'of')} ${total} ${t('employees.pagination.employees', 'employees')}`,
               style: { marginRight: 24, marginBottom: 16 },
             }}
             sticky

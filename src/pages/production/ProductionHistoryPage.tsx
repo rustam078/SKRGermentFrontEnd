@@ -48,10 +48,12 @@ import ProductLabel from '../../components/common/ProductLabel';
 import { IProductionEntry } from '../../types/production';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const ProductionHistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const t = useT();
   const [form] = Form.useForm();
 
   // Filters state mapping directly to query parameters
@@ -78,14 +80,14 @@ const ProductionHistoryPage: React.FC = () => {
     try {
       await productionService.downloadProductionPdf(record.id);
     } catch (e: any) {
-      notification.error({ message: 'PDF download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('production.pdfDownloadFailed', 'PDF download failed'), description: e.message, placement: 'topRight' });
     }
   };
   const handleDownloadExcel = async (record: IProductionEntry) => {
     try {
       await productionService.downloadProductionExcel(record.id);
     } catch (e: any) {
-      notification.error({ message: 'Excel download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('production.excelDownloadFailed', 'Excel download failed'), description: e.message, placement: 'topRight' });
     }
   };
   // Report download uses its own range picker (dialog), independent of the table filters.
@@ -93,19 +95,19 @@ const ProductionHistoryPage: React.FC = () => {
 
   const handleDelete = (record: IProductionEntry) => {
     Modal.confirm({
-      title: 'Delete production entry?',
+      title: t('production.deleteConfirmTitle', 'Delete production entry?'),
       icon: <ExclamationCircleOutlined />,
-      content: `This permanently deletes the entry for ${record.employeeName} on ${record.productionDate ? dayjs(record.productionDate).format('DD MMM YYYY') : ''}. This cannot be undone.`,
-      okText: 'Delete',
+      content: `${t('production.deletePrefix', 'This permanently deletes the entry for')} ${record.employeeName} ${t('production.deleteOn', 'on')} ${record.productionDate ? dayjs(record.productionDate).format('DD MMM YYYY') : ''}. ${t('production.cannotBeUndone', 'This cannot be undone.')}`,
+      okText: t('common.delete', 'Delete'),
       okButtonProps: { danger: true },
-      cancelText: 'Cancel',
+      cancelText: t('common.cancel', 'Cancel'),
       onOk: async () => {
         try {
           await productionService.deleteProduction(record.id);
-          notification.success({ message: 'Production entry deleted', placement: 'topRight' });
+          notification.success({ message: t('production.entryDeleted', 'Production entry deleted'), placement: 'topRight' });
           refreshAll();
         } catch (e: any) {
-          notification.error({ message: 'Delete failed', description: e.message, placement: 'topRight' });
+          notification.error({ message: t('production.deleteFailedTitle', 'Delete failed'), description: e.message, placement: 'topRight' });
         }
       },
     });
@@ -187,7 +189,7 @@ const ProductionHistoryPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Production Date',
+      title: t('production.colProductionDate', 'Production Date'),
       dataIndex: 'productionDate',
       key: 'productionDate',
       width: '15%',
@@ -200,7 +202,7 @@ const ProductionHistoryPage: React.FC = () => {
         a.productionDate.localeCompare(b.productionDate),
     },
     {
-      title: 'Employee',
+      title: t('production.colEmployee', 'Employee'),
       dataIndex: 'employeeName',
       key: 'employeeName',
       width: '20%',
@@ -216,7 +218,7 @@ const ProductionHistoryPage: React.FC = () => {
         (a.employeeName || '').localeCompare(b.employeeName || ''),
     },
     {
-      title: 'Items',
+      title: t('production.colItems', 'Items'),
       dataIndex: 'productCount',
       key: 'productCount',
       width: '24%',
@@ -242,11 +244,11 @@ const ProductionHistoryPage: React.FC = () => {
                 onClick={() => openItems(record)}
                 style={{ margin: 0, cursor: 'pointer', borderRadius: 6, background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BFDBFE', color: 'var(--theme-primary)', fontWeight: 700, padding: '1px 8px' }}
               >
-                +{extra} more
+                +{extra} {t('production.more', 'more')}
               </Tag>
             )}
             {items.length > 0 && (
-              <Tooltip title="View all items">
+              <Tooltip title={t('production.viewAllItems', 'View all items')}>
                 <Button
                   type="text"
                   size="small"
@@ -263,21 +265,21 @@ const ProductionHistoryPage: React.FC = () => {
         (a.productCount || 0) - (b.productCount || 0),
     },
     {
-      title: 'Total Quantity',
+      title: t('production.totalQuantity', 'Total Quantity'),
       dataIndex: 'totalQuantity',
       key: 'totalQuantity',
       width: '12%',
       align: 'right' as const,
       render: (qty: number) => (
         <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>
-          {(qty || 0).toLocaleString('en-IN')} Pcs
+          {(qty || 0).toLocaleString('en-IN')} {t('production.pcs', 'Pcs')}
         </span>
       ),
       sorter: (a: IProductionEntry, b: IProductionEntry) =>
         (a.totalQuantity || 0) - (b.totalQuantity || 0),
     },
     {
-      title: 'Total Amount',
+      title: t('production.totalAmount', 'Total Amount'),
       dataIndex: 'totalAmount',
       key: 'totalAmount',
       width: '15%',
@@ -291,7 +293,7 @@ const ProductionHistoryPage: React.FC = () => {
         (a.totalAmount || 0) - (b.totalAmount || 0),
     },
     {
-      title: 'Action',
+      title: t('production.colAction', 'Action'),
       key: 'action',
       width: '8%',
       align: 'center' as const,
@@ -300,11 +302,11 @@ const ProductionHistoryPage: React.FC = () => {
           trigger={['click']}
           menu={{
             items: [
-              { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadPdf(record) },
-              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadExcel(record) },
+              { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: t('production.downloadPdf', 'Download PDF'), onClick: () => handleDownloadPdf(record) },
+              { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: t('production.downloadExcel', 'Download Excel'), onClick: () => handleDownloadExcel(record) },
               ...(can('production', 'delete') ? [
                 { type: 'divider' as const },
-                { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true, onClick: () => handleDelete(record) },
+                { key: 'delete', icon: <DeleteOutlined />, label: t('common.delete', 'Delete'), danger: true, onClick: () => handleDelete(record) },
               ] : []),
             ],
           }}
@@ -330,13 +332,13 @@ const ProductionHistoryPage: React.FC = () => {
           <div>
             <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <HistoryOutlined style={{ color: 'var(--theme-primary)' }} />
-              Production History Log
-              <HeadingInfo text="Review and audit historic enterprise garment production entries." />
+              {t('production.historyTitle', 'Production History Log')}
+              <HeadingInfo text={t('production.historyInfo', 'Review and audit historic enterprise garment production entries.')} />
             </Typography>
           </div>
           <Space>
             <Button icon={<DownloadOutlined />} onClick={() => setReportOpen(true)} style={{ borderRadius: 6, fontWeight: 600 }}>
-              Download report
+              {t('production.downloadReport', 'Download report')}
             </Button>
             <Button
               type="default"
@@ -344,14 +346,14 @@ const ProductionHistoryPage: React.FC = () => {
               onClick={refreshAll}
               style={{ borderRadius: 6, fontWeight: 600 }}
             >
-              Refresh
+              {t('common.refresh', 'Refresh')}
             </Button>
           </Space>
         </div>
 
         <ReportDownloadDialog
           open={reportOpen}
-          title="Download production report"
+          title={t('production.downloadReportTitle', 'Download production report')}
           onClose={() => setReportOpen(false)}
           onDownload={(format, from, to) => productionService.downloadProductionReport(format, from, to)}
         />
@@ -370,9 +372,9 @@ const ProductionHistoryPage: React.FC = () => {
               </div>
               <div>
                 <Statistic
-                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>Today Production</span>}
+                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>{t('production.todayProduction', 'Today Production')}</span>}
                   value={todayQuantity}
-                  suffix="Pcs"
+                  suffix={t('production.pcs', 'Pcs')}
                   valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A' }}
                 />
               </div>
@@ -389,9 +391,9 @@ const ProductionHistoryPage: React.FC = () => {
               </div>
               <div>
                 <Statistic
-                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>This Month Production</span>}
+                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>{t('production.thisMonthProduction', 'This Month Production')}</span>}
                   value={thisMonthQuantity}
-                  suffix="Pcs"
+                  suffix={t('production.pcs', 'Pcs')}
                   valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A' }}
                 />
               </div>
@@ -408,9 +410,9 @@ const ProductionHistoryPage: React.FC = () => {
               </div>
               <div>
                 <Statistic
-                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>Total Quantity</span>}
+                  title={<span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.8rem' }}>{t('production.totalQuantity', 'Total Quantity')}</span>}
                   value={totalQuantity}
-                  suffix="Pcs"
+                  suffix={t('production.pcs', 'Pcs')}
                   valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)' }}
                 />
               </div>
@@ -427,7 +429,7 @@ const ProductionHistoryPage: React.FC = () => {
               </div>
               <div>
                 <Statistic
-                  title={<span style={{ color: '#065F46', fontWeight: 700, fontSize: '0.8rem' }}>Total Amount</span>}
+                  title={<span style={{ color: '#065F46', fontWeight: 700, fontSize: '0.8rem' }}>{t('production.totalAmount', 'Total Amount')}</span>}
                   value={totalAmount}
                   formatter={(val) => formatCurrency(Number(val))}
                   valueStyle={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)' }}
@@ -447,21 +449,21 @@ const ProductionHistoryPage: React.FC = () => {
           >
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12} md={6}>
-                <Form.Item name="fromDate" label={<span style={{ fontWeight: 600, color: '#475569' }}>From Date</span>}>
-                  <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" placeholder="Select date" />
+                <Form.Item name="fromDate" label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.fromDate', 'From Date')}</span>}>
+                  <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" placeholder={t('production.selectDate', 'Select date')} />
                 </Form.Item>
               </Col>
               
               <Col xs={24} sm={12} md={6}>
-                <Form.Item name="toDate" label={<span style={{ fontWeight: 600, color: '#475569' }}>To Date</span>}>
-                  <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" placeholder="Select date" />
+                <Form.Item name="toDate" label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.toDate', 'To Date')}</span>}>
+                  <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" placeholder={t('production.selectDate', 'Select date')} />
                 </Form.Item>
               </Col>
 
               <Col xs={24} sm={12} md={6}>
-                <Form.Item name="employeeId" label={<span style={{ fontWeight: 600, color: '#475569' }}>Employee</span>}>
+                <Form.Item name="employeeId" label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.employee', 'Employee')}</span>}>
                   <Select
-                    placeholder="Search employee"
+                    placeholder={t('production.searchEmployee', 'Search employee')}
                     allowClear
                     showSearch
                     optionFilterProp="children"
@@ -477,9 +479,9 @@ const ProductionHistoryPage: React.FC = () => {
               </Col>
 
               <Col xs={24} sm={12} md={6}>
-                <Form.Item name="productId" label={<span style={{ fontWeight: 600, color: '#475569' }}>Product</span>}>
+                <Form.Item name="productId" label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.product', 'Product')}</span>}>
                   <Select
-                    placeholder="Search product"
+                    placeholder={t('production.searchProduct', 'Search product')}
                     allowClear
                     showSearch
                     optionFilterProp="children"
@@ -503,14 +505,14 @@ const ProductionHistoryPage: React.FC = () => {
                 icon={<SearchOutlined />}
                 style={{ borderRadius: 6, fontWeight: 600 }}
               >
-                Search Filter
+                {t('production.searchFilter', 'Search Filter')}
               </Button>
               <Button
                 onClick={handleReset}
                 icon={<ReloadOutlined />}
                 style={{ borderRadius: 6, fontWeight: 600 }}
               >
-                Reset
+                {t('common.reset', 'Reset')}
               </Button>
             </div>
           </Form>
@@ -533,7 +535,7 @@ const ProductionHistoryPage: React.FC = () => {
                 total: totalElements,
                 showSizeChanger: true,
                 pageSizeOptions: ['10', '20', '50'],
-                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} logs`,
+                showTotal: (total, range) => `${range[0]}-${range[1]} ${t('production.of', 'of')} ${total} ${t('production.logs', 'logs')}`,
                 onChange: (nextPage, nextSize) => {
                   // antd is 1-indexed; the backend is 0-indexed. Reset to the first
                   // page when the page size changes.
@@ -549,7 +551,7 @@ const ProductionHistoryPage: React.FC = () => {
               locale={{
                 emptyText: (
                   <div style={{ padding: '48px 16px', color: '#94A3B8', textAlign: 'center' }}>
-                    No production logs found matching the selected filters.
+                    {t('production.emptyFiltered', 'No production logs found matching the selected filters.')}
                   </div>
                 ),
               }}
@@ -566,7 +568,7 @@ const ProductionHistoryPage: React.FC = () => {
           title={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A' }}>
               <AppstoreOutlined style={{ color: 'var(--theme-primary)' }} />
-              Products Produced
+              {t('production.productsProduced', 'Products Produced')}
               {itemsModal.record && (
                 <span style={{ fontWeight: 500, color: '#64748B', fontSize: '0.8rem' }}>
                   · {itemsModal.record.employeeName} · {itemsModal.record.productionDate ? dayjs(itemsModal.record.productionDate).format('DD MMM YYYY') : ''}
@@ -584,7 +586,7 @@ const ProductionHistoryPage: React.FC = () => {
               scroll={{ x: 'max-content' }}
               columns={[
                 {
-                  title: 'Product',
+                  title: t('production.colProduct', 'Product'),
                   dataIndex: 'productName',
                   key: 'productName',
                   render: (name: string, item: any) => (
@@ -592,19 +594,19 @@ const ProductionHistoryPage: React.FC = () => {
                   ),
                 },
                 {
-                  title: 'Piece Code',
+                  title: t('production.colPieceCode', 'Piece Code'),
                   dataIndex: 'pieceCode',
                   key: 'pieceCode',
                   render: (code: string) => code ? <Tag style={{ borderRadius: 6 }}>{code}</Tag> : <span style={{ color: '#94A3B8' }}>—</span>,
                 },
-                { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
-                { title: 'Rate', dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
-                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
+                { title: t('production.qty', 'Qty'), dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number) => <span style={{ fontWeight: 600 }}>{(q || 0).toLocaleString('en-IN')}</span> },
+                { title: t('production.rate', 'Rate'), dataIndex: 'rate', key: 'rate', align: 'right' as const, render: (r: number) => <span style={{ color: '#64748B' }}>{formatCurrency(r || 0)}</span> },
+                { title: t('common.amount', 'Amount'), dataIndex: 'amount', key: 'amount', align: 'right' as const, render: (a: number) => <span style={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{formatCurrency(a || 0)}</span> },
               ]}
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row style={{ background: '#F8FAFC' }}>
-                    <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>Total</span></Table.Summary.Cell>
+                    <Table.Summary.Cell index={0} colSpan={2}><span style={{ fontWeight: 800 }}>{t('common.total', 'Total')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={2} align="right"><span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{(itemsModal.record.totalQuantity || 0).toLocaleString('en-IN')}</span></Table.Summary.Cell>
                     <Table.Summary.Cell index={3} />
                     <Table.Summary.Cell index={4} align="right"><span style={{ fontWeight: 900, color: 'var(--theme-primary)' }}>{formatCurrency(itemsModal.record.totalAmount || 0)}</span></Table.Summary.Cell>

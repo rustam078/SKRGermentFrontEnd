@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import PersonSearchOutlinedIcon from '@mui/icons-material/PersonSearchOutlined';
+import { useT } from '../../../contexts/LanguageContext';
 
 const CustomerInformationCard = ({
   formValues,
@@ -22,10 +23,11 @@ const CustomerInformationCard = ({
   selectedCustomer,
   errors,
 }) => {
+  const t = useT();
   return (
     <Card sx={{ borderRadius: 1, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
       <CardHeader
-        title="Customer Details"
+        title={t('sales.customerDetails', 'Customer Details')}
         sx={{
           '& .MuiCardHeader-title': {
             fontWeight: 700,
@@ -64,8 +66,8 @@ const CustomerInformationCard = ({
             }}
             noOptionsText={
               formValues.customerMobile?.trim()
-                ? 'No existing customer — a new one will be created'
-                : 'Type a mobile number to search'
+                ? t('sales.noExistingCustomer', 'No existing customer — a new one will be created')
+                : t('sales.typeMobileSearch', 'Type a mobile number to search')
             }
             renderOption={(props, option) => (
               <li {...props} key={option.id}>
@@ -80,9 +82,9 @@ const CustomerInformationCard = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Mobile Number"
+                label={t('sales.mobileNumber', 'Mobile Number')}
                 error={Boolean(errors.customerMobile)}
-                helperText={errors.customerMobile || 'Type a mobile number to find an existing customer, or enter a new one'}
+                helperText={errors.customerMobile || t('sales.mobileHelper', 'Type a mobile number to find an existing customer, or enter a new one')}
                 fullWidth
                 inputProps={{ ...params.inputProps, inputMode: 'numeric' }}
                 InputProps={{
@@ -104,7 +106,7 @@ const CustomerInformationCard = ({
 
             <Grid item xs={12} sm={4}>
               <TextField
-                label="Customer Name"
+                label={t('sales.customerNameCap', 'Customer Name')}
                 name="customerName"
                 value={formValues.customerName}
                 onChange={onChange}
@@ -116,7 +118,7 @@ const CustomerInformationCard = ({
 
             <Grid item xs={12} sm={4}>
               <TextField
-                label="Email"
+                label={t('sales.email', 'Email')}
                 name="customerEmail"
                 value={formValues.customerEmail}
                 onChange={onChange}
@@ -128,7 +130,7 @@ const CustomerInformationCard = ({
           {selectedCustomer && selectedCustomer.mobile === formValues.customerMobile ? (
             <Box sx={{ px: 1.5, py: 1, borderRadius: 1, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #A7F3D0' }}>
               <Typography sx={{ fontSize: '0.8rem', color: 'var(--theme-primary)', fontWeight: 700 }}>
-                Existing customer selected
+                {t('sales.existingCustomerSelected', 'Existing customer selected')}
               </Typography>
               <Typography sx={{ fontSize: '0.78rem', color: '#065F46' }}>
                 {selectedCustomer.name} · {selectedCustomer.mobile}

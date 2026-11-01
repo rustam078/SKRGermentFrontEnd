@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { IEmployee } from '../../types/employee.types';
+import { useT } from '../../contexts/LanguageContext';
 
 interface EmployeeInfoCardProps {
   employee: IEmployee;
@@ -25,10 +26,11 @@ const Detail: React.FC<{ icon: React.ReactNode; label: string; value: React.Reac
 );
 
 export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) => {
+  const t = useT();
   const getInitials = (name: string) =>
     name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 
-  const notProvided = <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.82rem' }}>Not Provided</span>;
+  const notProvided = <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.82rem' }}>{t('employees.notProvided', 'Not Provided')}</span>;
 
   return (
     <Card
@@ -62,14 +64,14 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) 
         <div style={{ minWidth: 0 }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', margin: 0, display: 'inline-flex', alignItems: 'center' }}>
             {employee.fullName}
-            <HeadingInfo text="Production output, earnings and history for this employee." />
+            <HeadingInfo text={t('employees.info.heading', 'Production output, earnings and history for this employee.')} />
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
             <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>{employee.employeeCode}</Tag>
             {employee.active ? (
-              <Tag color="success" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>Active</Tag>
+              <Tag color="success" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>{t('employees.status.active', 'Active')}</Tag>
             ) : (
-              <Tag color="error" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>Inactive</Tag>
+              <Tag color="error" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>{t('employees.status.inactive', 'Inactive')}</Tag>
             )}
           </div>
         </div>
@@ -81,18 +83,18 @@ export const EmployeeInfoCard: React.FC<EmployeeInfoCardProps> = ({ employee }) 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
         <Detail
           icon={<MailOutlined />}
-          label="Email"
+          label={t('employees.form.email', 'Email')}
           value={
             employee.email ? (
               <a href={`mailto:${employee.email}`} style={{ color: 'var(--theme-primary)', fontWeight: 500 }}>{employee.email}</a>
             ) : notProvided
           }
         />
-        <Detail icon={<PhoneOutlined />} label="Phone Number" value={employee.mobileNumber || notProvided} />
-        <Detail icon={<HomeOutlined />} label="Address" value={employee.address || notProvided} />
+        <Detail icon={<PhoneOutlined />} label={t('employees.info.phone', 'Phone Number')} value={employee.mobileNumber || notProvided} />
+        <Detail icon={<HomeOutlined />} label={t('employees.form.address', 'Address')} value={employee.address || notProvided} />
         <Detail
           icon={<CalendarOutlined />}
-          label="Joining Date"
+          label={t('employees.form.joiningDate', 'Joining Date')}
           value={employee.joiningDate ? dayjs(employee.joiningDate).format('DD-MMM-YYYY') : '-'}
         />
       </div>

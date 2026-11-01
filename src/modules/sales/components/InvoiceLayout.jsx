@@ -2,9 +2,11 @@ import React from 'react';
 import { Box, Button, Divider, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useT } from '../../../contexts/LanguageContext';
 
 const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
   const { companyName } = useAppSettings();
+  const t = useT();
   const formatAmount = (value) => (value != null ? `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN')}` : '-');
   const invoiceDate = invoice?.createdAt?.split('T')[0] || invoice?.date || '-';
 
@@ -26,16 +28,16 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
       <Stack spacing={4}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>{companyName || 'SKR Garment'}</Typography>
-          <Typography color="text.secondary">Invoice Preview</Typography>
+          <Typography color="text.secondary">{t('sales.invoicePreview', 'Invoice Preview')}</Typography>
         </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="subtitle2" color="text.secondary">Invoice Number</Typography>
+            <Typography variant="subtitle2" color="text.secondary">{t('sales.invoiceNumber', 'Invoice Number')}</Typography>
             <Typography sx={{ fontWeight: 700 }}>{invoice.invoiceNumber || invoice.invoice || invoice.invoiceNo || '-'}</Typography>
           </Box>
           <Box>
-            <Typography variant="subtitle2" color="text.secondary">Invoice Date</Typography>
+            <Typography variant="subtitle2" color="text.secondary">{t('sales.invoiceDate', 'Invoice Date')}</Typography>
             <Typography sx={{ fontWeight: 700 }}>{invoiceDate}</Typography>
           </Box>
         </Box>
@@ -43,7 +45,7 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
         <Divider />
 
         <Box>
-          <Typography variant="subtitle2" color="text.secondary">Customer Details</Typography>
+          <Typography variant="subtitle2" color="text.secondary">{t('sales.customerDetails', 'Customer Details')}</Typography>
           <Stack spacing={1} sx={{ mt: 1 }}>
             <Typography sx={{ fontWeight: 700 }}>{invoice.customerName || invoice.customer || '-'}</Typography>
             <Typography>{invoice.customerMobile || invoice.mobile || '-'}</Typography>
@@ -56,11 +58,11 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
             <TableHead>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>Product</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Selling Price</TableCell>
-                <TableCell>Discount</TableCell>
-                <TableCell>Line Total</TableCell>
+                <TableCell>{t('sales.product', 'Product')}</TableCell>
+                <TableCell>{t('sales.colQuantity', 'Quantity')}</TableCell>
+                <TableCell>{t('sales.colSellingPrice', 'Selling Price')}</TableCell>
+                <TableCell>{t('sales.discount', 'Discount')}</TableCell>
+                <TableCell>{t('sales.colLineTotal', 'Line Total')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -76,7 +78,7 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
               )) : (
                 <TableRow>
                   <TableCell colSpan={6} sx={{ py: 6, textAlign: 'center' }}>
-                    <Typography color="text.secondary">No products found for this invoice.</Typography>
+                    <Typography color="text.secondary">{t('sales.noProductsInvoice', 'No products found for this invoice.')}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -88,29 +90,29 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
           <Paper sx={{ width: 320, p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
             <Stack spacing={1.5}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography color="text.secondary">Subtotal</Typography>
+                <Typography color="text.secondary">{t('sales.subtotal', 'Subtotal')}</Typography>
                 <Typography sx={{ fontWeight: 700 }}>{formatAmount(invoice.subtotal)}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography color="text.secondary">Discount</Typography>
+                <Typography color="text.secondary">{t('sales.discount', 'Discount')}</Typography>
                 <Typography>{formatAmount(invoice.discount)}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography color="text.secondary">Tax</Typography>
+                <Typography color="text.secondary">{t('sales.tax', 'Tax')}</Typography>
                 <Typography>{formatAmount(invoice.tax)}</Typography>
               </Box>
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography sx={{ fontWeight: 700 }}>Grand Total</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{t('sales.grandTotal', 'Grand Total')}</Typography>
                 <Typography sx={{ fontWeight: 700 }}>{formatAmount(invoice.grandTotal)}</Typography>
               </Box>
               <Divider />
               <Box>
-                <Typography variant="body2" color="text.secondary">Payment Mode</Typography>
+                <Typography variant="body2" color="text.secondary">{t('sales.paymentMode', 'Payment Mode')}</Typography>
                 <Typography sx={{ fontWeight: 700 }}>{invoice.paymentMode || '-'}</Typography>
               </Box>
               <Box>
-                <Typography variant="body2" color="text.secondary">Payment Provider</Typography>
+                <Typography variant="body2" color="text.secondary">{t('sales.paymentProvider', 'Payment Provider')}</Typography>
                 <Typography sx={{ fontWeight: 700 }}>{invoice.paymentProvider || '-'}</Typography>
               </Box>
             </Stack>
@@ -119,7 +121,7 @@ const InvoiceLayout = React.forwardRef(({ invoice }, ref) => {
 
         <Box sx={{ pt: 4, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            Thank you for your business.
+            {t('sales.thankYou', 'Thank you for your business.')}
           </Typography>
         </Box>
       </Stack>

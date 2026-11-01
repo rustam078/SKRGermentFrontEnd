@@ -18,6 +18,7 @@ import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNone
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../services/axios';
+import { useT } from '../../contexts/LanguageContext';
 
 /**
  * Global low-stock alerts drawer. Opened from the navbar bell on ANY page
@@ -25,6 +26,7 @@ import axiosInstance from '../../services/axios';
  */
 const LowStockAlertsDrawer = ({ open, onClose }) => {
   const navigate = useNavigate();
+  const t = useT();
 
   const { data: alerts = [] } = useQuery({
     queryKey: ['lowStockAlerts'],
@@ -50,10 +52,10 @@ const LowStockAlertsDrawer = ({ open, onClose }) => {
       <Stack spacing={2.5} sx={{ height: '100%', overflow: 'hidden' }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Low Stock Products
+            {t('ui.lowStock.title', 'Low Stock Products')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Review products at or below the global threshold.
+            {t('ui.lowStock.subtitle', 'Review products at or below the global threshold.')}
           </Typography>
         </Box>
 
@@ -61,7 +63,7 @@ const LowStockAlertsDrawer = ({ open, onClose }) => {
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <NotificationsNoneOutlinedIcon sx={{ fontSize: 44, color: 'text.secondary', mb: 1.5 }} />
             <Typography variant="body1" sx={{ fontWeight: 600 }}>
-              No products are below the configured threshold.
+              {t('ui.lowStock.empty', 'No products are below the configured threshold.')}
             </Typography>
           </Box>
         ) : (
@@ -70,10 +72,10 @@ const LowStockAlertsDrawer = ({ open, onClose }) => {
               <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ width: '32%', fontWeight: 700, py: 0.5, px: 0.75 }}>Product</TableCell>
-                    <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>Stock</TableCell>
-                    <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>Threshold</TableCell>
-                    <TableCell sx={{ width: '28%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'center' }}>Status</TableCell>
+                    <TableCell sx={{ width: '32%', fontWeight: 700, py: 0.5, px: 0.75 }}>{t('ui.lowStock.product', 'Product')}</TableCell>
+                    <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>{t('ui.lowStock.stock', 'Stock')}</TableCell>
+                    <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>{t('ui.lowStock.threshold', 'Threshold')}</TableCell>
+                    <TableCell sx={{ width: '28%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'center' }}>{t('common.status', 'Status')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -89,7 +91,7 @@ const LowStockAlertsDrawer = ({ open, onClose }) => {
                         <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{Number(item.threshold ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                       </TableCell>
                       <TableCell sx={{ py: 0.5, px: 0.75, textAlign: 'center' }}>
-                        <Chip label="LOW STOCK" size="small" sx={{ fontSize: '0.75rem', px: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
+                        <Chip label={t('ui.lowStock.lowStockTag', 'LOW STOCK')} size="small" sx={{ fontSize: '0.75rem', px: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
                       </TableCell>
                     </TableRow>
                   ))}

@@ -28,11 +28,13 @@ import {
   TrendingUpOutlined as SalesIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import axiosInstance from '../../services/axios';
 import loginHero from '../../assets/login_hero.png';
 
 const LoginPage = () => {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -71,7 +73,7 @@ const LoginPage = () => {
     if (result.success) {
       navigate(from, { replace: true });
     } else {
-      setErrorMsg(result.error || 'Invalid credentials');
+      setErrorMsg(result.error || t('ui.login.invalid', 'Invalid credentials'));
       setIsSubmitting(false);
     }
   };
@@ -179,24 +181,24 @@ const LoginPage = () => {
         {/* Left Side Footer / Value Props */}
         <Box sx={{ zIndex: 4, mt: 'auto' }}>
           <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, fontSize: '2.5rem', lineHeight: 1.2, textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
-            Next-Gen Garment ERP Platform
+            {t('ui.login.heroTitle', 'Next-Gen Garment ERP Platform')}
           </Typography>
           <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.85)', mb: 4, maxWidth: '580px', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-            Streamline your apparel production line, maintain precise real-time inventory control, and automate sales management in one unified workspace.
+            {t('ui.login.heroDesc', 'Streamline your apparel production line, maintain precise real-time inventory control, and automate sales management in one unified workspace.')}
           </Typography>
 
           <Stack direction="row" spacing={4}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               <FactoryIcon sx={{ color: '#3B82F6', fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Production</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('nav.production', 'Production')}</Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               <InventoryIcon sx={{ color: '#3B82F6', fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Inventory</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('nav.inventory', 'Inventory')}</Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               <SalesIcon sx={{ color: '#3B82F6', fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Sales Management</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('ui.login.salesMgmt', 'Sales Management')}</Typography>
             </Stack>
           </Stack>
         </Box>
@@ -251,7 +253,7 @@ const LoginPage = () => {
               </Typography>
               
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Production • Inventory • Sales Management
+                {t('ui.login.tagline', 'Production • Inventory • Sales Management')}
               </Typography>
             </Box>
 
@@ -266,14 +268,14 @@ const LoginPage = () => {
                 margin="normal"
                 fullWidth
                 id="username"
-                label="Username"
+                label={t('ui.login.username', 'Username')}
                 placeholder="admin"
                 autoComplete="email"
                 autoFocus
                 error={!!errors.username}
                 helperText={errors.username?.message}
                 {...register('username', {
-                  required: 'Username is required',
+                  required: t('ui.login.usernameRequired', 'Username is required'),
                 })}
                 InputProps={{
                   startAdornment: (
@@ -288,7 +290,7 @@ const LoginPage = () => {
               <TextField
                 margin="normal"
                 fullWidth
-                label="Password"
+                label={t('ui.login.password', 'Password')}
                 placeholder="admin123"
                 type={showPassword ? 'text' : 'password'}
                 id="password"
@@ -296,7 +298,7 @@ const LoginPage = () => {
                 error={!!errors.password}
                 helperText={errors.password?.message}
                 {...register('password', {
-                  required: 'Password is required',
+                  required: t('ui.login.passwordRequired', 'Password is required'),
                 })}
                 InputProps={{
                   startAdornment: (
@@ -331,7 +333,7 @@ const LoginPage = () => {
                   }
                   label={
                     <Typography variant="body2" sx={{ userSelect: 'none' }}>
-                      Remember Me
+                      {t('ui.login.rememberMe', 'Remember Me')}
                     </Typography>
                   }
                 />
@@ -346,7 +348,7 @@ const LoginPage = () => {
                     '&:hover': { textDecoration: 'underline' },
                   }}
                 >
-                  Forgot Password?
+                  {t('ui.login.forgot', 'Forgot Password?')}
                 </Link>
               </Stack>
 
@@ -372,7 +374,7 @@ const LoginPage = () => {
                 {isSubmitting ? (
                   <CircularProgress size={24} sx={{ color: '#ffffff' }} />
                 ) : (
-                  'Login'
+                  t('ui.login.login', 'Login')
                 )}
               </Button>
             </Box>

@@ -20,6 +20,7 @@ import {
   Paper,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useT } from '../../../contexts/LanguageContext';
 
 const ProductCart = ({
   items,
@@ -34,18 +35,19 @@ const ProductCart = ({
   onSearchInput,
   error,
 }) => {
+  const t = useT();
   return (
     <Card sx={{ borderRadius: 2 }}>
-      <CardHeader title="Product Cart" />
+      <CardHeader title={t('sales.productCart', 'Product Cart')} />
       <CardContent>
         <Stack spacing={3}>
           <TextField
-            label="Search product"
+            label={t('sales.searchProduct', 'Search product')}
             value={searchValue}
             onChange={(e) => onSearchInput(e.target.value)}
-            placeholder="Type product name or SKU"
+            placeholder={t('sales.typeProductNameSku', 'Type product name or SKU')}
             fullWidth
-            helperText="Select a product to add it to the cart"
+            helperText={t('sales.selectProductHint', 'Select a product to add it to the cart')}
           />
           <Box>
             {loadingSearch ? (
@@ -56,7 +58,7 @@ const ProductCart = ({
               productOptions.length > 0 && (
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Search results
+                    {t('sales.searchResults', 'Search results')}
                   </Typography>
                   <Stack spacing={1}>
                     {productOptions.slice(0, 4).map((option) => (
@@ -68,7 +70,7 @@ const ProductCart = ({
                         sx={{ justifyContent: 'space-between' }}
                       >
                         <span>{option.productName || option.name}</span>
-                        <Typography color="text.secondary">Stock {option.availableStock ?? option.stock ?? '-'}</Typography>
+                        <Typography color="text.secondary">{t('sales.stock', 'Stock')} {option.availableStock ?? option.stock ?? '-'}</Typography>
                       </Button>
                     ))}
                   </Stack>
@@ -86,19 +88,19 @@ const ProductCart = ({
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Available Stock</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Selling Price</TableCell>
-                  <TableCell>Discount</TableCell>
-                  <TableCell>Line Total</TableCell>
-                  <TableCell align="center">Delete</TableCell>
+                  <TableCell>{t('sales.product', 'Product')}</TableCell>
+                  <TableCell>{t('sales.colAvailableStock', 'Available Stock')}</TableCell>
+                  <TableCell>{t('sales.colQuantity', 'Quantity')}</TableCell>
+                  <TableCell>{t('sales.colSellingPrice', 'Selling Price')}</TableCell>
+                  <TableCell>{t('sales.discount', 'Discount')}</TableCell>
+                  <TableCell>{t('sales.colLineTotal', 'Line Total')}</TableCell>
+                  <TableCell align="center">{t('common.delete', 'Delete')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {items.map((item, index) => (
                   <TableRow key={item.productId || index}>
-                    <TableCell>{item.productName || 'Select product'}</TableCell>
+                    <TableCell>{item.productName || t('sales.selectProduct', 'Select product')}</TableCell>
                     <TableCell>{item.quantityAvailable != null ? item.quantityAvailable : '-'}</TableCell>
                     <TableCell>
                       <TextField
@@ -140,7 +142,7 @@ const ProductCart = ({
           </TableContainer>
 
           <Button variant="outlined" onClick={onAddItem}>
-            Add Product
+            {t('sales.addProduct', 'Add Product')}
           </Button>
         </Stack>
       </CardContent>

@@ -2,12 +2,14 @@ import React from 'react';
 import { Card } from 'antd';
 import { IProductSummary } from '../../types/employee-details.types';
 import ProductLabel from '../../components/common/ProductLabel';
+import { useT } from '../../contexts/LanguageContext';
 
 interface ProductWiseEarningsListProps {
   data: IProductSummary[];
 }
 
 export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = ({ data = [] }) => {
+  const t = useT();
   // Format currency helper
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -19,7 +21,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
 
   return (
     <Card
-      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.95rem' }}>Product Wise Earnings</span>}
+      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.95rem' }}>{t('employees.productWise.title', 'Product Wise Earnings')}</span>}
       style={{
         borderRadius: 12,
         boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.05)',
@@ -34,7 +36,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
       <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flexGrow: 1 }}>
         {data.length === 0 ? (
           <div style={{ padding: '32px 16px', color: '#94A3B8', textAlign: 'center', fontWeight: 500 }}>
-            No product contributions found for the selected period.
+            {t('employees.productWise.empty', 'No product contributions found for the selected period.')}
           </div>
         ) : (
           data.map((item, idx) => (
@@ -67,7 +69,7 @@ export const ProductWiseEarningsList: React.FC<ProductWiseEarningsListProps> = (
                   <ProductLabel productId={(item as any).productId} iconName={(item as any).iconName} name={item.productName} size={20} />
                 </div>
                 <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: 2, fontWeight: 500 }}>
-                  {item.quantityProduced.toLocaleString('en-IN')} Pcs
+                  {item.quantityProduced.toLocaleString('en-IN')} {t('employees.pcs', 'Pcs')}
                 </div>
               </div>
               <div style={{ fontWeight: 800, color: 'var(--theme-primary)', fontSize: '1rem' }}>

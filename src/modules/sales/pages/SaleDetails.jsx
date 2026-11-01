@@ -21,6 +21,7 @@ import salesService from '../services/salesService';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { modeLabel } from '../../../utils/payment';
 import { useAppSettings } from '../../../contexts/AppSettingsContext';
+import { useT } from '../../../contexts/LanguageContext';
 
 const inr = (v) => `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
@@ -59,6 +60,7 @@ const SaleDetails = () => {
   const navigate = useNavigate();
   const { saleId } = useParams();
   const { companyName } = useAppSettings();
+  const t = useT();
   const [downloading, setDownloading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('details');
@@ -125,7 +127,7 @@ const SaleDetails = () => {
       setDownloading(true);
       await salesService.downloadInvoicePdf(saleId);
     } catch (e) {
-      notification.error({ message: 'Invoice download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('sales.invoiceDownloadFailed', 'Invoice download failed'), description: e.message, placement: 'topRight' });
     } finally {
       setDownloading(false);
     }
@@ -144,7 +146,7 @@ const SaleDetails = () => {
   const invoiceNo = inv.invoiceNo || inv.invoice || '-';
   const rawSaleDate = inv.saleDate || inv.createdAt;
   const saleDate = rawSaleDate ? dayjs(rawSaleDate).format('DD-MMM-YYYY') : '-';
-  const status = inv.paymentStatus ? inv.paymentStatus.replace(/_/g, ' ') : 'Unknown';
+  const status = inv.paymentStatus ? t(`sales.status.${inv.paymentStatus}`, inv.paymentStatus.replace(/_/g, ' ')) : t('sales.unknown', 'Unknown');
   const paymentMode = modeLabel(inv.paymentMode);
   const items = inv.items || [];
 
@@ -154,10 +156,10 @@ const SaleDetails = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1.5}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Button startIcon={<ArrowBackIcon />} variant="text" onClick={() => navigate('/sales/list')} sx={{ color: '#475569' }}>
-            Back
+            {t('common.back', 'Back')}
           </Button>
           <Divider orientation="vertical" flexItem />
-          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>Sale Details</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.saleDetails', 'Sale Details')}</Typography>
         </Stack>
         <Button
           variant="contained"
@@ -165,14 +167,14 @@ const SaleDetails = () => {
           onClick={handleDownload}
           disabled={downloading}
         >
-          {downloading ? 'Preparing…' : 'Download Invoice PDF'}
+          {downloading ? t('sales.preparing', 'Preparing…') : t('sales.downloadInvoicePdf', 'Download Invoice PDF')}
         </Button>
       </Stack>
 
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        items={[{ key: 'details', label: 'Details' }, { key: 'history', label: 'Customer Payment History' }]}
+        items={[{ key: 'details', label: t('sales.details', 'Details') }, { key: 'history', label: t('sales.customerPaymentHistory', 'Customer Payment History') }]}
       />
 
       {/* Invoice details */}
@@ -190,7 +192,7 @@ const SaleDetails = () => {
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#0F172A', lineHeight: 1.2 }}>{companyName || 'SKR Garment'}</Typography>
-                <Typography sx={{ fontWeight: 700, color: '#334155' }}>Invoice {invoiceNo}</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#334155' }}>{t('sales.invoice', 'Invoice')} {invoiceNo}</Typography>
                 <Typography sx={{ color: '#64748B', fontSize: '0.85rem', mt: 0.25 }}>{saleDate} • {paymentMode}</Typography>
               </Box>
             </Stack>
@@ -201,7 +203,7 @@ const SaleDetails = () => {
                 color={STATUS_COLOR[inv.paymentStatus] || 'default'}
                 sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}
               />
-              <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Grand Total</Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>{t('sales.grandTotal', 'Grand Total')}</Typography>
               <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: 'var(--theme-primary)', lineHeight: 1 }}>{inr(inv.grandTotal)}</Typography>
             </Stack>
           </Paper>
@@ -209,21 +211,21 @@ const SaleDetails = () => {
           {/* Info cards */}
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
-              <InfoCard icon={<PersonOutlineIcon />} label="Billed To">
+              <InfoCard icon={<PersonOutlineIcon />} label={t('sales.billedTo', 'Billed To')}>
                 <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{inv.customerName || '-'}</Typography>
                 <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.customerMobile || '-'}</Typography>
                 {inv.customerEmail && <Typography sx={{ color: '#64748B', fontSize: '0.85rem', wordBreak: 'break-all' }}>{inv.customerEmail}</Typography>}
               </InfoCard>
             </Grid>
             <Grid item xs={12} md={4}>
-              <InfoCard icon={<CreditCardOutlinedIcon />} label="Payment">
+              <InfoCard icon={<CreditCardOutlinedIcon />} label={t('sales.payment', 'Payment')}>
                 <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{paymentMode}</Typography>
                 {inv.paymentProvider && <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.paymentProvider}</Typography>}
               </InfoCard>
             </Grid>
             <Grid item xs={12} md={4}>
-              <InfoCard icon={<Inventory2OutlinedIcon />} label="Order">
-                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{items.length} item{items.length === 1 ? '' : 's'}</Typography>
+              <InfoCard icon={<Inventory2OutlinedIcon />} label={t('sales.order', 'Order')}>
+                <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{items.length} {items.length === 1 ? t('sales.item', 'item') : t('sales.items', 'items')}</Typography>
               </InfoCard>
             </Grid>
           </Grid>
@@ -234,23 +236,23 @@ const SaleDetails = () => {
               <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: { md: CARD_H }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Inventory2OutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Products ({items.length})</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.products', 'Products')} ({items.length})</Typography>
                 </Box>
                 <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow sx={{ '& th': { backgroundColor: '#F1F5F9', color: '#334155', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.03em' } }}>
                         <TableCell>#</TableCell>
-                        <TableCell>Product</TableCell>
-                        <TableCell align="right">Qty</TableCell>
-                        <TableCell align="right">Price</TableCell>
-                        <TableCell align="right">Discount</TableCell>
-                        <TableCell align="right">Amount</TableCell>
+                        <TableCell>{t('sales.product', 'Product')}</TableCell>
+                        <TableCell align="right">{t('sales.colQty', 'Qty')}</TableCell>
+                        <TableCell align="right">{t('sales.colPrice', 'Price')}</TableCell>
+                        <TableCell align="right">{t('sales.discount', 'Discount')}</TableCell>
+                        <TableCell align="right">{t('common.amount', 'Amount')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {shownItems.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} align="center" sx={{ color: '#94A3B8', py: 4 }}>No items</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} align="center" sx={{ color: '#94A3B8', py: 4 }}>{t('sales.noItems', 'No items')}</TableCell></TableRow>
                       ) : shownItems.map((it, i) => (
                         <TableRow key={it.productId || i} hover>
                           <TableCell sx={{ color: '#94A3B8', fontWeight: 600 }}>{i + 1}</TableCell>
@@ -271,37 +273,37 @@ const SaleDetails = () => {
               <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: { md: CARD_H }, display: 'flex', flexDirection: 'column', overflow: 'auto', p: 2 }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                   <CalculateOutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Amount Summary</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.amountSummary', 'Amount Summary')}</Typography>
                 </Stack>
                 <Stack spacing={0.25}>
                   <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
-                    <Typography sx={{ color: '#64748B' }}>Subtotal</Typography>
+                    <Typography sx={{ color: '#64748B' }}>{t('sales.subtotal', 'Subtotal')}</Typography>
                     <Typography sx={{ fontWeight: 600 }}>{inr(inv.subtotal)}</Typography>
                   </Stack>
                   <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
-                    <Typography sx={{ color: '#64748B' }}>Discount</Typography>
+                    <Typography sx={{ color: '#64748B' }}>{t('sales.discount', 'Discount')}</Typography>
                     <Typography sx={{ fontWeight: 600, color: '#DC2626' }}>− {inr(inv.discount)}</Typography>
                   </Stack>
                   {Number(inv.tax) > 0 && (
                     <Stack direction="row" justifyContent="space-between" sx={{ py: 0.75 }}>
-                      <Typography sx={{ color: '#64748B' }}>GST</Typography>
+                      <Typography sx={{ color: '#64748B' }}>{t('sales.gst', 'GST')}</Typography>
                       <Typography sx={{ fontWeight: 600 }}>{inr(inv.tax)}</Typography>
                     </Stack>
                   )}
                 </Stack>
                 {/* Grand Total highlight */}
                 <Box sx={{ my: 1, p: 1.5, borderRadius: 0, bgcolor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 22%, white)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Grand Total</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.grandTotal', 'Grand Total')}</Typography>
                   <Typography sx={{ fontWeight: 900, fontSize: '1.3rem', color: 'var(--theme-primary)' }}>{inr(inv.grandTotal)}</Typography>
                 </Box>
                 <Stack spacing={0.25}>
                   <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                    <Typography sx={{ color: '#64748B' }}>Amount Received</Typography>
+                    <Typography sx={{ color: '#64748B' }}>{t('sales.amountReceived', 'Amount Received')}</Typography>
                     <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{inr(inv.amountReceived)}</Typography>
                   </Stack>
                   {Number(inv.paidToPreviousDues) > 0.0001 && (
                     <Stack direction="row" justifyContent="space-between" sx={{ py: 0.25 }}>
-                      <Typography sx={{ color: '#64748B', pl: 1.5, fontSize: '0.88rem' }}>• Towards previous dues</Typography>
+                      <Typography sx={{ color: '#64748B', pl: 1.5, fontSize: '0.88rem' }}>• {t('sales.towardsPreviousDues', 'Towards previous dues')}</Typography>
                       <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{inr(inv.paidToPreviousDues)}</Typography>
                     </Stack>
                   )}
@@ -314,14 +316,14 @@ const SaleDetails = () => {
                   ))}
                   {Number(inv.amountDue) > 0.0001 && (
                     <Stack direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                      <Typography sx={{ color: '#64748B' }}>This invoice due</Typography>
+                      <Typography sx={{ color: '#64748B' }}>{t('sales.thisInvoiceDue', 'This invoice due')}</Typography>
                       <Typography sx={{ fontWeight: 700, color: '#B91C1C' }}>{inr(inv.amountDue)}</Typography>
                     </Stack>
                   )}
                   {Array.isArray(inv.clearances) && inv.clearances.length > 0 && (
                     <>
                       <Divider sx={{ my: 0.75 }} />
-                      <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', mb: 0.25 }}>Due cleared later</Typography>
+                      <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', mb: 0.25 }}>{t('sales.dueClearedLater', 'Due cleared later')}</Typography>
                       {inv.clearances.map((c, i) => (
                         <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.25 }}>
                           <Typography sx={{ color: '#64748B', fontSize: '0.8rem' }}>
@@ -344,20 +346,20 @@ const SaleDetails = () => {
         <Paper sx={{ borderRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: 'none', overflow: 'hidden' }}>
           <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1.5 }}>
             <Box>
-              <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>Customer Payment History</Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0F172A' }}>{t('sales.customerPaymentHistory', 'Customer Payment History')}</Typography>
               <Typography sx={{ color: '#64748B', fontSize: '0.85rem' }}>{inv.customerName || '-'} · {inv.customerMobile || '-'}</Typography>
             </Box>
             <Stack direction="row" spacing={2} alignItems="center">
               <TextField
                 size="small"
-                placeholder="Search invoice…"
+                placeholder={t('sales.searchInvoicePlaceholder', 'Search invoice…')}
                 value={historySearch}
                 onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }}
                 InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>) }}
                 sx={{ width: { xs: 160, sm: 200 }, bgcolor: '#fff' }}
               />
               <Box sx={{ textAlign: 'right' }}>
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Balance</Typography>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('sales.balance', 'Balance')}</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: balance < 0 ? '#B91C1C' : 'var(--theme-primary)' }}>
                   {balance < 0 ? '− ' : ''}{inr(Math.abs(balance))}
                 </Typography>
@@ -367,17 +369,17 @@ const SaleDetails = () => {
           {historyLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
           ) : payments.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 5, color: '#94A3B8', borderTop: '1px solid', borderColor: 'divider' }}>No payments yet</Box>
+            <Box sx={{ textAlign: 'center', py: 5, color: '#94A3B8', borderTop: '1px solid', borderColor: 'divider' }}>{t('sales.noPaymentsYet', 'No payments yet')}</Box>
           ) : filteredPayments.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 5, color: '#94A3B8', borderTop: '1px solid', borderColor: 'divider' }}>No payment matches “{historySearch}”.</Box>
+            <Box sx={{ textAlign: 'center', py: 5, color: '#94A3B8', borderTop: '1px solid', borderColor: 'divider' }}>{t('sales.noPaymentMatches', 'No payment matches')} “{historySearch}”.</Box>
           ) : (
             <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
               {/* Table-style header row; the Collapse rows below align to these columns. */}
               <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, pr: 5, bgcolor: '#E2E8F0', color: '#334155', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <Box sx={{ flex: '1.4' }}>Date</Box>
-                <Box sx={{ flex: '1' }}>Mode</Box>
-                <Box sx={{ flex: '0.8' }}>Invoices</Box>
-                <Box sx={{ flex: '1', textAlign: 'right' }}>Received</Box>
+                <Box sx={{ flex: '1.4' }}>{t('common.date', 'Date')}</Box>
+                <Box sx={{ flex: '1' }}>{t('sales.mode', 'Mode')}</Box>
+                <Box sx={{ flex: '0.8' }}>{t('sales.invoices', 'Invoices')}</Box>
+                <Box sx={{ flex: '1', textAlign: 'right' }}>{t('sales.received', 'Received')}</Box>
               </Box>
               <Collapse
                 accordion
@@ -394,7 +396,7 @@ const SaleDetails = () => {
                     total={filteredPayments.length}
                     onChange={setHistoryPage}
                     showSizeChanger={false}
-                    showTotal={(t, r) => `${r[0]}–${r[1]} of ${t} payments`}
+                    showTotal={(total, range) => `${range[0]}–${range[1]} of ${total} ${t('sales.payments', 'payments')}`}
                   />
                 </Box>
               )}

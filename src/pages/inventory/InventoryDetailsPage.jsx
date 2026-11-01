@@ -47,6 +47,7 @@ import dayjs from 'dayjs';
 import axiosInstance from '../../services/axios';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const formatCurrency = (value) =>
   value == null ? '—' : `${getCurrencySymbol()}${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -75,6 +76,7 @@ const InventoryDetailsPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const t = useT();
 
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,12 +117,12 @@ const InventoryDetailsPage = () => {
   const submitAdjust = async () => {
     const qty = Number(adjQty);
     if (!qty || qty <= 0) {
-      setAdjError('Enter a quantity greater than zero');
+      setAdjError(t('inventory.enterQtyPositive', 'Enter a quantity greater than zero'));
       return;
     }
     const available = Number(adjustTarget?.quantityAvailable ?? 0);
     if (adjDir === 'DECREASE' && qty > available) {
-      setAdjError(`Only ${available} unit(s) available in this batch`);
+      setAdjError(`${t('inventory.only', 'Only')} ${available} ${t('inventory.unitsInBatch', 'unit(s) available in this batch')}`);
       return;
     }
     setAdjSaving(true);
@@ -131,7 +133,7 @@ const InventoryDetailsPage = () => {
         direction: adjDir,
         remarks: adjRemarks.trim() || undefined,
       });
-      setToast({ open: true, message: `Stock ${adjDir === 'INCREASE' ? 'increased' : 'decreased'} by ${qty}` });
+      setToast({ open: true, message: `${adjDir === 'INCREASE' ? t('inventory.stockIncreasedBy', 'Stock increased by') : t('inventory.stockDecreasedBy', 'Stock decreased by')} ${qty}` });
       closeAdjust();
       // Refresh this page + every other inventory surface so the change reflects everywhere.
       setRefreshKey((k) => k + 1);
@@ -139,7 +141,7 @@ const InventoryDetailsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['lowStockAlerts'] });
       window.dispatchEvent(new Event('inventory-alerts-updated'));
     } catch (err) {
-      setAdjError(err.response?.data?.message || err.message || 'Failed to adjust stock');
+      setAdjError(err.response?.data?.message || err.message || t('inventory.adjustFailed', 'Failed to adjust stock'));
     } finally {
       setAdjSaving(false);
     }
@@ -203,7 +205,7 @@ const InventoryDetailsPage = () => {
         });
         setDetails(detailsResponse.data || null);
       } catch (err) {
-        setError(err.message || 'Unable to load inventory details.');
+        setError(err.message || t('inventory.loadDetailsError', 'Unable to load inventory details.'));
       } finally {
         setLoading(false);
       }
@@ -231,28 +233,28 @@ const InventoryDetailsPage = () => {
           onClick={() => navigate("/inventory")}
           sx={{ textTransform: "none" }}
         >
-          Back to Inventory
+          {t('inventory.backToInventory', 'Back to Inventory')}
         </Button>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="quick-range-label">Date Range</InputLabel>
+            <InputLabel id="quick-range-label">{t('inventory.dateRange', 'Date Range')}</InputLabel>
             <Select
               labelId="quick-range-label"
               value={quickRange}
-              label="Date Range"
+              label={t('inventory.dateRange', 'Date Range')}
               onChange={(event) => setQuickRange(event.target.value)}
             >
               {quickRanges.map((range) => (
                 <MenuItem key={range.value} value={range.value}>
-                  {range.label}
+                  {t('inventory.range' + range.value, range.label)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <TextField
-            label="From"
+            label={t('common.from', 'From')}
             type="date"
             size="small"
             value={fromDate}
@@ -264,7 +266,7 @@ const InventoryDetailsPage = () => {
             sx={{ minWidth: 150 }}
           />
           <TextField
-            label="To"
+            label={t('common.to', 'To')}
             type="date"
             size="small"
             value={toDate}
@@ -283,7 +285,7 @@ const InventoryDetailsPage = () => {
               disabled={!fromDate || !toDate}
               sx={{ minWidth: 120 }}
             >
-              Apply
+              {t('inventory.apply', 'Apply')}
             </Button>
           ) : null}
         </Stack>
@@ -316,7 +318,7 @@ const InventoryDetailsPage = () => {
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="h5" sx={{ fontWeight: 800, color: "#0F172A", display: 'flex', alignItems: 'center' }}>
                 {details.productName}
-                <HeadingInfo text="Batch-level stock, movements and inventory value for this product." />
+                <HeadingInfo text={t('inventory.detailsInfo', 'Batch-level stock, movements and inventory value for this product.')} />
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
                   <Chip
@@ -331,7 +333,7 @@ const InventoryDetailsPage = () => {
                     variant="outlined"
                   />
                   <Typography variant="body2" color="text.secondary">
-                    Inventory snapshot for this product.
+                    {t('inventory.snapshot', 'Inventory snapshot for this product.')}
                   </Typography>
                 </Stack>
             </Box>
@@ -345,12 +347,12 @@ const InventoryDetailsPage = () => {
               sx={{ width: { xs: "100%", lg: "auto" } }}
             >
               {[
-                { label: "Total Quantity", value: formatNumber(details.totalQuantity) },
-                { label: "Total Sold", value: formatNumber(details.totalSold), valueColor: 'error.main' },
-                { label: "Quantity Available", value: formatNumber(details.quantityAvailable), valueColor: 'success.main' },
-                { label: "Total Value", value: formatCurrency(details.totalValue) },
-                { label: "Average Cost", value: formatCurrency(details.averageCost) },
-                { label: "Batch Count", value: totalBatches },
+                { label: t('inventory.totalQuantity', 'Total Quantity'), value: formatNumber(details.totalQuantity) },
+                { label: t('inventory.totalSold', 'Total Sold'), value: formatNumber(details.totalSold), valueColor: 'error.main' },
+                { label: t('inventory.quantityAvailable', 'Quantity Available'), value: formatNumber(details.quantityAvailable), valueColor: 'success.main' },
+                { label: t('inventory.totalValue', 'Total Value'), value: formatCurrency(details.totalValue) },
+                { label: t('inventory.averageCost', 'Average Cost'), value: formatCurrency(details.averageCost) },
+                { label: t('inventory.batchCount', 'Batch Count'), value: totalBatches },
               ].map((item) => (
                 <Box key={item.label} sx={{ minWidth: { sm: 120 } }}>
                   <Typography variant="caption" color="text.secondary">
@@ -371,31 +373,31 @@ const InventoryDetailsPage = () => {
               >
                 <Inventory2OutlinedIcon color="primary" />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Batch History
+                  {t('inventory.batchHistory', 'Batch History')}
                 </Typography>
               </Box>
 
               {/* Active = still has stock; Sold = depleted (quantity reached 0). Each tab fetches its own page. */}
               <Tabs value={batchStatus} onChange={(e, v) => setBatchStatus(v)} sx={{ minHeight: 38, mb: 1, borderBottom: '1px solid #E2E8F0' }}>
-                <Tab value="ACTIVE" label="Active" sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
-                <Tab value="SOLD" label="Sold" sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
+                <Tab value="ACTIVE" label={t('inventory.tabActive', 'Active')} sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
+                <Tab value="SOLD" label={t('inventory.tabSold', 'Sold')} sx={{ minHeight: 38, textTransform: 'none', fontWeight: 700 }} />
               </Tabs>
 
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Batch No.</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Source</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Received</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Sold</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Available</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Unit Cost</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Selling Price</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Batch Value</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="center">Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colBatchNo', 'Batch No.')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colSource', 'Source')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colReceived', 'Received')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('common.total', 'Total')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colSold', 'Sold')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colAvailable', 'Available')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colUnitCost', 'Unit Cost')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colSellingPrice', 'Selling Price')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colBatchValue', 'Batch Value')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('common.status', 'Status')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="center">{t('common.actions', 'Actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -448,7 +450,7 @@ const InventoryDetailsPage = () => {
                               {availableQ > 0 ? (
                                 <Stack direction="row" spacing={1} justifyContent="center">
                                   {can('inventory', 'write') && (
-                                  <Tooltip title="Adjust stock (increase / decrease)">
+                                  <Tooltip title={t('inventory.adjustTooltip', 'Adjust stock (increase / decrease)')}>
                                     <Button
                                       size="small"
                                       variant="outlined"
@@ -456,12 +458,12 @@ const InventoryDetailsPage = () => {
                                       onClick={() => openAdjust(batch)}
                                       sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
                                     >
-                                      Adjust
+                                      {t('inventory.adjust', 'Adjust')}
                                     </Button>
                                   </Tooltip>
                                   )}
                                   {can('inventory', 'write') && (
-                                  <Tooltip title="Generate & print QR labels for this batch">
+                                  <Tooltip title={t('inventory.qrTooltip', 'Generate & print QR labels for this batch')}>
                                     <Button
                                       size="small"
                                       variant="outlined"
@@ -491,7 +493,7 @@ const InventoryDetailsPage = () => {
                       <TableRow>
                         <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
-                            No batches found for the selected filters.
+                            {t('inventory.noBatches', 'No batches found for the selected filters.')}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -529,18 +531,18 @@ const InventoryDetailsPage = () => {
       <Dialog open={Boolean(adjustTarget)} onClose={adjSaving ? undefined : closeAdjust} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
           <TuneOutlinedIcon color="primary" fontSize="small" />
-          Adjust Stock
+          {t('inventory.adjustStock', 'Adjust Stock')}
         </DialogTitle>
         <DialogContent dividers>
           {adjustTarget ? (
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1.5, borderRadius: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Batch</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('inventory.batch', 'Batch')}</Typography>
                   <Typography sx={{ fontWeight: 700 }}>{adjustTarget.batchNumber}</Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="caption" color="text.secondary">Available</Typography>
+                  <Typography variant="caption" color="text.secondary">{t('inventory.available', 'Available')}</Typography>
                   <Typography sx={{ fontWeight: 800, color: 'success.main' }}>
                     {formatNumber(adjustTarget.quantityAvailable)}
                   </Typography>
@@ -555,12 +557,12 @@ const InventoryDetailsPage = () => {
                 onChange={(e, v) => v && setAdjDir(v)}
                 color="primary"
               >
-                <ToggleButton value="INCREASE"><AddIcon fontSize="small" sx={{ mr: 0.5 }} /> Increase</ToggleButton>
-                <ToggleButton value="DECREASE"><RemoveIcon fontSize="small" sx={{ mr: 0.5 }} /> Decrease</ToggleButton>
+                <ToggleButton value="INCREASE"><AddIcon fontSize="small" sx={{ mr: 0.5 }} /> {t('inventory.increase', 'Increase')}</ToggleButton>
+                <ToggleButton value="DECREASE"><RemoveIcon fontSize="small" sx={{ mr: 0.5 }} /> {t('inventory.decrease', 'Decrease')}</ToggleButton>
               </ToggleButtonGroup>
 
               <TextField
-                label="Quantity"
+                label={t('inventory.quantity', 'Quantity')}
                 type="number"
                 size="small"
                 value={adjQty}
@@ -576,7 +578,7 @@ const InventoryDetailsPage = () => {
                 const next = adjDir === 'INCREASE' ? avail + q : avail - q;
                 return (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 0.5 }}>
-                    <Typography variant="body2" color="text.secondary">New available</Typography>
+                    <Typography variant="body2" color="text.secondary">{t('inventory.newAvailable', 'New available')}</Typography>
                     <Typography sx={{ fontWeight: 800, color: next < 0 ? 'error.main' : 'var(--theme-primary)' }}>
                       {formatNumber(next)}
                     </Typography>
@@ -589,9 +591,9 @@ const InventoryDetailsPage = () => {
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={closeAdjust} disabled={adjSaving} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button onClick={closeAdjust} disabled={adjSaving} sx={{ textTransform: 'none' }}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="contained" onClick={submitAdjust} disabled={adjSaving} sx={{ textTransform: 'none', fontWeight: 700 }}>
-            {adjSaving ? 'Saving…' : 'Confirm'}
+            {adjSaving ? t('inventory.savingDots', 'Saving…') : t('common.confirm', 'Confirm')}
           </Button>
         </DialogActions>
       </Dialog>

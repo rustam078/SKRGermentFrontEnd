@@ -7,6 +7,7 @@ import {
   AppstoreOutlined,
 } from '@ant-design/icons';
 import { IEmployeeSummary } from '../../types/employee-details.types';
+import { useT } from '../../contexts/LanguageContext';
 
 // Format currency helper
 const formatCurrency = (value: number) => {
@@ -32,6 +33,7 @@ interface SummaryCardProps {
 }
 
 export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
+  const t = useT();
   return (
     <Card
       style={{
@@ -47,10 +49,10 @@ export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         {/* Total Production Qty */}
         <Col xs={24} sm={5}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Total Production Qty
+            {t('employees.summary.totalProductionQty', 'Total Production Qty')}
           </div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1E293B', marginTop: 4 }}>
-            {summary.totalProductionQty.toLocaleString('en-IN')} Pcs
+            {summary.totalProductionQty.toLocaleString('en-IN')} {t('employees.pcs', 'Pcs')}
           </div>
         </Col>
 
@@ -62,7 +64,7 @@ export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         {/* Total Earnings */}
         <Col xs={24} sm={5}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Total Earnings
+            {t('employees.summary.totalEarnings', 'Total Earnings')}
           </div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 4 }}>
             {formatCurrency(summary.totalEarnings)}
@@ -77,7 +79,7 @@ export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         {/* Current Month Earnings */}
         <Col xs={24} sm={5}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Current Month Earnings
+            {t('employees.summary.currentMonthEarnings', 'Current Month Earnings')}
           </div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 4 }}>
             {formatCurrency(summary.currentMonthEarnings)}
@@ -92,7 +94,7 @@ export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
         {/* Products Worked On */}
         <Col xs={24} sm={5}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Products Worked On
+            {t('employees.summary.productsWorkedOn', 'Products Worked On')}
           </div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 4 }}>
             {summary.productsWorkedOn}
@@ -104,21 +106,22 @@ export const PremiumSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
 };
 
 export const OverallSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
+  const t = useT();
   const qty = summary.totalProductionQty || 0;
   const earnings = summary.totalEarnings || 0;
   const avgPerPiece = qty > 0 ? earnings / qty : 0;
 
   const tiles = [
-    { icon: <InboxOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: 'Total Production', value: `${qty.toLocaleString('en-IN')} Pcs` },
-    { icon: <DollarCircleOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: 'Total Earnings', value: formatCurrency(earnings) },
-    { icon: <AppstoreOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: 'Products Worked On', value: `${summary.productsWorkedOn}` },
-    { icon: <WalletOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: 'Avg / Piece', value: formatCurrency(avgPerPiece) },
+    { icon: <InboxOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: t('employees.summary.totalProduction', 'Total Production'), value: `${qty.toLocaleString('en-IN')} ${t('employees.pcs', 'Pcs')}` },
+    { icon: <DollarCircleOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: t('employees.summary.totalEarnings', 'Total Earnings'), value: formatCurrency(earnings) },
+    { icon: <AppstoreOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: t('employees.summary.productsWorkedOn', 'Products Worked On'), value: `${summary.productsWorkedOn}` },
+    { icon: <WalletOutlined />, color: 'var(--theme-primary)', bg: 'color-mix(in srgb, var(--theme-primary) 12%, white)', label: t('employees.summary.avgPerPiece', 'Avg / Piece'), value: formatCurrency(avgPerPiece) },
   ];
 
   return (
     <Card
       style={cardStyle}
-      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>Overall Summary</span>}
+      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>{t('employees.summary.overallTitle', 'Overall Summary')}</span>}
       styles={{ header: { minHeight: 40 }, body: { padding: 12, display: 'flex', flexGrow: 1, minHeight: 0, overflow: 'hidden' } }}
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 8, width: '100%', flexGrow: 1, minHeight: 0 }}>
@@ -146,10 +149,11 @@ export const OverallSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
 };
 
 export const CurrentMonthSummaryCard: React.FC<SummaryCardProps> = ({ summary }) => {
+  const t = useT();
   return (
     <Card
       style={cardStyle}
-      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>Current Month Summary</span>}
+      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>{t('employees.summary.currentMonthTitle', 'Current Month Summary')}</span>}
       bodyStyle={{
         padding: '24px 20px',
         display: 'flex',
@@ -166,7 +170,7 @@ export const CurrentMonthSummaryCard: React.FC<SummaryCardProps> = ({ summary })
         </div>
         <div>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Current Month Earnings
+            {t('employees.summary.currentMonthEarnings', 'Current Month Earnings')}
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 2 }}>
             {formatCurrency(summary.currentMonthEarnings)}
@@ -181,10 +185,10 @@ export const CurrentMonthSummaryCard: React.FC<SummaryCardProps> = ({ summary })
         </div>
         <div>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Products Worked On
+            {t('employees.summary.productsWorkedOn', 'Products Worked On')}
           </div>
           <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 2 }}>
-            {summary.productsWorkedOn} {summary.productsWorkedOn === 1 ? 'Product' : 'Products'}
+            {summary.productsWorkedOn} {summary.productsWorkedOn === 1 ? t('employees.product', 'Product') : t('employees.products', 'Products')}
           </div>
         </div>
       </div>

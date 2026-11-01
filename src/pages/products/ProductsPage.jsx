@@ -46,11 +46,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productService } from '../../services/productService';
 import { getProductIcon, PRODUCT_ICONS, PRODUCT_ICON_LABELS } from '../../utils/product-icons';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 /* ─────────────────────────────────────────────────────────
    Icon Picker (Popover grid)
    ───────────────────────────────────────────────────────── */
 const IconPicker = ({ value, onChange }) => {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -71,7 +73,7 @@ const IconPicker = ({ value, onChange }) => {
   const content = (
     <div style={{ width: '300px', padding: '4px' }}>
       <Input
-        placeholder="Search icons..."
+        placeholder={t('products.iconPicker.searchPlaceholder', 'Search icons...')}
         prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -176,7 +178,7 @@ const IconPicker = ({ value, onChange }) => {
             {selectedEmoji} {selectedLabel}
           </span>
         ) : (
-          <span style={{ color: '#BFBFBF', fontSize: '0.9rem' }}>Search and select an icon</span>
+          <span style={{ color: '#BFBFBF', fontSize: '0.9rem' }}>{t('products.iconPicker.empty', 'Search and select an icon')}</span>
         )}
         <span style={{ color: '#BFBFBF', fontSize: '0.8rem' }}>▼</span>
       </div>
@@ -188,6 +190,7 @@ const IconPicker = ({ value, onChange }) => {
    Main Products Page Component
    ───────────────────────────────────────────────────────── */
 const ProductsPage = () => {
+  const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { can, isAdmin } = usePermissions();
@@ -262,9 +265,8 @@ const ProductsPage = () => {
           await productService.uploadImage(result.data.id, newImageFile);
         } catch (imgErr) {
           notification.warning({
-            message: 'Image Upload Failed',
-            description:
-              'The product was created, but its image could not be uploaded. You can add it later from the product page.',
+            message: t('products.toast.imageUploadFailed', 'Image Upload Failed'),
+            description: t('products.toast.imageUploadFailedDesc', 'The product was created, but its image could not be uploaded. You can add it later from the product page.'),
             placement: 'topRight',
             duration: 5,
           });
@@ -274,8 +276,8 @@ const ProductsPage = () => {
     },
     onSuccess: (res) => {
       notification.success({
-        message: 'Product Created',
-        description: res.message || 'Product created successfully.',
+        message: t('products.toast.created', 'Product Created'),
+        description: res.message || t('products.toast.createdDesc', 'Product created successfully.'),
         placement: 'topRight',
         duration: 4,
       });
@@ -289,8 +291,8 @@ const ProductsPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Product Creation Failed',
-        description: err.message || 'An error occurred while saving the product.',
+        message: t('products.toast.createFailed', 'Product Creation Failed'),
+        description: err.message || t('products.toast.createFailedDesc', 'An error occurred while saving the product.'),
         placement: 'topRight',
         duration: 4.5,
       });
@@ -301,7 +303,7 @@ const ProductsPage = () => {
   const enableManufacturingMutation = useMutation({
     mutationFn: ({ id, values }) => productService.enableManufacturing(id, values),
     onSuccess: () => {
-      notification.success({ message: 'Manufacturing Enabled', description: 'Product can now be produced.', placement: 'topRight', duration: 3 });
+      notification.success({ message: t('products.toast.mfgEnabled', 'Manufacturing Enabled'), description: t('products.toast.mfgEnabledDesc', 'Product can now be produced.'), placement: 'topRight', duration: 3 });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventoryProducts'] });
       refetchProducts();
@@ -309,7 +311,7 @@ const ProductsPage = () => {
       enableForm.resetFields();
     },
     onError: (err) => {
-      notification.error({ message: 'Could not enable manufacturing', description: err.message || 'An error occurred.', placement: 'topRight', duration: 4.5 });
+      notification.error({ message: t('products.toast.mfgFailed', 'Could not enable manufacturing'), description: err.message || t('products.toast.genericError', 'An error occurred.'), placement: 'topRight', duration: 4.5 });
     },
   });
 
@@ -322,17 +324,17 @@ const ProductsPage = () => {
     mutationFn: ({ id, active }) => productService.updateProductStatus(id, active),
     onSuccess: (res) => {
       notification.success({
-        message: 'Status Updated',
-        description: res.message || 'Product status updated.',
+        message: t('products.toast.statusUpdated', 'Status Updated'),
+        description: res.message || t('products.toast.statusUpdatedDesc', 'Product status updated.'),
         placement: 'topRight',
         duration: 3,
       });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (err) => {
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to toggle status.';
+      const errorMsg = err.response?.data?.message || err.message || t('products.toast.statusErrorDesc', 'Failed to toggle status.');
       notification.error({
-        message: 'Error Updating Status',
+        message: t('products.toast.statusError', 'Error Updating Status'),
         description: errorMsg,
         placement: 'topRight',
         duration: 4.5,
@@ -343,21 +345,20 @@ const ProductsPage = () => {
   const handleToggleStatus = (record) => {
     if (record.active) {
       Modal.confirm({
-        title: 'Move to Archive',
+        title: t('products.archive.title', 'Move to Archive'),
         content: (
           <div>
             <p>
-              Deactivating "{record.name}" will move it to the Archive tab.
-              It will no longer appear in the active product listing, but can be restored later.
+              {t('products.archive.lineA', 'Deactivating "')}{record.name}{t('products.archive.lineB', '" will move it to the Archive tab. It will no longer appear in the active product listing, but can be restored later.')}
             </p>
             <p style={{ marginBottom: 0 }}>
-              Are you sure you want to archive this product?
+              {t('products.archive.confirm', 'Are you sure you want to archive this product?')}
             </p>
           </div>
         ),
-        okText: 'Archive Product',
+        okText: t('products.archive.ok', 'Archive Product'),
         okType: 'danger',
-        cancelText: 'Cancel',
+        cancelText: t('common.cancel', 'Cancel'),
         onOk() {
           toggleStatusMutation.mutate({ id: record.id, active: false });
         },
@@ -371,8 +372,8 @@ const ProductsPage = () => {
     const normalizedName = values.name?.trim().toLowerCase();
     if (!normalizedName) {
       notification.warning({
-        message: 'Invalid Product Name',
-        description: 'Please provide a valid product name before saving.',
+        message: t('products.toast.invalidName', 'Invalid Product Name'),
+        description: t('products.toast.invalidNameDesc', 'Please provide a valid product name before saving.'),
         placement: 'topRight',
         duration: 4,
       });
@@ -386,27 +387,26 @@ const ProductsPage = () => {
     if (existingProduct) {
       if (existingProduct.active) {
         notification.warning({
-          message: 'Product Already Exists',
-          description: `A product named "${values.name}" already exists and is active. Please choose a different name or restore the archived product instead.`,
+          message: t('products.toast.exists', 'Product Already Exists'),
+          description: `${t('products.toast.existsDescA', 'A product named "')}${values.name}${t('products.toast.existsDescB', '" already exists and is active. Please choose a different name or restore the archived product instead.')}`,
           placement: 'topRight',
           duration: 5,
         });
       } else {
         Modal.confirm({
-          title: 'Restore Archived Product',
+          title: t('products.restore.title', 'Restore Archived Product'),
           content: (
             <div>
               <p>
-                A product named "{values.name}" already exists in the Archive.
-                Would you like to restore it instead of creating a duplicate?
+                {t('products.restore.lineA', 'A product named "')}{values.name}{t('products.restore.lineB', '" already exists in the Archive. Would you like to restore it instead of creating a duplicate?')}
               </p>
               <p style={{ marginBottom: 0 }}>
-                Once restored, it will appear again in the active Products list.
+                {t('products.restore.note', 'Once restored, it will appear again in the active Products list.')}
               </p>
             </div>
           ),
-          okText: 'Restore Product',
-          cancelText: 'Cancel',
+          okText: t('products.restore.ok', 'Restore Product'),
+          cancelText: t('common.cancel', 'Cancel'),
           onOk() {
             toggleStatusMutation.mutate({ id: existingProduct.id, active: true });
           },
@@ -477,15 +477,15 @@ const ProductsPage = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, display: 'flex', alignItems: 'center' }}>
-              Product Directory
-              <HeadingInfo text="Manage garment products, piece rates, and production codes" />
+              {t('products.directory.title', 'Product Directory')}
+              <HeadingInfo text={t('products.directory.info', 'Manage garment products, piece rates, and production codes')} />
             </h2>
           </div>
           
           {/* Aligned Toolbar Filters */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <Input
-              placeholder="Search products..."
+              placeholder={t('products.searchPlaceholder', 'Search products...')}
               prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -499,9 +499,9 @@ const ProductsPage = () => {
               style={{ width: 160, height: 38 }}
               size="large"
               options={[
-                { value: 'newest', label: 'Sort: Newest' },
-                { value: 'oldest', label: 'Sort: Oldest' },
-                { value: 'name', label: 'Sort: Alphabetical' },
+                { value: 'newest', label: t('products.sort.newest', 'Sort: Newest') },
+                { value: 'oldest', label: t('products.sort.oldest', 'Sort: Oldest') },
+                { value: 'name', label: t('products.sort.name', 'Sort: Alphabetical') },
               ]}
             />
 
@@ -512,7 +512,7 @@ const ProductsPage = () => {
                 onClick={() => setDrawerOpen(true)}
                 style={{ borderRadius: 8, fontWeight: 700, height: 38, paddingInline: 18 }}
               >
-                Add Product
+                {t('products.addProduct', 'Add Product')}
               </Button>
             )}
           </div>
@@ -529,15 +529,15 @@ const ProductsPage = () => {
               setSearchParams(nextParams);
             }}
             items={[
-              { key: 'all', label: 'All' },
-              { key: 'manufacture', label: 'Manufacture' },
-              { key: 'purchase', label: 'Purchase' },
-              { key: 'archive', label: 'Archive' },
+              { key: 'all', label: t('common.all', 'All') },
+              { key: 'manufacture', label: t('products.tab.manufacture', 'Manufacture') },
+              { key: 'purchase', label: t('products.tab.purchase', 'Purchase') },
+              { key: 'archive', label: t('products.tab.archive', 'Archive') },
             ]}
             style={{ flex: 1 }}
           />
           <div style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
-            Showing {filteredProducts.length} products
+            {t('products.showing', 'Showing')} {filteredProducts.length} {t('products.productsWord', 'products')}
           </div>
         </div>
         {filteredProducts.length > 0 ? (
@@ -557,13 +557,13 @@ const ProductsPage = () => {
                 items: [
                   ...(product.source === 'PURCHASED' ? [{
                     key: 'enable-manufacturing',
-                    label: 'Enable Manufacturing',
+                    label: t('products.enableManufacturing', 'Enable Manufacturing'),
                     icon: <BuildOutlined style={{ color: 'var(--theme-primary)' }} />,
                     onClick: () => openEnableManufacturing(product),
                   }] : []),
                   {
                     key: 'toggle-status',
-                    label: product.active ? 'Deactivate Product' : 'Activate Product',
+                    label: product.active ? t('products.deactivateProduct', 'Deactivate Product') : t('products.activateProduct', 'Activate Product'),
                     icon: product.active ? <StopOutlined style={{ color: '#EA580C' }} /> : <CheckCircleOutlined style={{ color: 'var(--theme-primary)' }} />,
                     onClick: () => handleToggleStatus(product),
                   },
@@ -627,7 +627,7 @@ const ProductsPage = () => {
                           borderRadius: 10,
                         }}
                       >
-                        {product.active ? 'Active' : 'Inactive'}
+                        {product.active ? t('products.active', 'Active') : t('products.inactive', 'Inactive')}
                       </span>
 
                       {/* Kebab (top-right corner) */}
@@ -661,12 +661,12 @@ const ProductsPage = () => {
                       <Tooltip
                         title={(product.batchSalePrices && product.batchSalePrices.length > 1) ? (
                           <div style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
-                            <div style={{ fontWeight: 700, marginBottom: 2 }}>Batch prices ({product.batchSalePrices.length})</div>
+                            <div style={{ fontWeight: 700, marginBottom: 2 }}>{t('products.batchPrices', 'Batch prices')} ({product.batchSalePrices.length})</div>
                             {product.batchSalePrices.map((p, i) => (
                               <div key={i}>{getCurrencySymbol()}{Number(p).toLocaleString('en-IN')}</div>
                             ))}
                             <div style={{ marginTop: 3, opacity: 0.85 }}>
-                              Range {getCurrencySymbol()}{Number(product.batchSalePrices[0]).toLocaleString('en-IN')}–{getCurrencySymbol()}{Number(product.batchSalePrices[product.batchSalePrices.length - 1]).toLocaleString('en-IN')}
+                              {t('products.range', 'Range')} {getCurrencySymbol()}{Number(product.batchSalePrices[0]).toLocaleString('en-IN')}–{getCurrencySymbol()}{Number(product.batchSalePrices[product.batchSalePrices.length - 1]).toLocaleString('en-IN')}
                             </div>
                           </div>
                         ) : ''}
@@ -678,7 +678,7 @@ const ProductsPage = () => {
                         }}>
                           {product.sellingPrice != null
                             ? `${getCurrencySymbol()}${Number(product.sellingPrice).toLocaleString('en-IN')}`
-                            : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>No price set</span>}
+                            : <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94A3B8' }}>{t('products.noPriceSet', 'No price set')}</span>}
                         </div>
                       </Tooltip>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'nowrap', minWidth: 0 }}>
@@ -692,11 +692,11 @@ const ProductsPage = () => {
                           }}
                         >
                           {product.source === 'PURCHASED' ? <ShoppingOutlined /> : <BuildOutlined />}
-                          {product.source === 'PURCHASED' ? 'Purchased' : product.source === 'BOTH' ? 'Both' : 'Made'}
+                          {product.source === 'PURCHASED' ? t('products.source.purchased', 'Purchased') : product.source === 'BOTH' ? t('products.source.both', 'Both') : t('products.source.made', 'Made')}
                         </span>
                         <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap' }}>
                           <InboxOutlined style={{ fontSize: '0.7rem' }} />
-                          {Number(product.availableQty || 0).toLocaleString('en-IN')} pcs
+                          {Number(product.availableQty || 0).toLocaleString('en-IN')} {t('products.pcs', 'pcs')}
                         </span>
                       </div>
                     </div>
@@ -711,13 +711,13 @@ const ProductsPage = () => {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem', marginBottom: 6 }}>No Products Found</div>
+                  <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem', marginBottom: 6 }}>{t('products.empty.title', 'No Products Found')}</div>
                   <div style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: 16 }}>
-                    No products matched your search or status filter. Get started by adding a product!
+                    {t('products.empty.desc', 'No products matched your search or status filter. Get started by adding a product!')}
                   </div>
                   {can('products', 'write') && (
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)} style={{ borderRadius: 8, fontWeight: 600 }}>
-                      Add Your First Product
+                      {t('products.empty.addFirst', 'Add Your First Product')}
                     </Button>
                   )}
                 </div>
@@ -743,7 +743,7 @@ const ProductsPage = () => {
               >
                 <PlusOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />
               </div>
-              Add New Product
+              {t('products.drawer.addTitle', 'Add New Product')}
             </span>
           }
           placement="right"
@@ -765,7 +765,7 @@ const ProductsPage = () => {
                 }}
                 style={{ borderRadius: 8, fontWeight: 600, height: 40 }}
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
               <Button
                 type="primary"
@@ -774,7 +774,7 @@ const ProductsPage = () => {
                 onClick={() => form.submit()}
                 style={{ borderRadius: 8, fontWeight: 700, height: 40, paddingInline: 20 }}
               >
-                Save Product
+                {t('products.saveProduct', 'Save Product')}
               </Button>
             </div>
           }
@@ -790,14 +790,14 @@ const ProductsPage = () => {
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: 20 }}>
               <Form.Item
                 name="name"
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Product Name *</span>}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.name', 'Product Name *')}</span>}
                 rules={[
-                  { required: true, message: 'Product Name is mandatory.' },
-                  { whitespace: true, message: 'Product Name cannot be empty.' },
+                  { required: true, message: t('products.rule.nameRequired', 'Product Name is mandatory.') },
+                  { whitespace: true, message: t('products.rule.nameEmpty', 'Product Name cannot be empty.') },
                 ]}
               >
                 <Input
-                  placeholder="e.g. Shirt, T-Shirt, Kurta"
+                  placeholder={t('products.placeholder.name', 'e.g. Shirt, T-Shirt, Kurta')}
                   size="large"
                   id="product-name"
                   style={{ borderRadius: 8 }}
@@ -806,8 +806,8 @@ const ProductsPage = () => {
 
               <Form.Item
                 name="iconName"
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Product Icon *</span>}
-                rules={[{ required: true, message: 'Product Icon is mandatory.' }]}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.icon', 'Product Icon *')}</span>}
+                rules={[{ required: true, message: t('products.rule.iconRequired', 'Product Icon is mandatory.') }]}
               >
                 <IconPicker />
               </Form.Item>
@@ -817,23 +817,23 @@ const ProductsPage = () => {
                 <Form.Item
                   name="cost"
                   style={{ flex: 1 }}
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Cost Price *</span>}
-                  rules={[{ required: true, message: 'Cost price is mandatory.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.costPrice', 'Cost Price *')}</span>}
+                  rules={[{ required: true, message: t('products.rule.costRequired', 'Cost price is mandatory.') }]}
                 >
                   <InputNumber min={0} size="large" addonBefore={getCurrencySymbol()} placeholder="0" style={{ width: '100%' }} />
                 </Form.Item>
                 <Form.Item
                   name="sellingPrice"
                   style={{ flex: 1 }}
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Selling Price *</span>}
-                  rules={[{ required: true, message: 'Selling price is mandatory.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.sellingPrice', 'Selling Price *')}</span>}
+                  rules={[{ required: true, message: t('products.rule.sellingRequired', 'Selling price is mandatory.') }]}
                 >
                   <InputNumber min={0} size="large" addonBefore={getCurrencySymbol()} placeholder="0" style={{ width: '100%' }} />
                 </Form.Item>
               </div>
 
               {/* One or more piece codes, each with its rate. */}
-              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 8 }}>Piece Codes *</div>
+              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 8 }}>{t('products.field.pieceCodes', 'Piece Codes *')}</div>
               <Form.List name="pieceCodes">
                 {(fields, { add, remove }) => (
                   <>
@@ -844,15 +844,15 @@ const ProductsPage = () => {
                           name={[name, 'code']}
                           style={{ flex: 1, marginBottom: 0 }}
                           getValueFromEvent={(e) => (e.target.value || '').toUpperCase()}
-                          rules={[{ required: true, message: 'Code required' }, { whitespace: true, message: 'Code required' }]}
+                          rules={[{ required: true, message: t('products.rule.codeRequired', 'Code required') }, { whitespace: true, message: t('products.rule.codeRequired', 'Code required') }]}
                         >
-                          <Input placeholder="Piece code" size="large" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                          <Input placeholder={t('products.placeholder.pieceCode', 'Piece code')} size="large" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
                         </Form.Item>
                         <Form.Item
                           {...restField}
                           name={[name, 'rate']}
                           style={{ flex: 1, marginBottom: 0 }}
-                          rules={[{ required: true, message: 'Rate required' }]}
+                          rules={[{ required: true, message: t('products.rule.rateRequired', 'Rate required') }]}
                         >
                           <InputNumber min={0.01} placeholder="0" size="large" addonBefore={getCurrencySymbol()} style={{ width: '100%' }} />
                         </Form.Item>
@@ -862,7 +862,7 @@ const ProductsPage = () => {
                       </div>
                     ))}
                     <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} style={{ borderRadius: 8, marginBottom: 16 }}>
-                      Add Piece Code
+                      {t('products.addPieceCode', 'Add Piece Code')}
                     </Button>
                   </>
                 )}
@@ -870,17 +870,17 @@ const ProductsPage = () => {
 
               <Form.Item
                 name="description"
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Description <span style={{ fontWeight: 400, color: '#94A3B8' }}>(optional)</span></span>}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.description', 'Description')} <span style={{ fontWeight: 400, color: '#94A3B8' }}>{t('products.optional', '(optional)')}</span></span>}
               >
                 <Input.TextArea
-                  placeholder="Enter product description..."
+                  placeholder={t('products.placeholder.description', 'Enter product description...')}
                   rows={4}
                   style={{ borderRadius: 8 }}
                 />
               </Form.Item>
 
               <Form.Item
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Product Image <span style={{ fontWeight: 400, color: '#94A3B8' }}>(optional)</span></span>}
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.image', 'Product Image')} <span style={{ fontWeight: 400, color: '#94A3B8' }}>{t('products.optional', '(optional)')}</span></span>}
                 style={{ marginBottom: 0 }}
               >
                 {newImagePreview ? (
@@ -894,7 +894,7 @@ const ProductsPage = () => {
                       type="text"
                       size="small"
                       onClick={clearNewImage}
-                      title="Remove image"
+                      title={t('products.removeImage', 'Remove image')}
                       style={{
                         position: 'absolute', top: -8, right: -8, width: 22, height: 22, padding: 0,
                         borderRadius: '50%', background: '#ffffff', color: '#EF4444',
@@ -918,7 +918,7 @@ const ProductsPage = () => {
                   >
                     <div>
                       <PlusOutlined />
-                      <div style={{ marginTop: 8, fontSize: '0.78rem' }}>Upload</div>
+                      <div style={{ marginTop: 8, fontSize: '0.78rem' }}>{t('products.upload', 'Upload')}</div>
                     </div>
                   </Upload>
                 )}
@@ -930,9 +930,9 @@ const ProductsPage = () => {
         {/* Enable Manufacturing: purchased product → BOTH, with piece codes + pricing. */}
         <Modal
           open={Boolean(enableTarget)}
-          title={`Enable Manufacturing${enableTarget ? ` — ${enableTarget.name}` : ''}`}
+          title={`${t('products.enableMfg.title', 'Enable Manufacturing')}${enableTarget ? ` — ${enableTarget.name}` : ''}`}
           onCancel={() => { setEnableTarget(null); enableForm.resetFields(); }}
-          okText="Enable Manufacturing"
+          okText={t('products.enableMfg.title', 'Enable Manufacturing')}
           confirmLoading={enableManufacturingMutation.isPending}
           onOk={() => enableForm.submit()}
           destroyOnClose
@@ -946,35 +946,35 @@ const ProductsPage = () => {
           >
             <div style={{ display: 'flex', gap: 12 }}>
               <Form.Item name="cost" style={{ flex: 1 }}
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Cost Price *</span>}
-                rules={[{ required: true, message: 'Cost price is mandatory.' }]}>
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.costPrice', 'Cost Price *')}</span>}
+                rules={[{ required: true, message: t('products.rule.costRequired', 'Cost price is mandatory.') }]}>
                 <InputNumber min={0} prefix={getCurrencySymbol()} placeholder="0" controls={false} style={{ width: '100%', borderRadius: 8 }} />
               </Form.Item>
               <Form.Item name="sellingPrice" style={{ flex: 1 }}
-                label={<span style={{ fontWeight: 700, color: '#374151' }}>Selling Price *</span>}
-                rules={[{ required: true, message: 'Selling price is mandatory.' }]}>
+                label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('products.field.sellingPrice', 'Selling Price *')}</span>}
+                rules={[{ required: true, message: t('products.rule.sellingRequired', 'Selling price is mandatory.') }]}>
                 <InputNumber min={0} prefix={getCurrencySymbol()} placeholder="0" controls={false} style={{ width: '100%', borderRadius: 8 }} />
               </Form.Item>
             </div>
 
-            <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>Piece Codes *</div>
+            <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>{t('products.field.pieceCodes', 'Piece Codes *')}</div>
             <Form.List name="pieceCodes">
               {(fields, { add, remove }) => (
                 <>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                    <div style={{ flex: 2, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>CODE</div>
-                    <div style={{ flex: 1, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>RATE</div>
+                    <div style={{ flex: 2, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>{t('products.col.code', 'CODE')}</div>
+                    <div style={{ flex: 1, fontSize: '0.7rem', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.04em' }}>{t('products.col.rate', 'RATE')}</div>
                     <div style={{ width: 32 }} />
                   </div>
                   {fields.map(({ key, name, ...restField }) => (
                     <div key={key} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
                       <Form.Item {...restField} name={[name, 'code']} style={{ flex: 2, marginBottom: 0 }}
                         getValueFromEvent={(e) => (e.target.value || '').toUpperCase()}
-                        rules={[{ required: true, message: 'Code required' }, { whitespace: true, message: 'Code required' }]}>
-                        <Input placeholder="e.g. SHIRT-01" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                        rules={[{ required: true, message: t('products.rule.codeRequired', 'Code required') }, { whitespace: true, message: t('products.rule.codeRequired', 'Code required') }]}>
+                        <Input placeholder={t('products.placeholder.codeExample', 'e.g. SHIRT-01')} style={{ borderRadius: 8, textTransform: 'uppercase' }} />
                       </Form.Item>
                       <Form.Item {...restField} name={[name, 'rate']} style={{ flex: 1, marginBottom: 0 }}
-                        rules={[{ required: true, message: 'Rate required' }]}>
+                        rules={[{ required: true, message: t('products.rule.rateRequired', 'Rate required') }]}>
                         <InputNumber min={0.01} placeholder="0" prefix={getCurrencySymbol()} controls={false} style={{ width: '100%', borderRadius: 8 }} />
                       </Form.Item>
                       <div style={{ width: 32, display: 'flex', justifyContent: 'center', paddingTop: 4 }}>
@@ -985,7 +985,7 @@ const ProductsPage = () => {
                     </div>
                   ))}
                   <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} style={{ borderRadius: 8, marginTop: 2 }}>
-                    Add Piece Code
+                    {t('products.addPieceCode', 'Add Piece Code')}
                   </Button>
                 </>
               )}

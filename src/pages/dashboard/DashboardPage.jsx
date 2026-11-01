@@ -27,6 +27,7 @@ import { exportToExcel, exportElementToPdf } from '../../utils/exportUtils';
 import { getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useThemeColor } from '../../contexts/ThemeColorContext';
+import { useT } from '../../contexts/LanguageContext';
 
 dayjs.extend(quarterOfYear);
 
@@ -97,8 +98,9 @@ const SectionCard = ({ title, icon, extra, children, bodyPad = 12 }) => {
 
 // One chart, three render modes. `series` items carry a `label` + the numeric `dataKey`.
 const TrendChart = ({ series, dataKey, color, type, formatter }) => {
+  const t = useT();
   if (!series.length) {
-    return <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>;
+    return <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('dashboard.empty.noData', 'No data')} /></div>;
   }
   const axes = (
     <>
@@ -170,7 +172,9 @@ const Pager = ({ page, totalPages, setPage }) => (
 );
 
 // Horizontal ranked bars (top products / employees / vendors).
-const RankBars = ({ data, categoryKey, valueKey, color, formatter, height = 300 }) => (
+const RankBars = ({ data, categoryKey, valueKey, color, formatter, height = 300 }) => {
+  const t = useT();
+  return (
   <div style={{ height }}>
     {data.length ? (
       <ResponsiveContainer width="100%" height="100%">
@@ -183,13 +187,15 @@ const RankBars = ({ data, categoryKey, valueKey, color, formatter, height = 300 
         </BarChart>
       </ResponsiveContainer>
     ) : (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('dashboard.empty.noData', 'No data')} /></div>
     )}
   </div>
-);
+  );
+};
 
 // Treemap cell: each product is a rectangle sized by units sold (its share of total sales).
 const TreemapCell = ({ x, y, width, height, index, name, value, depth }) => {
+  const t = useT();
   // Only draw the product tiles (leaves). Skipping the root node avoids the
   // full-area overlay that made the labels look like a faint shadow.
   if (depth !== 1 || !name) return null;
@@ -206,7 +212,7 @@ const TreemapCell = ({ x, y, width, height, index, name, value, depth }) => {
       ) : null}
       {width > 46 && height > 40 ? (
         <text x={x + 8} y={y + 36} fill="#1E293B" fontSize={11} fontWeight={700} style={haloText}>
-          {num(value)} pcs
+          {num(value)} {t('dashboard.sub.pcs', 'pcs')}
         </text>
       ) : null}
     </g>
@@ -214,17 +220,18 @@ const TreemapCell = ({ x, y, width, height, index, name, value, depth }) => {
 };
 
 const ProductTreemap = ({ data, height = 300 }) => {
+  const t = useT();
   const tree = data.filter((p) => (Number(p.quantity) || 0) > 0).map((p) => ({ name: p.name, size: Number(p.quantity) || 0 }));
   return (
     <div style={{ height }}>
       {tree.length ? (
         <ResponsiveContainer width="100%" height="100%">
           <Treemap data={tree} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
-            <RTooltip formatter={(v) => `${num(v)} units sold`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+            <RTooltip formatter={(v) => `${num(v)} ${t('dashboard.tooltip.unitsSold', 'units sold')}`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
           </Treemap>
         </ResponsiveContainer>
       ) : (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No product sales" /></div>
+        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('dashboard.empty.noProductSales', 'No product sales')} /></div>
       )}
     </div>
   );
@@ -245,6 +252,7 @@ const GenericTreemapCell = ({ x, y, width, height, index, name, disp, depth }) =
 };
 
 const RankTreemap = ({ data, categoryKey, valueKey, formatter, height = 300 }) => {
+  const t = useT();
   const tree = (data || []).filter((d) => (Number(d[valueKey]) || 0) > 0)
     .map((d) => ({ name: d[categoryKey], size: Number(d[valueKey]) || 0, disp: formatter(Number(d[valueKey]) || 0) }));
   return (
@@ -255,7 +263,7 @@ const RankTreemap = ({ data, categoryKey, valueKey, formatter, height = 300 }) =
             <RTooltip formatter={(v) => formatter(v)} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
           </Treemap>
         </ResponsiveContainer>
-      ) : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>}
+      ) : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('dashboard.empty.noData', 'No data')} /></div>}
     </div>
   );
 };
@@ -343,7 +351,9 @@ const renderDonutLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
   );
 };
 
-const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, formatter = money, showLabels = false }) => (
+const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, formatter = money, showLabels = false }) => {
+  const t = useT();
+  return (
   <div style={{ height }}>
     {data.length ? (
       <ResponsiveContainer width="100%" height="100%">
@@ -361,12 +371,14 @@ const Donut = ({ data, nameKey = 'label', dataKey = 'amount', height = 260, form
         </PieChart>
       </ResponsiveContainer>
     ) : (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No data" /></div>
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('dashboard.empty.noData', 'No data')} /></div>
     )}
   </div>
-);
+  );
+};
 
 const DashboardPage = () => {
+  const t = useT();
   const reportRef = useRef(null);
   const { canSeeBoard, can } = usePermissions();
   // Boards the current user may see (ADMIN: all; STAFF: per STAFF_DASHBOARD_BOARDS setting).
@@ -473,6 +485,17 @@ const DashboardPage = () => {
     refetchOnMount: 'always',
   });
 
+  // Maps a stored range key (English, used for logic) to its translated display label.
+  const rangeLabel = (k) => {
+    const map = {
+      'Today': 'dashboard.range.today', 'This Week': 'dashboard.range.thisWeek',
+      'This Month': 'dashboard.range.thisMonth', 'This Quarter': 'dashboard.range.thisQuarter',
+      'This Year': 'dashboard.range.thisYear', 'All Time': 'dashboard.range.allTime',
+      'Custom': 'dashboard.range.custom',
+    };
+    return map[k] ? t(map[k], k) : k;
+  };
+
   const applyQuick = (key) => { setRange(QUICK[key]()); setFilterLabel(key); setFilterOpen(false); };
   const applyMonth = (m) => { if (!m) return; setRange([m.startOf('month'), m.endOf('month')]); setFilterLabel(m.format('MMM YYYY')); setFilterOpen(false); };
   const applyCustom = (val) => { if (!val || !val[0] || !val[1]) return; setRange([val[0].startOf('day'), val[1].endOf('day')]); setFilterLabel('Custom'); setFilterOpen(false); };
@@ -545,36 +568,36 @@ const DashboardPage = () => {
         { name: 'Top Products', rows: topProducts.map((r) => ({ Product: r.name, Quantity: r.quantity, Revenue: r.revenue })) },
         { name: 'Employees', rows: topEmployees.map((r) => ({ Employee: r.name, Pieces: r.quantity, Earnings: r.earnings })) },
       ], `SKR-Dashboard_${fromDate}_to_${toDate}`);
-      notification.success({ message: 'Excel exported', placement: 'topRight' });
-    } catch (e) { notification.error({ message: 'Excel export failed', description: e.message, placement: 'topRight' }); }
+      notification.success({ message: t('dashboard.export.excelExported', 'Excel exported'), placement: 'topRight' });
+    } catch (e) { notification.error({ message: t('dashboard.export.excelFailed', 'Excel export failed'), description: e.message, placement: 'topRight' }); }
   };
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const handleExportPdf = async () => {
-    try { setExportingPdf(true); await exportElementToPdf(reportRef.current, `SKR-Dashboard_${fromDate}_to_${toDate}`); notification.success({ message: 'PDF exported', placement: 'topRight' }); }
-    catch (e) { notification.error({ message: 'PDF export failed', description: e.message, placement: 'topRight' }); }
+    try { setExportingPdf(true); await exportElementToPdf(reportRef.current, `SKR-Dashboard_${fromDate}_to_${toDate}`); notification.success({ message: t('dashboard.export.pdfExported', 'PDF exported'), placement: 'topRight' }); }
+    catch (e) { notification.error({ message: t('dashboard.export.pdfFailed', 'PDF export failed'), description: e.message, placement: 'topRight' }); }
     finally { setExportingPdf(false); }
   };
 
   const downloadMenu = {
     items: [
-      { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: 'Download Excel', onClick: handleExportExcel },
-      { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: exportingPdf ? 'Preparing PDF…' : 'Download PDF', onClick: handleExportPdf, disabled: exportingPdf },
+      { key: 'excel', icon: <FileExcelOutlined style={{ color: '#059669' }} />, label: t('dashboard.export.downloadExcel', 'Download Excel'), onClick: handleExportExcel },
+      { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: exportingPdf ? t('dashboard.export.preparingPdf', 'Preparing PDF…') : t('dashboard.export.downloadPdf', 'Download PDF'), onClick: handleExportPdf, disabled: exportingPdf },
     ],
   };
 
   const filterPanel = (
     <div style={{ width: 300 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Quick ranges</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>{t('dashboard.filter.quickRanges', 'Quick ranges')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {Object.keys(QUICK).map((k) => (
-          <Button key={k} size="small" type={filterLabel === k ? 'primary' : 'default'} onClick={() => applyQuick(k)} style={{ textAlign: 'left' }}>{k}</Button>
+          <Button key={k} size="small" type={filterLabel === k ? 'primary' : 'default'} onClick={() => applyQuick(k)} style={{ textAlign: 'left' }}>{rangeLabel(k)}</Button>
         ))}
       </div>
       <Divider style={{ margin: '12px 0' }} />
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>Particular month</div>
-      <DatePicker picker="month" style={{ width: '100%' }} onChange={applyMonth} placeholder="Select month & year" />
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', margin: '12px 0 6px' }}>Custom date range</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>{t('dashboard.filter.particularMonth', 'Particular month')}</div>
+      <DatePicker picker="month" style={{ width: '100%' }} onChange={applyMonth} placeholder={t('dashboard.filter.selectMonthYear', 'Select month & year')} />
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', margin: '12px 0 6px' }}>{t('dashboard.filter.customRange', 'Custom date range')}</div>
       <RangePicker style={{ width: '100%' }} format="DD MMM YY" onChange={applyCustom} allowClear={false} />
     </div>
   );
@@ -585,47 +608,47 @@ const DashboardPage = () => {
   const kpiSet = () => {
     if (!data) return [];
     if (board === 'sales') return [
-      kpi(<DollarCircleOutlined />, '#2563EB', 'Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
-      kpi(<DollarCircleOutlined />, '#047857', 'Received', money(data.salesReceived), `${money(data.salesDue)} due`),
-      kpi(<WalletOutlined />, '#F59E0B', 'Discount Given', money(data.salesDiscount), 'in range'),
-      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Gross Profit', money(data.grossProfit), 'revenue − COGS'),
-      kpi(<TeamOutlined />, '#6366F1', 'New Customers', num(data.newCustomerCount), 'first order in range'),
+      kpi(<DollarCircleOutlined />, '#2563EB', t('dashboard.kpi.revenue', 'Revenue'), money(data.salesRevenue), `${num(data.salesCount)} ${t('dashboard.sub.orders', 'orders')}`),
+      kpi(<DollarCircleOutlined />, '#047857', t('dashboard.kpi.received', 'Received'), money(data.salesReceived), `${money(data.salesDue)} ${t('dashboard.sub.due', 'due')}`),
+      kpi(<WalletOutlined />, '#F59E0B', t('dashboard.kpi.discountGiven', 'Discount Given'), money(data.salesDiscount), t('dashboard.sub.inRange', 'in range')),
+      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', t('dashboard.kpi.grossProfit', 'Gross Profit'), money(data.grossProfit), t('dashboard.sub.revenueMinusCogs', 'revenue − COGS')),
+      kpi(<TeamOutlined />, '#6366F1', t('dashboard.kpi.newCustomers', 'New Customers'), num(data.newCustomerCount), t('dashboard.sub.firstOrderInRange', 'first order in range')),
     ];
     if (board === 'inventory') return [
-      kpi(<InboxOutlined />, '#06B6D4', 'Stock Value', money(data.inventoryStockValue), 'at cost'),
-      kpi(<ShopOutlined />, '#2563EB', 'Units', num(data.inventoryUnits), 'in stock'),
-      kpi(<FundOutlined />, '#8B5CF6', 'Products', num(invProducts.length), 'in catalogue'),
-      kpi(<WarningOutlined />, (invAlerts.length || 0) > 0 ? '#EF4444' : '#10B981', 'Low Stock', num(invAlerts.length), 'to reorder'),
+      kpi(<InboxOutlined />, '#06B6D4', t('dashboard.kpi.stockValue', 'Stock Value'), money(data.inventoryStockValue), t('dashboard.sub.atCost', 'at cost')),
+      kpi(<ShopOutlined />, '#2563EB', t('dashboard.kpi.units', 'Units'), num(data.inventoryUnits), t('dashboard.sub.inStock', 'in stock')),
+      kpi(<FundOutlined />, '#8B5CF6', t('dashboard.kpi.products', 'Products'), num(invProducts.length), t('dashboard.sub.inCatalogue', 'in catalogue')),
+      kpi(<WarningOutlined />, (invAlerts.length || 0) > 0 ? '#EF4444' : '#10B981', t('dashboard.kpi.lowStock', 'Low Stock'), num(invAlerts.length), t('dashboard.sub.toReorder', 'to reorder')),
     ];
     if (board === 'expenses') return [
-      kpi(<WalletOutlined />, '#F59E0B', 'Total Spend', money(expenseTotals.total), `${num(expenseTotals.count)} entries`),
-      kpi(<DollarCircleOutlined />, '#10B981', 'Paid', money(expenseTotals.paid), 'settled'),
-      kpi(<RiseOutlined />, (expenseTotals.due || 0) > 0 ? '#EF4444' : '#10B981', 'Due', money(expenseTotals.due), 'outstanding'),
-      kpi(<ShopOutlined />, '#8B5CF6', 'Vendors', num(topVendors.length), 'billed'),
+      kpi(<WalletOutlined />, '#F59E0B', t('dashboard.kpi.totalSpend', 'Total Spend'), money(expenseTotals.total), `${num(expenseTotals.count)} ${t('dashboard.sub.entries', 'entries')}`),
+      kpi(<DollarCircleOutlined />, '#10B981', t('dashboard.kpi.paid', 'Paid'), money(expenseTotals.paid), t('dashboard.sub.settled', 'settled')),
+      kpi(<RiseOutlined />, (expenseTotals.due || 0) > 0 ? '#EF4444' : '#10B981', t('dashboard.kpi.due', 'Due'), money(expenseTotals.due), t('dashboard.sub.outstanding', 'outstanding')),
+      kpi(<ShopOutlined />, '#8B5CF6', t('dashboard.kpi.vendors', 'Vendors'), num(topVendors.length), t('dashboard.sub.billed', 'billed')),
     ];
     if (board === 'employees') return [
-      kpi(<ToolOutlined />, '#8B5CF6', 'Piece-Rate Pay', money(data.productionAmount), `${num(data.productionQty)} pcs made`),
-      kpi(<TeamOutlined />, '#6366F1', 'Active Staff', num(data.activeEmployees), `of ${num(data.totalEmployees)} total`),
-      kpi(<FundOutlined />, '#2563EB', 'Production Entries', num(data.productionEntries), 'in range'),
-      kpi(<RiseOutlined />, '#10B981', 'Avg / Worker', money(data.activeEmployees ? (Number(data.productionAmount) || 0) / data.activeEmployees : 0), 'piece-rate'),
+      kpi(<ToolOutlined />, '#8B5CF6', t('dashboard.kpi.pieceRatePay', 'Piece-Rate Pay'), money(data.productionAmount), `${num(data.productionQty)} ${t('dashboard.sub.pcsMade', 'pcs made')}`),
+      kpi(<TeamOutlined />, '#6366F1', t('dashboard.kpi.activeStaff', 'Active Staff'), num(data.activeEmployees), `${t('dashboard.sub.of', 'of')} ${num(data.totalEmployees)} ${t('dashboard.sub.total', 'total')}`),
+      kpi(<FundOutlined />, '#2563EB', t('dashboard.kpi.productionEntries', 'Production Entries'), num(data.productionEntries), t('dashboard.sub.inRange', 'in range')),
+      kpi(<RiseOutlined />, '#10B981', t('dashboard.kpi.avgPerWorker', 'Avg / Worker'), money(data.activeEmployees ? (Number(data.productionAmount) || 0) / data.activeEmployees : 0), t('dashboard.sub.pieceRate', 'piece-rate')),
     ];
     // overview — row 1: money flow (all date-ranged); row 2: current snapshots
     const totalSpend = (Number(data.investmentTotal) || 0) + (Number(data.productionAmount) || 0);
     return [
       // Row 1
-      kpi(<WalletOutlined />, '#B45309', 'Total Spend', money(totalSpend), 'expense + wages'),
-      kpi(<ShopOutlined />, '#F59E0B', 'Expenses', money(data.investmentTotal), `${money(data.expensesDue)} due`),
-      kpi(<ToolOutlined />, '#8B5CF6', 'Employee Earning', money(data.productionAmount), `${num(data.productionQty)} pcs`),
-      kpi(<DollarCircleOutlined />, '#2563EB', 'Sales Revenue', money(data.salesRevenue), `${num(data.salesCount)} orders`),
-      kpi(<DollarCircleOutlined />, '#047857', 'Received', money(data.salesReceived), `${money(data.salesDue)} due`),
-      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Sales Profit', money(data.grossProfit), 'revenue − COGS'),
-      kpi(<RiseOutlined />, (Number(data.netProfit) || 0) >= 0 ? '#10B981' : '#EF4444', 'Net Cash Flow', money(data.netProfit), 'sales − spend'),
+      kpi(<WalletOutlined />, '#B45309', t('dashboard.kpi.totalSpend', 'Total Spend'), money(totalSpend), t('dashboard.sub.expensePlusWages', 'expense + wages')),
+      kpi(<ShopOutlined />, '#F59E0B', t('dashboard.kpi.expenses', 'Expenses'), money(data.investmentTotal), `${money(data.expensesDue)} ${t('dashboard.sub.due', 'due')}`),
+      kpi(<ToolOutlined />, '#8B5CF6', t('dashboard.kpi.employeeEarning', 'Employee Earning'), money(data.productionAmount), `${num(data.productionQty)} ${t('dashboard.sub.pcs', 'pcs')}`),
+      kpi(<DollarCircleOutlined />, '#2563EB', t('dashboard.kpi.salesRevenue', 'Sales Revenue'), money(data.salesRevenue), `${num(data.salesCount)} ${t('dashboard.sub.orders', 'orders')}`),
+      kpi(<DollarCircleOutlined />, '#047857', t('dashboard.kpi.received', 'Received'), money(data.salesReceived), `${money(data.salesDue)} ${t('dashboard.sub.due', 'due')}`),
+      kpi(<FundOutlined />, (Number(data.grossProfit) || 0) >= 0 ? '#10B981' : '#EF4444', t('dashboard.kpi.salesProfit', 'Sales Profit'), money(data.grossProfit), t('dashboard.sub.revenueMinusCogs', 'revenue − COGS')),
+      kpi(<RiseOutlined />, (Number(data.netProfit) || 0) >= 0 ? '#10B981' : '#EF4444', t('dashboard.kpi.netCashFlow', 'Net Cash Flow'), money(data.netProfit), t('dashboard.sub.salesMinusSpend', 'sales − spend')),
       // Row 2
-      kpi(<InboxOutlined />, '#06B6D4', 'Inventory Value', money(data.inventoryStockValue), `${num(data.inventoryUnits)} units`),
-      kpi(<ShopOutlined />, '#0EA5E9', 'Total Products', num(productCount), 'in catalogue'),
-      kpi(<WarningOutlined />, (data.lowStockCount || 0) > 0 ? '#EF4444' : '#10B981', 'Low Stock', num(data.lowStockCount), 'to reorder'),
-      kpi(<TeamOutlined />, '#6366F1', 'Active Staff', num(data.activeEmployees), `of ${num(data.totalEmployees)} total`),
-      kpi(<TeamOutlined />, '#8B5CF6', 'Total Vendors', num(vendorCount), 'registered'),
+      kpi(<InboxOutlined />, '#06B6D4', t('dashboard.kpi.inventoryValue', 'Inventory Value'), money(data.inventoryStockValue), `${num(data.inventoryUnits)} ${t('dashboard.sub.units', 'units')}`),
+      kpi(<ShopOutlined />, '#0EA5E9', t('dashboard.kpi.totalProducts', 'Total Products'), num(productCount), t('dashboard.sub.inCatalogue', 'in catalogue')),
+      kpi(<WarningOutlined />, (data.lowStockCount || 0) > 0 ? '#EF4444' : '#10B981', t('dashboard.kpi.lowStock', 'Low Stock'), num(data.lowStockCount), t('dashboard.sub.toReorder', 'to reorder')),
+      kpi(<TeamOutlined />, '#6366F1', t('dashboard.kpi.activeStaff', 'Active Staff'), num(data.activeEmployees), `${t('dashboard.sub.of', 'of')} ${num(data.totalEmployees)} ${t('dashboard.sub.total', 'total')}`),
+      kpi(<TeamOutlined />, '#8B5CF6', t('dashboard.kpi.totalVendors', 'Total Vendors'), num(vendorCount), t('dashboard.sub.registered', 'registered')),
     ];
   };
 
@@ -643,25 +666,25 @@ const DashboardPage = () => {
 
   const dailyDate = (v) => (v ? dayjs(v).format('DD MMM YY') : '—');
   const spendCols = [
-    { title: 'Date', dataIndex: 'date', key: 'd', render: dailyDate },
-    { title: 'Investment', dataIndex: 'investment', key: 'i', align: 'right', render: (v) => money(v) },
-    { title: 'Employee Earnings', dataIndex: 'wages', key: 'w', align: 'right', render: (v) => money(v) },
-    { title: 'Total', key: 't', align: 'right', render: (_, r) => <b>{money((Number(r.investment) || 0) + (Number(r.wages) || 0))}</b> },
+    { title: t('common.date', 'Date'), dataIndex: 'date', key: 'd', render: dailyDate },
+    { title: t('dashboard.col.investment', 'Investment'), dataIndex: 'investment', key: 'i', align: 'right', render: (v) => money(v) },
+    { title: t('dashboard.col.employeeEarnings', 'Employee Earnings'), dataIndex: 'wages', key: 'w', align: 'right', render: (v) => money(v) },
+    { title: t('common.total', 'Total'), key: 't', align: 'right', render: (_, r) => <b>{money((Number(r.investment) || 0) + (Number(r.wages) || 0))}</b> },
   ];
   const revCols = [
-    { title: 'Date', dataIndex: 'date', key: 'd', render: dailyDate },
-    { title: 'Sales', dataIndex: 'sales', key: 's', align: 'right', render: (v) => money(v) },
-    { title: 'COGS (cost)', dataIndex: 'cogs', key: 'c', align: 'right', render: (v) => <span style={{ color: '#64748B' }}>{money(v)}</span> },
-    { title: 'Gross Profit', key: 'g', align: 'right', render: (_, r) => { const g = (Number(r.sales) || 0) - (Number(r.cogs) || 0); return <b style={{ color: g >= 0 ? '#047857' : '#B91C1C' }}>{money(g)}</b>; } },
+    { title: t('common.date', 'Date'), dataIndex: 'date', key: 'd', render: dailyDate },
+    { title: t('dashboard.col.sales', 'Sales'), dataIndex: 'sales', key: 's', align: 'right', render: (v) => money(v) },
+    { title: t('dashboard.col.cogsCost', 'COGS (cost)'), dataIndex: 'cogs', key: 'c', align: 'right', render: (v) => <span style={{ color: '#64748B' }}>{money(v)}</span> },
+    { title: t('dashboard.col.grossProfit', 'Gross Profit'), key: 'g', align: 'right', render: (_, r) => { const g = (Number(r.sales) || 0) - (Number(r.cogs) || 0); return <b style={{ color: g >= 0 ? '#047857' : '#B91C1C' }}>{money(g)}</b>; } },
   ];
 
   const recentColumns = [
-    { title: 'Invoice', dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
-    { title: 'Customer', dataIndex: 'customerName', key: 'customerName', render: (v) => v || '—' },
-    { title: 'Amount', key: 'amount', align: 'right', render: (_, r) => <span style={{ fontWeight: 700, color: '#10B981' }}>{money(r.grandTotal ?? r.amount)}</span> },
-    { title: 'Mode', dataIndex: 'paymentMode', key: 'paymentMode', render: (v) => v || '—' },
-    { title: 'Status', dataIndex: 'paymentStatus', key: 'paymentStatus', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
-    { title: 'Date', key: 'date', render: (_, r) => { const d = r.saleDate ?? r.date; return d ? dayjs(d).format('DD MMM YYYY') : '—'; } },
+    { title: t('dashboard.col.invoice', 'Invoice'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
+    { title: t('dashboard.col.customer', 'Customer'), dataIndex: 'customerName', key: 'customerName', render: (v) => v || '—' },
+    { title: t('common.amount', 'Amount'), key: 'amount', align: 'right', render: (_, r) => <span style={{ fontWeight: 700, color: '#10B981' }}>{money(r.grandTotal ?? r.amount)}</span> },
+    { title: t('dashboard.col.mode', 'Mode'), dataIndex: 'paymentMode', key: 'paymentMode', render: (v) => v || '—' },
+    { title: t('common.status', 'Status'), dataIndex: 'paymentStatus', key: 'paymentStatus', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
+    { title: t('common.date', 'Date'), key: 'date', render: (_, r) => { const d = r.saleDate ?? r.date; return d ? dayjs(d).format('DD MMM YYYY') : '—'; } },
   ];
 
   // Per-board KPI tiles-per-row: overview 6, sales 5, others 4.
@@ -683,7 +706,7 @@ const DashboardPage = () => {
               onChange={setBoard}
               style={{ width: 190 }}
               size="large"
-              options={visibleBoards.map((b) => ({ value: b.value, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>{b.icon}{b.label}</span> }))}
+              options={visibleBoards.map((b) => ({ value: b.value, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>{b.icon}{t(`dashboard.board.${b.value}`, b.label)}</span> }))}
             />
             {data && (
               <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
@@ -693,7 +716,7 @@ const DashboardPage = () => {
           </Space>
           <Space size={8} wrap>
             <Popover trigger="click" placement="bottomRight" open={filterOpen} onOpenChange={setFilterOpen} content={filterPanel}>
-              <Button icon={<FilterOutlined />} loading={isFetching}>{filterLabel}</Button>
+              <Button icon={<FilterOutlined />} loading={isFetching}>{rangeLabel(filterLabel)}</Button>
             </Popover>
             <Dropdown menu={downloadMenu} trigger={['click']} placement="bottomRight" disabled={!data}><Button icon={<MoreOutlined />} /></Dropdown>
           </Space>
@@ -707,25 +730,25 @@ const DashboardPage = () => {
                 <div key={k.label} style={{ flex: `1 1 ${kpiBasis}`, minWidth: 148 }}><KpiTile {...k} /></div>
               ))}
             </div>
-            {!data && !isLoading ? <Card style={cardStyle}><Empty description="No data" /></Card> : null}
+            {!data && !isLoading ? <Card style={cardStyle}><Empty description={t('dashboard.empty.noData', 'No data')} /></Card> : null}
 
             {/* ── OVERVIEW ── */}
             {board === 'overview' && (
               <>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={16}>
-                    <SectionCard title="Sales Revenue Trend (daily)" icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
+                    <SectionCard title={t('dashboard.section.revenueTrend', 'Sales Revenue Trend (daily)')} icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
                       <div style={{ height: 260 }}><TrendChart series={pagedRevenue} dataKey="revenue" color="#2563EB" type={revType} formatter={money} /></div>
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <SectionCard title="Received by Payment Mode (+ Due)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                    <SectionCard title={t('dashboard.section.receivedByMode', 'Received by Payment Mode (+ Due)')} icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
                     <SectionCard
-                      title="Top Products (by qty)"
+                      title={t('dashboard.section.topProductsQty', 'Top Products (by qty)')}
                       icon={<InboxOutlined style={{ color: '#8B5CF6' }} />}
                       extra={(
                         <Segmented size="small" value={prodChart} onChange={setProdChart}
@@ -749,16 +772,16 @@ const DashboardPage = () => {
                         : <ProductTreemap data={top10Products} />}
                     </SectionCard>
                   </Col>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Employee Productivity — pieces produced" icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topEmployees} valueKey="quantity" color="#6366F1" formatter={num} /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.employeeProductivity', 'Employee Productivity — pieces produced')} icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topEmployees} valueKey="quantity" color="#6366F1" formatter={num} /></Col>
                 </Row>
-                <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
+                <SectionCard title={`${t('dashboard.section.recentSales', 'Recent Sales')} (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
                   <Table
                     dataSource={recentRows}
                     columns={recentColumns}
                     rowKey={(r) => r.saleId || r.invoiceNo}
                     size="small"
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                    locale={{ emptyText: <Empty description={t('dashboard.empty.noSalesInRange', 'No sales in this range')} /> }}
                     pagination={{
                       current: salesPage + 1,
                       pageSize: salesSize,
@@ -766,7 +789,7 @@ const DashboardPage = () => {
                       size: 'small',
                       showSizeChanger: true,
                       pageSizeOptions: [10, 20, 50, 100],
-                      showTotal: (t) => `${num(t)} sales`,
+                      showTotal: (tot) => `${num(tot)} ${t('dashboard.table.salesCountSuffix', 'sales')}`,
                       onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); },
                     }}
                   />
@@ -775,16 +798,16 @@ const DashboardPage = () => {
                 {/* Date-wise money in / out */}
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Daily Spend (Investment + Wages)" icon={<WalletOutlined style={{ color: '#F59E0B' }} />} bodyPad={0}>
+                    <SectionCard title={t('dashboard.section.dailySpend', 'Daily Spend (Investment + Wages)')} icon={<WalletOutlined style={{ color: '#F59E0B' }} />} bodyPad={0}>
                       <Table
                         dataSource={dailyRows} columns={spendCols} rowKey={(r) => `s-${r.date}`} size="small"
                         pagination={{ pageSize: 7, size: 'small', hideOnSinglePage: true }}
                         scroll={{ x: 'max-content' }}
-                        locale={{ emptyText: <Empty description="No spend in this range" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.noSpendInRange', 'No spend in this range')} /> }}
                         summary={() => (
                           <Table.Summary fixed>
                             <Table.Summary.Row style={{ background: '#FFFBEB' }}>
-                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={0}><b>{t('common.total', 'Total')}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.investment)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.wages)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={3} align="right"><b>{money(spendTotal)}</b></Table.Summary.Cell>
@@ -795,16 +818,16 @@ const DashboardPage = () => {
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Daily Revenue (Sales vs Cost)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
+                    <SectionCard title={t('dashboard.section.dailyRevenue', 'Daily Revenue (Sales vs Cost)')} icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
                       <Table
                         dataSource={dailyRows} columns={revCols} rowKey={(r) => `r-${r.date}`} size="small"
                         pagination={{ pageSize: 7, size: 'small', hideOnSinglePage: true }}
                         scroll={{ x: 'max-content' }}
-                        locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.noSalesInRange', 'No sales in this range')} /> }}
                         summary={() => (
                           <Table.Summary fixed>
                             <Table.Summary.Row style={{ background: '#ECFDF5' }}>
-                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={0}><b>{t('common.total', 'Total')}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.sales)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.cogs)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={3} align="right"><b>{money(dailyTotals.sales - dailyTotals.cogs)}</b></Table.Summary.Cell>
@@ -824,33 +847,33 @@ const DashboardPage = () => {
               <>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={16}>
-                    <SectionCard title="Sales Revenue Trend (daily)" icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
+                    <SectionCard title={t('dashboard.section.revenueTrend', 'Sales Revenue Trend (daily)')} icon={<LineChartOutlined style={{ color: '#2563EB' }} />} extra={revToolbar}>
                       <div style={{ height: 260 }}><TrendChart series={pagedRevenue} dataKey="revenue" color="#2563EB" type={revType} formatter={money} /></div>
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <SectionCard title="Received by Payment Mode (+ Due)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
+                    <SectionCard title={t('dashboard.section.receivedByMode', 'Received by Payment Mode (+ Due)')} icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} extra={<BreakdownToolbar type={payType} setType={setPayType} />}><BreakdownChart data={paymentBreakdown} type={payType} color="#10B981" showLabels={showLabels} /></SectionCard>
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Best-Selling Products (units sold)" icon={<InboxOutlined style={{ color: '#8B5CF6' }} />} data={topProducts} valueKey="quantity" color="#8B5CF6" formatter={num} radar defaultType="radar" /></Col>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Highest-Revenue Products" icon={<DollarCircleOutlined style={{ color: '#2563EB' }} />} data={[...topProducts].sort((a, b) => b.revenue - a.revenue)} valueKey="revenue" color="#2563EB" formatter={money} defaultType="bar" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.bestSelling', 'Best-Selling Products (units sold)')} icon={<InboxOutlined style={{ color: '#8B5CF6' }} />} data={topProducts} valueKey="quantity" color="#8B5CF6" formatter={num} radar defaultType="radar" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.highestRevenue', 'Highest-Revenue Products')} icon={<DollarCircleOutlined style={{ color: '#2563EB' }} />} data={[...topProducts].sort((a, b) => b.revenue - a.revenue)} valueKey="revenue" color="#2563EB" formatter={money} defaultType="bar" /></Col>
                 </Row>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
-                    <RankCard showLabels={showLabels} title="Most Visited Customers — by orders" icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topCustomers} valueKey="orders" color="#6366F1" formatter={num} defaultType="pie" />
+                    <RankCard showLabels={showLabels} title={t('dashboard.section.mostVisited', 'Most Visited Customers — by orders')} icon={<TeamOutlined style={{ color: '#6366F1' }} />} data={topCustomers} valueKey="orders" color="#6366F1" formatter={num} defaultType="pie" />
                   </Col>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Top Customers (orders & spend)" icon={<TeamOutlined style={{ color: '#8B5CF6' }} />} bodyPad={0}>
+                    <SectionCard title={t('dashboard.section.topCustomers', 'Top Customers (orders & spend)')} icon={<TeamOutlined style={{ color: '#8B5CF6' }} />} bodyPad={0}>
                       <Table
                         dataSource={topCustomers} rowKey={(r, i) => `${r.mobile}-${i}`} size="small"
                         pagination={false} scroll={{ x: 'max-content' }}
-                        locale={{ emptyText: <Empty description="No customers in range" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.noCustomersInRange', 'No customers in range')} /> }}
                         columns={[
-                          { title: 'Customer', dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v || 'Walk-in'}</span> },
-                          { title: 'Mobile', dataIndex: 'mobile', key: 'm', render: (v) => v || '—' },
-                          { title: 'Orders', dataIndex: 'orders', key: 'o', align: 'right', render: (v) => num(v) },
-                          { title: 'Spend', dataIndex: 'spend', key: 's', align: 'right', render: (v) => <b>{money(v)}</b> },
+                          { title: t('dashboard.col.customer', 'Customer'), dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v || t('dashboard.table.walkIn', 'Walk-in')}</span> },
+                          { title: t('dashboard.col.mobile', 'Mobile'), dataIndex: 'mobile', key: 'm', render: (v) => v || '—' },
+                          { title: t('dashboard.col.orders', 'Orders'), dataIndex: 'orders', key: 'o', align: 'right', render: (v) => num(v) },
+                          { title: t('dashboard.col.spend', 'Spend'), dataIndex: 'spend', key: 's', align: 'right', render: (v) => <b>{money(v)}</b> },
                         ]}
                       />
                     </SectionCard>
@@ -858,25 +881,25 @@ const DashboardPage = () => {
                 </Row>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
-                    <SectionCard title={`Recent Sales (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
+                    <SectionCard title={`${t('dashboard.section.recentSales', 'Recent Sales')} (${num(recentTotal)})`} icon={<ShoppingCartOutlined style={{ color: '#0EA5E9' }} />} bodyPad={0}>
                       <Table
                         dataSource={recentRows} columns={recentColumns} rowKey={(r) => r.saleId || r.invoiceNo} size="small"
-                        scroll={{ x: 'max-content' }} locale={{ emptyText: <Empty description="No sales in this range" /> }}
-                        pagination={{ current: salesPage + 1, pageSize: salesSize, total: recentTotal, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (t) => `${num(t)} sales`, onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); } }}
+                        scroll={{ x: 'max-content' }} locale={{ emptyText: <Empty description={t('dashboard.empty.noSalesInRange', 'No sales in this range')} /> }}
+                        pagination={{ current: salesPage + 1, pageSize: salesSize, total: recentTotal, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (tot) => `${num(tot)} ${t('dashboard.table.salesCountSuffix', 'sales')}`, onChange: (p, s) => { setSalesPage(p - 1); setSalesSize(s); } }}
                       />
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Daily Revenue (Sales vs Cost)" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
+                    <SectionCard title={t('dashboard.section.dailyRevenue', 'Daily Revenue (Sales vs Cost)')} icon={<DollarCircleOutlined style={{ color: '#10B981' }} />} bodyPad={0}>
                       <Table
                         dataSource={dailyRows} columns={revCols} rowKey={(r) => `sr-${r.date}`} size="small"
                         pagination={{ pageSize: 10, size: 'small', hideOnSinglePage: true }}
                         scroll={{ x: 'max-content' }}
-                        locale={{ emptyText: <Empty description="No sales in this range" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.noSalesInRange', 'No sales in this range')} /> }}
                         summary={() => (
                           <Table.Summary fixed>
                             <Table.Summary.Row style={{ background: '#ECFDF5' }}>
-                              <Table.Summary.Cell index={0}><b>Total</b></Table.Summary.Cell>
+                              <Table.Summary.Cell index={0}><b>{t('common.total', 'Total')}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={1} align="right"><b>{money(dailyTotals.sales)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={2} align="right"><b>{money(dailyTotals.cogs)}</b></Table.Summary.Cell>
                               <Table.Summary.Cell index={3} align="right"><b>{money(dailyTotals.sales - dailyTotals.cogs)}</b></Table.Summary.Cell>
@@ -895,34 +918,34 @@ const DashboardPage = () => {
               <>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Top Products by Stock Value" icon={<InboxOutlined style={{ color: '#06B6D4' }} />}><RankBars data={invByValue} categoryKey="name" valueKey="value" color="#06B6D4" formatter={money} /></SectionCard>
+                    <SectionCard title={t('dashboard.section.topProductsByStockValue', 'Top Products by Stock Value')} icon={<InboxOutlined style={{ color: '#06B6D4' }} />}><RankBars data={invByValue} categoryKey="name" valueKey="value" color="#06B6D4" formatter={money} /></SectionCard>
                   </Col>
                   <Col xs={24} lg={12}>
-                    <SectionCard title={`Low Stock (${invAlerts.length})`} icon={<WarningOutlined style={{ color: '#EF4444' }} />} bodyPad={0}>
+                    <SectionCard title={`${t('dashboard.section.lowStock', 'Low Stock')} (${invAlerts.length})`} icon={<WarningOutlined style={{ color: '#EF4444' }} />} bodyPad={0}>
                       <Table
                         dataSource={invAlerts} rowKey={(r) => r.productId} size="small"
                         pagination={{ pageSize: 6, size: 'small', hideOnSinglePage: true }}
-                        locale={{ emptyText: <Empty description="Nothing low on stock" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.nothingLow', 'Nothing low on stock')} /> }}
                         columns={[
-                          { title: 'Product', dataIndex: 'productName', key: 'p' },
-                          { title: 'In Stock', dataIndex: 'currentStock', key: 's', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#DC2626' }}>{num(v)}</span> },
-                          { title: 'Threshold', dataIndex: 'threshold', key: 't', align: 'right', render: (v) => num(v) },
+                          { title: t('dashboard.col.product', 'Product'), dataIndex: 'productName', key: 'p' },
+                          { title: t('dashboard.col.inStock', 'In Stock'), dataIndex: 'currentStock', key: 's', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#DC2626' }}>{num(v)}</span> },
+                          { title: t('dashboard.col.threshold', 'Threshold'), dataIndex: 'threshold', key: 't', align: 'right', render: (v) => num(v) },
                         ]}
                       />
                     </SectionCard>
                   </Col>
                 </Row>
-                <SectionCard title="Stock on Hand" icon={<ShopOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
+                <SectionCard title={t('dashboard.section.stockOnHand', 'Stock on Hand')} icon={<ShopOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
                   <Table
                     dataSource={invProducts} rowKey={(r) => r.productId} size="small"
                     pagination={{ defaultPageSize: 10, size: 'small', showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100] }}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="No products" /> }}
+                    locale={{ emptyText: <Empty description={t('dashboard.empty.noProducts', 'No products')} /> }}
                     columns={[
-                      { title: 'Product', dataIndex: 'productName', key: 'p', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                      { title: 'In Stock', dataIndex: 'currentStock', key: 's', align: 'right', sorter: (a, b) => (a.currentStock || 0) - (b.currentStock || 0), render: (v) => num(v) },
-                      { title: 'Avg Cost', dataIndex: 'averageCost', key: 'c', align: 'right', render: (v) => money(v) },
-                      { title: 'Stock Value', dataIndex: 'stockValue', key: 'v', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => (a.stockValue || 0) - (b.stockValue || 0), render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
+                      { title: t('dashboard.col.product', 'Product'), dataIndex: 'productName', key: 'p', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                      { title: t('dashboard.col.inStock', 'In Stock'), dataIndex: 'currentStock', key: 's', align: 'right', sorter: (a, b) => (a.currentStock || 0) - (b.currentStock || 0), render: (v) => num(v) },
+                      { title: t('dashboard.col.avgCost', 'Avg Cost'), dataIndex: 'averageCost', key: 'c', align: 'right', render: (v) => money(v) },
+                      { title: t('dashboard.col.stockValue', 'Stock Value'), dataIndex: 'stockValue', key: 'v', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => (a.stockValue || 0) - (b.stockValue || 0), render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
                     ]}
                   />
                 </SectionCard>
@@ -934,30 +957,30 @@ const DashboardPage = () => {
               <>
                 <Row gutter={[12, 12]}>
                   <Col xs={24} lg={16}>
-                    <SectionCard title="Monthly Spend" icon={<LineChartOutlined style={{ color: '#F59E0B' }} />} extra={expToolbar}>
+                    <SectionCard title={t('dashboard.section.monthlySpend', 'Monthly Spend')} icon={<LineChartOutlined style={{ color: '#F59E0B' }} />} extra={expToolbar}>
                       <div style={{ height: 260 }}><TrendChart series={pagedExpenses} dataKey="amount" color="#F59E0B" type={expType} formatter={money} /></div>
                     </SectionCard>
                   </Col>
                   <Col xs={24} lg={8}>
-                    <SectionCard title="Expenses by Category (Purchase vs Overhead)" icon={<WalletOutlined style={{ color: '#8B5CF6' }} />} extra={<BreakdownToolbar type={catType} setType={setCatType} />}><BreakdownChart data={expenseByType} type={catType} color="#8B5CF6" showLabels={showLabels} /></SectionCard>
+                    <SectionCard title={t('dashboard.section.expensesByCategory', 'Expenses by Category (Purchase vs Overhead)')} icon={<WalletOutlined style={{ color: '#8B5CF6' }} />} extra={<BreakdownToolbar type={catType} setType={setCatType} />}><BreakdownChart data={expenseByType} type={catType} color="#8B5CF6" showLabels={showLabels} /></SectionCard>
                   </Col>
                 </Row>
                 <Row gutter={[12, 12]}>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Top Vendors (by spend)" icon={<ShopOutlined style={{ color: '#F59E0B' }} />} data={topVendors} valueKey="amount" color="#F59E0B" formatter={money} defaultType="treemap" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.topVendors', 'Top Vendors (by spend)')} icon={<ShopOutlined style={{ color: '#F59E0B' }} />} data={topVendors} valueKey="amount" color="#F59E0B" formatter={money} defaultType="treemap" /></Col>
                   <Col xs={24} lg={12}>
-                    <SectionCard title="Recent Investments" icon={<WalletOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
+                    <SectionCard title={t('dashboard.section.recentInvestments', 'Recent Investments')} icon={<WalletOutlined style={{ color: '#2563EB' }} />} bodyPad={0}>
                       <Table
                         dataSource={[...investments].sort((a, b) => dayjs(b.purchaseDate).valueOf() - dayjs(a.purchaseDate).valueOf())}
                         rowKey={(r) => r.id || r.invoiceNumber} size="small"
                         pagination={{ pageSize: 6, size: 'small', hideOnSinglePage: true }}
                         scroll={{ x: 'max-content' }}
-                        locale={{ emptyText: <Empty description="No investments in range" /> }}
+                        locale={{ emptyText: <Empty description={t('dashboard.empty.noInvestmentsInRange', 'No investments in range')} /> }}
                         columns={[
-                          { title: 'Invoice', dataIndex: 'invoiceNumber', key: 'i', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                          { title: 'Vendor', dataIndex: 'vendorName', key: 'v', render: (v) => v || '—' },
-                          { title: 'Type', dataIndex: 'investmentType', key: 't', render: (v) => <Tag color={v === 'PURCHASE' ? 'blue' : 'orange'}>{v}</Tag> },
-                          { title: 'Amount', dataIndex: 'grandTotal', key: 'a', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{money(v)}</span> },
-                          { title: 'Status', dataIndex: 'paymentStatus', key: 's', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PARTIALLY_PAID' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
+                          { title: t('dashboard.col.invoice', 'Invoice'), dataIndex: 'invoiceNumber', key: 'i', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                          { title: t('dashboard.col.vendor', 'Vendor'), dataIndex: 'vendorName', key: 'v', render: (v) => v || '—' },
+                          { title: t('dashboard.col.type', 'Type'), dataIndex: 'investmentType', key: 't', render: (v) => <Tag color={v === 'PURCHASE' ? 'blue' : 'orange'}>{v}</Tag> },
+                          { title: t('common.amount', 'Amount'), dataIndex: 'grandTotal', key: 'a', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{money(v)}</span> },
+                          { title: t('common.status', 'Status'), dataIndex: 'paymentStatus', key: 's', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PARTIALLY_PAID' ? 'orange' : 'default'}>{(v || '').replace(/_/g, ' ') || '—'}</Tag> },
                         ]}
                       />
                     </SectionCard>
@@ -970,19 +993,19 @@ const DashboardPage = () => {
             {board === 'employees' && (
               <>
                 <Row gutter={[12, 12]}>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Output (pieces made)" icon={<ToolOutlined style={{ color: '#8B5CF6' }} />} data={topEmployees} valueKey="quantity" color="#8B5CF6" formatter={num} /></Col>
-                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title="Earnings (piece-rate)" icon={<DollarCircleOutlined style={{ color: '#6366F1' }} />} data={[...topEmployees].sort((a, b) => b.earnings - a.earnings)} valueKey="earnings" color="#6366F1" formatter={money} defaultType="pie" /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.output', 'Output (pieces made)')} icon={<ToolOutlined style={{ color: '#8B5CF6' }} />} data={topEmployees} valueKey="quantity" color="#8B5CF6" formatter={num} /></Col>
+                  <Col xs={24} lg={12}><RankCard showLabels={showLabels} title={t('dashboard.section.earnings', 'Earnings (piece-rate)')} icon={<DollarCircleOutlined style={{ color: '#6366F1' }} />} data={[...topEmployees].sort((a, b) => b.earnings - a.earnings)} valueKey="earnings" color="#6366F1" formatter={money} defaultType="pie" /></Col>
                 </Row>
-                <SectionCard title="Employee Earnings" icon={<TeamOutlined style={{ color: '#6366F1' }} />} bodyPad={0}>
+                <SectionCard title={t('dashboard.section.employeeEarnings', 'Employee Earnings')} icon={<TeamOutlined style={{ color: '#6366F1' }} />} bodyPad={0}>
                   <Table
                     dataSource={topEmployees} rowKey={(r) => r.name} size="small"
                     pagination={{ pageSize: 10, size: 'small', hideOnSinglePage: true }}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="No production in this range" /> }}
+                    locale={{ emptyText: <Empty description={t('dashboard.empty.noProductionInRange', 'No production in this range')} /> }}
                     columns={[
-                      { title: 'Employee', dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
-                      { title: 'Pieces Made', dataIndex: 'quantity', key: 'q', align: 'right', sorter: (a, b) => a.quantity - b.quantity, render: (v) => num(v) },
-                      { title: 'Earnings', dataIndex: 'earnings', key: 'e', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => a.earnings - b.earnings, render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
+                      { title: t('dashboard.col.employee', 'Employee'), dataIndex: 'name', key: 'n', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                      { title: t('dashboard.col.piecesMade', 'Pieces Made'), dataIndex: 'quantity', key: 'q', align: 'right', sorter: (a, b) => a.quantity - b.quantity, render: (v) => num(v) },
+                      { title: t('dashboard.col.earnings', 'Earnings'), dataIndex: 'earnings', key: 'e', align: 'right', defaultSortOrder: 'descend', sorter: (a, b) => a.earnings - b.earnings, render: (v) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{money(v)}</span> },
                     ]}
                   />
                 </SectionCard>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Table } from 'antd';
 import { IProductSummary } from '../../types/employee-details.types';
 import ProductLabel from '../../components/common/ProductLabel';
+import { useT } from '../../contexts/LanguageContext';
 
 interface EmployeeProductTableProps {
   data: IProductSummary[];
@@ -9,6 +10,7 @@ interface EmployeeProductTableProps {
 }
 
 export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data, loading }) => {
+  const t = useT();
   // Format currency in Indian Rupees
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -20,7 +22,7 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
 
   const columns = [
     {
-      title: 'Product',
+      title: t('employees.product', 'Product'),
       dataIndex: 'productName',
       key: 'productName',
       width: '40%',
@@ -29,18 +31,18 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
       ),
     },
     {
-      title: 'Quantity Produced',
+      title: t('employees.quantityProduced', 'Quantity Produced'),
       dataIndex: 'quantityProduced',
       key: 'quantityProduced',
       width: '30%',
       render: (qty: number) => (
         <span style={{ fontWeight: 500, color: '#475569' }}>
-          {qty.toLocaleString('en-IN')} Pcs
+          {qty.toLocaleString('en-IN')} {t('employees.pcs', 'Pcs')}
         </span>
       ),
     },
     {
-      title: 'Total Earnings',
+      title: t('employees.summary.totalEarnings', 'Total Earnings'),
       dataIndex: 'totalEarnings',
       key: 'totalEarnings',
       width: '30%',
@@ -54,7 +56,7 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
 
   return (
     <Card
-      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>Product Wise Earnings</span>}
+      title={<span style={{ color: '#0F172A', fontWeight: 700, fontSize: '1.1rem' }}>{t('employees.productWise.title', 'Product Wise Earnings')}</span>}
       style={{
         borderRadius: 12,
         boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.05)',
@@ -72,7 +74,7 @@ export const EmployeeProductTable: React.FC<EmployeeProductTableProps> = ({ data
         locale={{
           emptyText: (
             <div style={{ padding: '32px 16px', color: '#94A3B8', textAlign: 'center' }}>
-              No product contributions found.
+              {t('employees.productWise.emptyShort', 'No product contributions found.')}
             </div>
           ),
         }}

@@ -2,12 +2,14 @@ import React from 'react';
 import { Card, Steps, Empty } from 'antd';
 import { ICurrentMonthProductSummary } from '../../types/employee-details.types';
 import ProductLabel from '../../components/common/ProductLabel';
+import { useT } from '../../contexts/LanguageContext';
 
 interface CurrentMonthProductPerformanceProps {
   data?: ICurrentMonthProductSummary[];
 }
 
 export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerformanceProps> = ({ data = [] }) => {
+  const t = useT();
   // Format currency in Indian Rupees
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -31,13 +33,13 @@ export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerform
     return (
       <Card
         style={cardStyle}
-        title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>Current Month Product Performance</span>}
+        title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>{t('employees.currentMonthPerf.title', 'Current Month Product Performance')}</span>}
         bodyStyle={{ padding: '32px 24px', flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <Empty
           description={
             <span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.95rem' }}>
-              No production recorded for current month.
+              {t('employees.currentMonthPerf.empty', 'No production recorded for current month.')}
             </span>
           }
         />
@@ -48,7 +50,7 @@ export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerform
   return (
     <Card
       style={cardStyle}
-      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>Current Month Product Performance</span>}
+      title={<span style={{ fontWeight: 800, color: '#0F172A', fontSize: '1.1rem' }}>{t('employees.currentMonthPerf.title', 'Current Month Product Performance')}</span>}
       bodyStyle={{ padding: '24px 32px', flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       <div className="hide-scrollbar" style={{ flexGrow: 1, overflowY: 'auto' }}>
@@ -62,13 +64,13 @@ export const CurrentMonthProductPerformance: React.FC<CurrentMonthProductPerform
             description: (
               <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>{t('employees.quantityProduced', 'Quantity Produced')}:</span>
                   <span style={{ fontSize: '0.9rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
-                    {item.quantity.toLocaleString('en-IN')} Pcs
+                    {item.quantity.toLocaleString('en-IN')} {t('employees.pcs', 'Pcs')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
+                  <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>{t('employees.earnings', 'Earnings')}:</span>
                   <span style={{ fontSize: '1.1rem', color: 'var(--theme-primary)', fontWeight: 800 }}>
                     {formatCurrency(item.earnings)}
                   </span>

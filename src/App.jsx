@@ -5,6 +5,7 @@ import { notification } from 'antd';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { AppThemeProvider } from './contexts/ThemeColorContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import AppRoutes from './routes';
 
 // Initialize TanStack React Query Client with global QueryCache error handler
@@ -40,15 +41,17 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppThemeProvider>
-        <AuthProvider>
-          <AppSettingsProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </AppSettingsProvider>
-        </AuthProvider>
-      </AppThemeProvider>
+      <LanguageProvider>
+        <AppThemeProvider>
+          <AuthProvider>
+            <AppSettingsProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </AppSettingsProvider>
+          </AuthProvider>
+        </AppThemeProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

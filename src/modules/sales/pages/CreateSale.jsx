@@ -50,6 +50,7 @@ import PaymentConfirmDialog from '../../../components/common/PaymentConfirmDialo
 import { getCurrencySymbol } from '../../../utils/currency';
 import { useGstConfig } from '../../../contexts/AppSettingsContext';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { useT } from '../../../contexts/LanguageContext';
 
 // Walk FIFO batches, pricing each drawn unit at its own batch selling price.
 // Returns the exact gross, total cost, weighted-average price and a per-batch breakdown.
@@ -93,6 +94,7 @@ const CreateSale = () => {
   const queryClient = useQueryClient();
   const { gstEnabled, gstPercent } = useGstConfig();
   const { can } = usePermissions();
+  const t = useT();
   const [formValues, setFormValues] = useState({
     customerName: '',
     customerMobile: '',
@@ -148,7 +150,7 @@ const CreateSale = () => {
       queryClient.invalidateQueries({ queryKey: ['topProducts'] });
       queryClient.invalidateQueries({ queryKey: ['lowStockAlerts'] });
       queryClient.invalidateQueries({ queryKey: ['salesList'] });
-      setToast({ open: true, message: 'Sale created successfully', severity: 'success' });
+      setToast({ open: true, message: t('sales.toast.saleCreated', 'Sale created successfully'), severity: 'success' });
       setTimeout(() => navigate('/sales/list'), 900);
     },
     onError: (error) => {
@@ -158,7 +160,7 @@ const CreateSale = () => {
         setReconcile({ open: true, batches: body.batches });
         return;
       }
-      setToast({ open: true, message: error.message || 'Unable to create sale', severity: 'error' });
+      setToast({ open: true, message: error.message || t('sales.toast.unableCreate', 'Unable to create sale'), severity: 'error' });
     },
   });
 
@@ -253,10 +255,10 @@ const CreateSale = () => {
     setErrors((prev) => {
       const next = { ...prev };
       if (name === 'customerMobile') {
-        if (value && !/^\d{10}$/.test(value)) next.customerMobile = 'Enter a valid 10-digit number';
+        if (value && !/^\d{10}$/.test(value)) next.customerMobile = t('sales.validation.mobile10', 'Enter a valid 10-digit number');
         else delete next.customerMobile;
       } else if (name === 'customerEmail') {
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) next.customerEmail = 'Enter a valid email';
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) next.customerEmail = t('sales.validation.email', 'Enter a valid email');
         else delete next.customerEmail;
       }
       return next;
@@ -285,14 +287,14 @@ const CreateSale = () => {
 
   const validateForm = () => {
     const nextErrors = {};
-    if (!formValues.customerName.trim()) nextErrors.customerName = 'Required';
-    if (!formValues.customerMobile.trim()) nextErrors.customerMobile = 'Required';
-    else if (!/^\d{10}$/.test(formValues.customerMobile.trim())) nextErrors.customerMobile = 'Enter a valid 10-digit number';
-    if ((formValues.customerEmail || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((formValues.customerEmail || '').trim())) nextErrors.customerEmail = 'Enter a valid email';
-    if (!formValues.items.length) nextErrors.items = 'Add at least one product';
+    if (!formValues.customerName.trim()) nextErrors.customerName = t('sales.validation.required', 'Required');
+    if (!formValues.customerMobile.trim()) nextErrors.customerMobile = t('sales.validation.required', 'Required');
+    else if (!/^\d{10}$/.test(formValues.customerMobile.trim())) nextErrors.customerMobile = t('sales.validation.mobile10', 'Enter a valid 10-digit number');
+    if ((formValues.customerEmail || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((formValues.customerEmail || '').trim())) nextErrors.customerEmail = t('sales.validation.email', 'Enter a valid email');
+    if (!formValues.items.length) nextErrors.items = t('sales.validation.addProduct', 'Add at least one product');
     formValues.items.forEach((item, index) => {
-      if (!item.quantity || Number(item.quantity) <= 0) nextErrors[`quantity_${index}`] = 'Qty > 0';
-      if (item.quantityAvailable != null && Number(item.quantity) > Number(item.quantityAvailable)) nextErrors[`quantity_${index}`] = 'Exceeds stock';
+      if (!item.quantity || Number(item.quantity) <= 0) nextErrors[`quantity_${index}`] = t('sales.validation.qtyGt0', 'Qty > 0');
+      if (item.quantityAvailable != null && Number(item.quantity) > Number(item.quantityAvailable)) nextErrors[`quantity_${index}`] = t('sales.validation.exceedsStock', 'Exceeds stock');
     });
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -334,7 +336,7 @@ const CreateSale = () => {
       const data = await customerService.getCustomers(formValues.customerMobile.trim());
       setCustomerResults(data?.content || []);
     } catch (err) {
-      setToast({ open: true, message: err.message || 'Unable to fetch customers', severity: 'error' });
+      setToast({ open: true, message: err.message || t('sales.toast.unableFetchCustomers', 'Unable to fetch customers'), severity: 'error' });
     } finally {
       setCustomerLoading(false);
     }
@@ -360,7 +362,7 @@ const CreateSale = () => {
         if (!mounted) return;
         setProductOptions(Array.isArray(list) ? list : []);
       } catch (err) {
-        setToast({ open: true, message: err.message || 'Unable to load products', severity: 'error' });
+        setToast({ open: true, message: err.message || t('sales.toast.unableLoadProducts', 'Unable to load products'), severity: 'error' });
       } finally {
         if (mounted) setProductLoading(false);
       }
@@ -404,7 +406,7 @@ const CreateSale = () => {
     const { items, error } = mergeScannedUnit(formValues.items, unit, makeNewItem);
     if (error) { setToast({ open: true, message: error, severity: 'error' }); return; }
     setFormValues((prev) => ({ ...prev, items }));
-    setToast({ open: true, message: `Added ${unit.serial}`, severity: 'success' });
+    setToast({ open: true, message: `${t('sales.toast.added', 'Added')} ${unit.serial}`, severity: 'success' });
   };
 
   // Load a product's FIFO batches so the typed line can price itself; also sets the stock cap.
@@ -421,7 +423,7 @@ const CreateSale = () => {
         )),
       }));
     } catch (err) {
-      setToast({ open: true, message: err.message || 'Unable to load batch prices', severity: 'error' });
+      setToast({ open: true, message: err.message || t('sales.toast.unableLoadBatchPrices', 'Unable to load batch prices'), severity: 'error' });
     }
   };
 
@@ -460,7 +462,7 @@ const CreateSale = () => {
       {/* Top bar: Back + inline customer fields (no card, one row) */}
       <Stack direction="row" alignItems="flex-start" spacing={1.5} flexWrap="wrap" sx={{ rowGap: 1.5 }}>
         <Button startIcon={<ArrowBackIcon />} variant="text" sx={{ color: '#475569', mt: 0.5 }} onClick={() => navigate(-1)}>
-          Back
+          {t('common.back', 'Back')}
         </Button>
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Autocomplete
@@ -478,19 +480,19 @@ const CreateSale = () => {
           }}
           sx={{ flex: '1 1 190px', minWidth: 170 }}
           renderInput={(params) => (
-            <TextField {...params} label="Mobile" size="small" required
+            <TextField {...params} label={t('sales.mobile', 'Mobile')} size="small" required
               onBlur={(e) => validateField('customerMobile', e.target.value.replace(/\D/g, ''))}
               error={Boolean(errors.customerMobile)} helperText={errors.customerMobile || ' '} sx={{ bgcolor: '#fff' }} />
           )}
         />
         <TextField
-          name="customerName" label="Customer name" size="small" required
+          name="customerName" label={t('sales.customerName', 'Customer name')} size="small" required
           value={formValues.customerName} onChange={handleInputChange}
           error={Boolean(errors.customerName)} helperText={errors.customerName || ' '}
           sx={{ flex: '1 1 200px', minWidth: 170, bgcolor: '#fff' }}
         />
         <TextField
-          name="customerEmail" label="Email (optional)" size="small"
+          name="customerEmail" label={t('sales.emailOptional', 'Email (optional)')} size="small"
           value={formValues.customerEmail} onChange={handleInputChange}
           onBlur={(e) => validateField('customerEmail', e.target.value.trim())}
           error={Boolean(errors.customerEmail)} helperText={errors.customerEmail || ' '}
@@ -506,8 +508,8 @@ const CreateSale = () => {
               <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ShoppingBagOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 18 }} />
               </Box>
-              <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem', flexGrow: 1 }}>Products</Typography>
-              <Chip size="small" label={`${formValues.items.length} item${formValues.items.length === 1 ? '' : 's'}`} sx={{ fontWeight: 700, bgcolor: '#F1F5F9', color: '#475569' }} />
+              <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem', flexGrow: 1 }}>{t('sales.products', 'Products')}</Typography>
+              <Chip size="small" label={`${formValues.items.length} ${formValues.items.length === 1 ? t('sales.item', 'item') : t('sales.items', 'items')}`} sx={{ fontWeight: 700, bgcolor: '#F1F5F9', color: '#475569' }} />
             </Stack>
 
             <Stack spacing={2}>
@@ -542,7 +544,7 @@ const CreateSale = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Search product by name / code / barcode to add…"
+                    placeholder={t('sales.searchProductPlaceholder', 'Search product by name / code / barcode to add…')}
                     size="small" fullWidth
                     InputProps={{
                       ...params.InputProps,
@@ -557,8 +559,8 @@ const CreateSale = () => {
               {formValues.items.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 7, color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: 3 }}>
                   <ShoppingBagOutlinedIcon sx={{ fontSize: 42, mb: 1, color: '#CBD5E1' }} />
-                  <Typography sx={{ fontWeight: 700, color: '#64748B' }}>No products added</Typography>
-                  <Typography variant="body2">Search above or scan a QR tag to add items.</Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#64748B' }}>{t('sales.noProductsAdded', 'No products added')}</Typography>
+                  <Typography variant="body2">{t('sales.noProductsHint', 'Search above or scan a QR tag to add items.')}</Typography>
                 </Box>
               ) : (
                 <TableContainer>
@@ -573,10 +575,10 @@ const CreateSale = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ width: 26 }}>#</TableCell>
-                        <TableCell>Product</TableCell>
-                        <TableCell align="center" sx={{ width: 140 }}>Qty</TableCell>
-                        <TableCell align="right" sx={{ width: 150 }}>MRP</TableCell>
-                        <TableCell align="right" sx={{ width: 100 }}>Total</TableCell>
+                        <TableCell>{t('sales.product', 'Product')}</TableCell>
+                        <TableCell align="center" sx={{ width: 140 }}>{t('sales.colQty', 'Qty')}</TableCell>
+                        <TableCell align="right" sx={{ width: 150 }}>{t('sales.colMrp', 'MRP')}</TableCell>
+                        <TableCell align="right" sx={{ width: 100 }}>{t('common.total', 'Total')}</TableCell>
                         <TableCell sx={{ width: 40 }} />
                       </TableRow>
                     </TableHead>
@@ -604,7 +606,7 @@ const CreateSale = () => {
                                 <Box sx={{ minWidth: 0 }}>
                                   <Typography sx={{ fontWeight: 600, fontSize: '0.86rem', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 230 }}>{item.productName}</Typography>
                                   <Typography variant="caption" sx={{ color: exceeded ? '#DC2626' : '#94A3B8' }}>
-                                    {scanned ? `${item.batchNumber} · ${item.serials.length} scanned` : (item.quantityAvailable != null ? `In stock: ${item.quantityAvailable}` : 'Stock: —')}
+                                    {scanned ? `${item.batchNumber} · ${item.serials.length} ${t('sales.scanned', 'scanned')}` : (item.quantityAvailable != null ? `${t('sales.inStock', 'In stock')}: ${item.quantityAvailable}` : `${t('sales.stock', 'Stock')}: —`)}
                                   </Typography>
                                 </Box>
                               </Stack>
@@ -651,7 +653,7 @@ const CreateSale = () => {
                             </TableCell>
                             <TableCell align="right">
                               {loading ? (
-                                <Typography variant="caption" color="text.secondary">Loading…</Typography>
+                                <Typography variant="caption" color="text.secondary">{t('common.loading', 'Loading…')}</Typography>
                               ) : (
                                 <Tooltip
                                   arrow
@@ -698,7 +700,7 @@ const CreateSale = () => {
               <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ReceiptLongOutlinedIcon sx={{ color: 'var(--theme-primary)', fontSize: 18 }} />
               </Box>
-              <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem' }}>Order Summary</Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0F172A', fontSize: '1.05rem' }}>{t('sales.orderSummary', 'Order Summary')}</Typography>
             </Stack>
 
             <Stack spacing={2}>
@@ -706,11 +708,11 @@ const CreateSale = () => {
                 onClick={() => { if (totalCostBasis > 0 && anyProductSelected) setProfitOpen(true); }}
                 sx={{ p: 2.25, borderRadius: 0, bgcolor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)', cursor: (totalCostBasis > 0 && anyProductSelected) ? 'pointer' : 'default', position: 'relative' }}
               >
-                <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Payable</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{t('sales.totalPayable', 'Total Payable')}</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1.15, mt: 0.5, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{payable.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
-                {totalDiscount > 0 && <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', mt: 0.25 }}>You saved {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>}
+                {totalDiscount > 0 && <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', mt: 0.25 }}>{t('sales.youSaved', 'You saved')} {getCurrencySymbol()}{totalDiscount.toLocaleString('en-IN')}</Typography>}
                 {totalCostBasis > 0 && anyProductSelected && (
-                  <Tooltip title="View profit summary">
+                  <Tooltip title={t('sales.viewProfitSummary', 'View profit summary')}>
                     <InsightsOutlinedIcon sx={{ position: 'absolute', top: 12, right: 12, fontSize: 18, color: '#94A3B8' }} />
                   </Tooltip>
                 )}
@@ -718,7 +720,7 @@ const CreateSale = () => {
 
               <Stack spacing={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Discount</Typography>
+                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>{t('sales.discount', 'Discount')}</Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <ToggleButtonGroup
                       size="small" exclusive value={discountMode}
@@ -743,12 +745,12 @@ const CreateSale = () => {
                   </Stack>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>GST ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
+                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>{t('sales.gst', 'GST')} ({gstEnabled ? (Number(gstPercent) || 0) : 0}%)</Typography>
                   <Typography sx={{ fontWeight: 600 }}>{getCurrencySymbol()}{gstAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                 </Box>
                 {Math.abs(roundOffAmount) > 0.0001 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Round off</Typography>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>{t('sales.roundOff', 'Round off')}</Typography>
                     <Typography sx={{ fontWeight: 600, color: roundOffAmount < 0 ? '#DC2626' : 'var(--theme-primary)' }}>
                       {roundOffAmount >= 0 ? '+ ' : '− '}{getCurrencySymbol()}{Math.abs(roundOffAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </Typography>
@@ -760,15 +762,15 @@ const CreateSale = () => {
                 {previousDue > 0 && (
                   <>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography sx={{ color: 'var(--theme-primary)', fontSize: '0.9rem', fontWeight: 600 }}>Previous due</Typography>
+                      <Typography sx={{ color: 'var(--theme-primary)', fontSize: '0.9rem', fontWeight: 600 }}>{t('sales.previousDue', 'Previous due')}</Typography>
                       <Typography sx={{ fontWeight: 700, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{previousDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                     </Box>
-                    <Tooltip title="Click to receive the full amount (clear all)">
+                    <Tooltip title={t('sales.clickReceiveFull', 'Click to receive the full amount (clear all)')}>
                       <Box
                         onClick={() => setReceivedText(String(grandOwed))}
                         sx={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 1, px: 0.5, '&:hover': { bgcolor: '#F1F5F9' } }}
                       >
-                        <Typography sx={{ color: '#0F172A', fontSize: '0.95rem', fontWeight: 800 }}>Total payable (incl. due)</Typography>
+                        <Typography sx={{ color: '#0F172A', fontSize: '0.95rem', fontWeight: 800 }}>{t('sales.totalPayableInclDue', 'Total payable (incl. due)')}</Typography>
                         <Typography sx={{ fontWeight: 800, color: '#0F172A', textDecoration: 'underline dotted' }}>{getCurrencySymbol()}{grandOwed.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                       </Box>
                     </Tooltip>
@@ -776,10 +778,10 @@ const CreateSale = () => {
                 )}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Stack direction="row" spacing={0.75} alignItems="center">
-                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>Amount received</Typography>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>{t('sales.amountReceivedLower', 'Amount received')}</Typography>
                     <Button size="small" onClick={() => setReceivedText(String(grandOwed))}
                       disabled={!anyProductSelected} sx={{ minWidth: 0, px: 0.75, py: 0, fontSize: '0.7rem', fontWeight: 700, textTransform: 'none', color: 'var(--theme-primary)' }}>
-                      Pay full
+                      {t('sales.payFull', 'Pay full')}
                     </Button>
                   </Stack>
                   <TextField
@@ -798,8 +800,8 @@ const CreateSale = () => {
                 </Box>
                 {remainingDue > 0.0001 && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>Remaining due</Typography>
-                    <Chip size="small" label={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${amountReceived <= 0 ? 'UDHAAR' : 'DUE'}`}
+                    <Typography sx={{ fontWeight: 700, color: '#0F172A' }}>{t('sales.remainingDue', 'Remaining due')}</Typography>
+                    <Chip size="small" label={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${amountReceived <= 0 ? t('sales.udhaar', 'UDHAAR') : t('sales.dueTag', 'DUE')}`}
                       sx={{ height: 22, fontWeight: 800, fontSize: '0.72rem', bgcolor: '#FEF2F2', color: '#B91C1C' }} />
                   </Box>
                 )}
@@ -807,23 +809,23 @@ const CreateSale = () => {
 
               <Divider />
 
-              <TextField label="Payment Mode" name="paymentMode" select value={formValues.paymentMode} onChange={handleInputChange} fullWidth size="small" SelectProps={{ native: true }} disabled={!anyProductSelected}>
-                <option value="CASH">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="CREDIT_CARD">Credit Card</option>
-                <option value="DEBIT_CARD">Debit Card</option>
-                <option value="NET_BANKING">Net Banking</option>
+              <TextField label={t('sales.paymentMode', 'Payment Mode')} name="paymentMode" select value={formValues.paymentMode} onChange={handleInputChange} fullWidth size="small" SelectProps={{ native: true }} disabled={!anyProductSelected}>
+                <option value="CASH">{t('sales.cash', 'Cash')}</option>
+                <option value="UPI">{t('sales.upi', 'UPI')}</option>
+                <option value="CREDIT_CARD">{t('sales.creditCard', 'Credit Card')}</option>
+                <option value="DEBIT_CARD">{t('sales.debitCard', 'Debit Card')}</option>
+                <option value="NET_BANKING">{t('sales.netBanking', 'Net Banking')}</option>
               </TextField>
               {formValues.paymentMode !== 'CASH' ? (
-                <TextField label="Payment Provider" name="paymentProvider" value={formValues.paymentProvider} onChange={handleInputChange} fullWidth size="small" disabled={!anyProductSelected} />
+                <TextField label={t('sales.paymentProvider', 'Payment Provider')} name="paymentProvider" value={formValues.paymentProvider} onChange={handleInputChange} fullWidth size="small" disabled={!anyProductSelected} />
               ) : null}
 
               {can('sales', 'write') && (
                 <Button variant="contained" fullWidth startIcon={<CheckCircleOutlineIcon />} onClick={handleCompleteClick} disabled={createSaleMutation.isLoading || hasValidationIssues} sx={{ py: 1.2, fontWeight: 700, fontSize: '0.95rem', boxShadow: '0 8px 20px -6px rgba(37,99,235,0.5)' }}>
-                  {createSaleMutation.isLoading ? 'Saving…' : 'Complete Sale'}
+                  {createSaleMutation.isLoading ? t('sales.saving', 'Saving…') : t('sales.completeSale', 'Complete Sale')}
                 </Button>
               )}
-              <Button variant="text" fullWidth onClick={() => navigate(-1)} sx={{ color: '#64748B' }}>Cancel</Button>
+              <Button variant="text" fullWidth onClick={() => navigate(-1)} sx={{ color: '#64748B' }}>{t('common.cancel', 'Cancel')}</Button>
             </Stack>
           </Box>
         </Grid>
@@ -834,22 +836,22 @@ const CreateSale = () => {
         PaperProps={{ sx: { width: { xs: '100%', sm: 620 }, p: 2.5 } }}>
         <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 0.5 }}>
           <InsightsOutlinedIcon sx={{ color: 'var(--theme-primary)' }} />
-          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A', flexGrow: 1 }}>Profit Summary</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: '#0F172A', flexGrow: 1 }}>{t('sales.profitSummary', 'Profit Summary')}</Typography>
           <IconButton size="small" onClick={() => setProfitOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <Typography variant="caption" sx={{ color: '#94A3B8' }}>After discount</Typography>
+        <Typography variant="caption" sx={{ color: '#94A3B8' }}>{t('sales.afterDiscount', 'After discount')}</Typography>
 
         {/* Per-item breakdown — MRP → discount → selling → cost → profit */}
         <TableContainer sx={{ mt: 1.5, border: '1px solid #E2E8F0', borderRadius: 0 }}>
           <Table size="small" sx={{ '& th': { bgcolor: '#F8FAFC', color: '#64748B', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.03em', py: 0.75 }, '& td': { py: 0.75, fontSize: '0.8rem' } }}>
             <TableHead>
               <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell align="right">MRP</TableCell>
-                <TableCell align="right">Discount</TableCell>
-                <TableCell align="right">Selling</TableCell>
-                <TableCell align="right">Cost</TableCell>
-                <TableCell align="right">Profit</TableCell>
+                <TableCell>{t('sales.product', 'Product')}</TableCell>
+                <TableCell align="right">{t('sales.colMrp', 'MRP')}</TableCell>
+                <TableCell align="right">{t('sales.discount', 'Discount')}</TableCell>
+                <TableCell align="right">{t('sales.colSelling', 'Selling')}</TableCell>
+                <TableCell align="right">{t('sales.colCost', 'Cost')}</TableCell>
+                <TableCell align="right">{t('sales.colProfit', 'Profit')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -892,23 +894,22 @@ const CreateSale = () => {
           );
           return (
             <Box sx={{ mt: 2, borderRadius: 0, p: 1.75, bgcolor: 'color-mix(in srgb, var(--theme-primary) 6%, white)' }}>
-              {row('Subtotal (MRP)', `${getCurrencySymbol()}${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`)}
-              {row('Discount', `− ${getCurrencySymbol()}${totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { color: '#DC2626' })}
+              {row(t('sales.subtotalMrp', 'Subtotal (MRP)'), `${getCurrencySymbol()}${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`)}
+              {row(t('sales.discount', 'Discount'), `− ${getCurrencySymbol()}${totalDiscount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { color: '#DC2626' })}
               <Divider sx={{ my: 0.5 }} />
-              {row('Customer Pays', `${getCurrencySymbol()}${customerPays.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { strong: true, color: 'var(--theme-primary)' })}
+              {row(t('sales.customerPays', 'Customer Pays'), `${getCurrencySymbol()}${customerPays.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, { strong: true, color: 'var(--theme-primary)' })}
               <Divider sx={{ my: 0.5 }} />
-              {row('Net Profit', `${netProfit >= 0 ? '+' : '−'}${getCurrencySymbol()}${Math.abs(netProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}${netPct != null ? ` (${netProfit >= 0 ? '+' : ''}${netPct.toFixed(1)}%)` : ''}`, { strong: true, color: netProfit >= 0 ? 'var(--theme-primary)' : '#B91C1C' })}
+              {row(t('sales.netProfit', 'Net Profit'), `${netProfit >= 0 ? '+' : '−'}${getCurrencySymbol()}${Math.abs(netProfit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}${netPct != null ? ` (${netProfit >= 0 ? '+' : ''}${netPct.toFixed(1)}%)` : ''}`, { strong: true, color: netProfit >= 0 ? 'var(--theme-primary)' : '#B91C1C' })}
             </Box>
           );
         })()}
       </Drawer>
 
       <Dialog open={reconcile.open} onClose={() => setReconcile({ open: false, batches: [] })} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Reconcile physical stock?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{t('sales.reconcileTitle', 'Reconcile physical stock?')}</DialogTitle>
         <DialogContent dividers>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            These batches have 0 / low system stock, but the scanned QR units are still physically available
-            (a direct FIFO sale already deducted the stock). Reconcile the physical stock to continue this sale.
+            {t('sales.reconcileAlert', 'These batches have 0 / low system stock, but the scanned QR units are still physically available (a direct FIFO sale already deducted the stock). Reconcile the physical stock to continue this sale.')}
           </Alert>
           <Stack spacing={1}>
             {reconcile.batches.map((b) => (
@@ -917,16 +918,16 @@ const CreateSale = () => {
                   {b.batchNumber}{b.productName ? ` · ${b.productName}` : ''}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  System stock {Number(b.available)} · {Number(b.requested)} QR scanned → reconcile <b style={{ color: 'var(--theme-primary)' }}>+{Number(b.deficit)}</b>
+                  {t('sales.systemStock', 'System stock')} {Number(b.available)} · {Number(b.requested)} {t('sales.qrScanned', 'QR scanned')} → {t('sales.reconcile', 'reconcile')} <b style={{ color: 'var(--theme-primary)' }}>+{Number(b.deficit)}</b>
                 </Typography>
               </Box>
             ))}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setReconcile({ open: false, batches: [] })}>No, cancel</Button>
+          <Button onClick={() => setReconcile({ open: false, batches: [] })}>{t('sales.noCancel', 'No, cancel')}</Button>
           <Button variant="contained" onClick={handleConfirmReconcile} disabled={createSaleMutation.isLoading}>
-            {createSaleMutation.isLoading ? 'Processing…' : 'Yes, reconcile & sell'}
+            {createSaleMutation.isLoading ? t('sales.processing', 'Processing…') : t('sales.yesReconcile', 'Yes, reconcile & sell')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -936,18 +937,18 @@ const CreateSale = () => {
         onCancel={() => setConfirmOpen(false)}
         onConfirm={handleSave}
         loading={createSaleMutation.isLoading}
-        title="Confirm Sale"
-        confirmText="Confirm & Complete"
+        title={t('sales.confirmSale', 'Confirm Sale')}
+        confirmText={t('sales.confirmComplete', 'Confirm & Complete')}
         rows={[
           // Payment mode only matters when something is actually being paid.
-          ...(amountReceived > 0 ? [{ label: 'Payment Mode', value: (formValues.paymentMode || '-').replace(/_/g, ' ') }] : []),
-          { label: 'Current Bill', value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
+          ...(amountReceived > 0 ? [{ label: t('sales.paymentMode', 'Payment Mode'), value: (formValues.paymentMode || '-').replace(/_/g, ' ') }] : []),
+          { label: t('sales.currentBill', 'Current Bill'), value: `${getCurrencySymbol()}${payable.toLocaleString('en-IN')}` },
           // Previous dues + a combined Total row only matter when the customer already owes.
           ...(previousDue > 0 ? [
-            { label: 'Previous Dues', value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` },
-            { label: 'Total', value: `${getCurrencySymbol()}${grandOwed.toLocaleString('en-IN')}`, strong: true },
+            { label: t('sales.previousDues', 'Previous Dues'), value: `${getCurrencySymbol()}${previousDue.toLocaleString('en-IN')}` },
+            { label: t('common.total', 'Total'), value: `${getCurrencySymbol()}${grandOwed.toLocaleString('en-IN')}`, strong: true },
           ] : []),
-          { label: 'Amount Received', value: `${getCurrencySymbol()}${amountReceived.toLocaleString('en-IN')}`, strong: true },
+          { label: t('sales.amountReceived', 'Amount Received'), value: `${getCurrencySymbol()}${amountReceived.toLocaleString('en-IN')}`, strong: true },
         ]}
         dueAmount={remainingDue}
         dueText={`${getCurrencySymbol()}${remainingDue.toLocaleString('en-IN')}`}

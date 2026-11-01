@@ -15,8 +15,10 @@ import {
   Button,
 } from '@mui/material';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { useT } from '../../../contexts/LanguageContext';
 
 const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCancel, loading }) => {
+  const t = useT();
   const subtotal = values.subtotal ?? 0;
   const discount = values.discount ?? 0;
   const tax = values.tax ?? 0;
@@ -24,45 +26,45 @@ const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCanc
 
   return (
     <Card sx={{ borderRadius: 2, position: 'sticky', top: 24 }}>
-      <CardHeader title="Order Summary" />
+      <CardHeader title={t('sales.orderSummary', 'Order Summary')} />
       <CardContent sx={{ display: 'grid', gap: 2 }}>
         <Box>
           <Stack spacing={1}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Subtotal</Typography>
+              <Typography color="text.secondary">{t('sales.subtotal', 'Subtotal')}</Typography>
               <Typography sx={{ fontWeight: 700 }}>{getCurrencySymbol()}{subtotal.toFixed(2)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Discount</Typography>
+              <Typography color="text.secondary">{t('sales.discount', 'Discount')}</Typography>
               <Typography>{getCurrencySymbol()}{discount.toFixed(2)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Tax</Typography>
+              <Typography color="text.secondary">{t('sales.tax', 'Tax')}</Typography>
               <Typography>{getCurrencySymbol()}{tax.toFixed(2)}</Typography>
             </Box>
             <Divider />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ fontWeight: 700 }}>Grand Total</Typography>
+              <Typography sx={{ fontWeight: 700 }}>{t('sales.grandTotal', 'Grand Total')}</Typography>
               <Typography sx={{ fontWeight: 700 }}>{getCurrencySymbol()}{grandTotal.toFixed(2)}</Typography>
             </Box>
           </Stack>
         </Box>
 
         <FormControl fullWidth>
-          <InputLabel>Payment Mode</InputLabel>
-          <Select name="paymentMode" value={values.paymentMode} label="Payment Mode" onChange={onChange}>
-            <MenuItem value="CASH">Cash</MenuItem>
-            <MenuItem value="UPI">UPI</MenuItem>
-            <MenuItem value="CREDIT_CARD">Credit Card</MenuItem>
-            <MenuItem value="DEBIT_CARD">Debit Card</MenuItem>
-            <MenuItem value="NET_BANKING">Net Banking</MenuItem>
-            <MenuItem value="WALLET">Wallet</MenuItem>
+          <InputLabel>{t('sales.paymentMode', 'Payment Mode')}</InputLabel>
+          <Select name="paymentMode" value={values.paymentMode} label={t('sales.paymentMode', 'Payment Mode')} onChange={onChange}>
+            <MenuItem value="CASH">{t('sales.cash', 'Cash')}</MenuItem>
+            <MenuItem value="UPI">{t('sales.upi', 'UPI')}</MenuItem>
+            <MenuItem value="CREDIT_CARD">{t('sales.creditCard', 'Credit Card')}</MenuItem>
+            <MenuItem value="DEBIT_CARD">{t('sales.debitCard', 'Debit Card')}</MenuItem>
+            <MenuItem value="NET_BANKING">{t('sales.netBanking', 'Net Banking')}</MenuItem>
+            <MenuItem value="WALLET">{t('sales.wallet', 'Wallet')}</MenuItem>
           </Select>
         </FormControl>
 
         {paymentProviderVisible && (
           <TextField
-            label="Payment Provider"
+            label={t('sales.paymentProvider', 'Payment Provider')}
             name="paymentProvider"
             value={values.paymentProvider}
             onChange={onChange}
@@ -72,10 +74,10 @@ const OrderSummary = ({ values, onChange, paymentProviderVisible, onSave, onCanc
 
         <Stack spacing={2}>
           <Button variant="contained" color="primary" fullWidth onClick={onSave} disabled={loading}>
-            {loading ? 'Saving...' : 'Save Sale'}
+            {loading ? t('sales.savingDots', 'Saving...') : t('sales.saveSale', 'Save Sale')}
           </Button>
           <Button variant="outlined" color="inherit" fullWidth onClick={onCancel}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </Button>
         </Stack>
       </CardContent>

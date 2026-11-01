@@ -43,6 +43,7 @@ import { EmployeeProductChart } from './EmployeeProductChart';
 import { CurrentMonthCard } from './CurrentMonthCard';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import ProductLabel from '../../components/common/ProductLabel';
+import { useT } from '../../contexts/LanguageContext';
 
 const { RangePicker } = DatePicker;
 
@@ -57,6 +58,7 @@ const formatCurrency = (value: number) => {
 
 const EmployeeDetailsPage: React.FC = () => {
   const navigate = useNavigate();
+  const t = useT();
   const { employeeId } = useParams<{ employeeId: string }>();
 
   // Base current date for the app
@@ -169,7 +171,7 @@ const EmployeeDetailsPage: React.FC = () => {
     try {
       await employeeDetailsService.downloadEmployeeReport(format, employeeId, range.fromDate, range.toDate);
     } catch (e: any) {
-      notification.error({ message: 'Report download failed', description: e.message, placement: 'topRight' });
+      notification.error({ message: t('employees.toast.reportFailed', 'Report download failed'), description: e.message, placement: 'topRight' });
     }
   };
 
@@ -295,10 +297,10 @@ const EmployeeDetailsPage: React.FC = () => {
           {current.format('DD MMM YYYY')}
         </div>
         <div style={{ fontSize: '0.85rem' }}>
-          Total Earnings: <span style={{ fontWeight: 700 }}>{formatCurrency(totalEarning)}</span>
+          {t('employees.calendar.totalEarnings', 'Total Earnings:')} <span style={{ fontWeight: 700 }}>{formatCurrency(totalEarning)}</span>
         </div>
         <div style={{ fontSize: '0.85rem', marginTop: '2px' }}>
-          Total Quantity: <span style={{ fontWeight: 700 }}>{totalQuantity} pcs</span>
+          {t('employees.calendar.totalQuantity', 'Total Quantity:')} <span style={{ fontWeight: 700 }}>{totalQuantity} {t('employees.pcsLower', 'pcs')}</span>
         </div>
       </div>
     );
@@ -329,7 +331,7 @@ const EmployeeDetailsPage: React.FC = () => {
             {formatCurrency(totalEarning)}
           </div>
           <div style={{ fontSize: '0.7rem', fontWeight: 600, opacity: totalEarning >= 5000 ? 0.95 : 0.85, marginTop: '2px' }}>
-            {totalQuantity} pcs
+            {totalQuantity} {t('employees.pcsLower', 'pcs')}
           </div>
         </div>
       </Tooltip>
@@ -429,14 +431,14 @@ const EmployeeDetailsPage: React.FC = () => {
           <Card style={{ ...cardStyle, maxWidth: 500, width: '100%', textAlign: 'center' }}>
             <Result
               status="error"
-              title="Failed to Load Employee Details"
-              subTitle={detailsError?.message || 'Employee records could not be fetched.'}
+              title={t('employees.error.title', 'Failed to Load Employee Details')}
+              subTitle={detailsError?.message || t('employees.error.subtitle', 'Employee records could not be fetched.')}
               extra={[
                 <Button type="default" icon={<ArrowLeftOutlined />} onClick={() => navigate('/employees')} key="back">
-                  Back to List
+                  {t('employees.error.backToList', 'Back to List')}
                 </Button>,
                 <Button type="primary" onClick={() => { refetchDetails(); refetchCalendar(); }} key="retry">
-                  Retry
+                  {t('employees.error.retry', 'Retry')}
                 </Button>,
               ]}
             />
@@ -479,19 +481,19 @@ const EmployeeDetailsPage: React.FC = () => {
                 onClick={() => navigate('/employees')}
                 style={{ fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center' }}
               >
-                Back
+                {t('common.back', 'Back')}
               </Button>
               <Dropdown
                 trigger={['click']}
                 menu={{
                   items: [
-                    { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: 'Download PDF', onClick: () => handleDownloadReport('pdf') },
-                    { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: 'Download Excel', onClick: () => handleDownloadReport('excel') },
+                    { key: 'pdf', icon: <FilePdfOutlined style={{ color: '#DC2626' }} />, label: t('employees.download.pdf', 'Download PDF'), onClick: () => handleDownloadReport('pdf') },
+                    { key: 'excel', icon: <FileExcelOutlined style={{ color: 'var(--theme-primary)' }} />, label: t('employees.download.excel', 'Download Excel'), onClick: () => handleDownloadReport('excel') },
                   ],
                 }}
               >
                 <Button icon={<DownloadOutlined />} style={{ borderRadius: 6, fontWeight: 600 }}>
-                  Download report
+                  {t('employees.download.report', 'Download report')}
                 </Button>
               </Dropdown>
             </div>
@@ -501,17 +503,17 @@ const EmployeeDetailsPage: React.FC = () => {
               <Space size="middle" align="center" style={{ flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FilterOutlined style={{ color: 'var(--theme-primary)' }} />
-                  Filter by:
+                  {t('employees.filter.label', 'Filter by:')}
                 </span>
                 <Select
                   value={filterType}
                   onChange={(value) => handleFilterTypeChange(value)}
                   style={{ width: 160, borderRadius: 6 }}
                   options={[
-                    { value: 'current-month', label: 'Current Month' },
-                    { value: 'month', label: 'Select Month' },
-                    { value: 'custom', label: 'Custom Range' },
-                    { value: 'all', label: 'Show All' },
+                    { value: 'current-month', label: t('employees.filter.currentMonth', 'Current Month') },
+                    { value: 'month', label: t('employees.filter.selectMonth', 'Select Month') },
+                    { value: 'custom', label: t('employees.filter.customRange', 'Custom Range') },
+                    { value: 'all', label: t('employees.filter.showAll', 'Show All') },
                   ]}
                 />
 
@@ -555,7 +557,7 @@ const EmployeeDetailsPage: React.FC = () => {
                     disabled={!pickerDates || !pickerDates[0] || !pickerDates[1]}
                     style={{ borderRadius: 6, fontWeight: 600 }}
                   >
-                    Apply Filter
+                    {t('employees.filter.apply', 'Apply Filter')}
                   </Button>
                 </Space>
               )}
@@ -606,8 +608,8 @@ const EmployeeDetailsPage: React.FC = () => {
             <Card
               title={
                 <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center' }}>
-                  Production Calendar
-                  <HeadingInfo text="Daily earnings overview — each cell shows that day's pieces and earnings." />
+                  {t('employees.calendar.title', 'Production Calendar')}
+                  <HeadingInfo text={t('employees.calendar.info', "Daily earnings overview — each cell shows that day's pieces and earnings.")} />
                 </span>
               }
               style={{
@@ -619,7 +621,7 @@ const EmployeeDetailsPage: React.FC = () => {
               {/* Calendar Filters & Month Header Row */}
               <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>Select Month:</span>
+                  <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>{t('employees.calendar.selectMonth', 'Select Month:')}</span>
                   <DatePicker
                     picker="month"
                     value={calendarValue}
@@ -647,12 +649,12 @@ const EmployeeDetailsPage: React.FC = () => {
                   />
                   {filterType === 'custom' && (
                     <span style={{ fontSize: '0.85rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
-                      Filtered by Custom Date Range
+                      {t('employees.calendar.filteredCustom', 'Filtered by Custom Date Range')}
                     </span>
                   )}
                   {filterType === 'current-month' && (
                     <span style={{ fontSize: '0.85rem', color: 'var(--theme-primary)', fontWeight: 600 }}>
-                      Filtered by Current Month
+                      {t('employees.calendar.filteredCurrent', 'Filtered by Current Month')}
                     </span>
                   )}
                 </div>
@@ -663,13 +665,13 @@ const EmployeeDetailsPage: React.FC = () => {
                 </div>
               </div>
 
-              <Spin spinning={isCalendarLoading} size="large" tip="Loading production calendar...">
+              <Spin spinning={isCalendarLoading} size="large" tip={t('employees.calendar.loading', 'Loading production calendar...')}>
                 {!hasCalendarProduction ? (
                   <div style={{ padding: '60px 24px', textAlign: 'center' }}>
                     <Empty
                       description={
                         <span style={{ color: '#64748B', fontWeight: 600, fontSize: '0.95rem' }}>
-                          No production activity found for selected period.
+                          {t('employees.calendar.empty', 'No production activity found for selected period.')}
                         </span>
                       }
                     />
@@ -732,7 +734,7 @@ const EmployeeDetailsPage: React.FC = () => {
       <Drawer
         title={
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>Production Details</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>{t('employees.productionDetails.title', 'Production Details')}</span>
             <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500, marginTop: 4 }}>
               {selectedDate ? selectedDate.format('DD MMM YYYY') : ''}
             </span>
@@ -760,15 +762,15 @@ const EmployeeDetailsPage: React.FC = () => {
               </h4>
               <Row gutter={[12, 6]}>
                 <Col span={8}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Quantity</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginTop: 1 }}>{item.quantity} pcs</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{t('employees.quantity', 'Quantity')}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginTop: 1 }}>{item.quantity} {t('employees.pcsLower', 'pcs')}</div>
                 </Col>
                 <Col span={8}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Rate</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{t('employees.rate', 'Rate')}</div>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginTop: 1 }}>{formatCurrency(item.rate)}</div>
                 </Col>
                 <Col span={8} style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>Earnings</div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase' }}>{t('employees.earnings', 'Earnings')}</div>
                   <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--theme-primary)', marginTop: 1 }}>{formatCurrency(item.earnings)}</div>
                 </Col>
               </Row>
@@ -795,11 +797,11 @@ const EmployeeDetailsPage: React.FC = () => {
           >
             <Row align="middle">
               <Col span={12}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>TOTAL</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>{t('common.total', 'Total')}</span>
               </Col>
               <Col span={12} style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500 }}>
-                  {productsWorked.reduce((sum: number, item: any) => sum + item.quantity, 0)} pcs
+                  {productsWorked.reduce((sum: number, item: any) => sum + item.quantity, 0)} {t('employees.pcsLower', 'pcs')}
                 </div>
                 <div style={{ fontSize: '1.15rem', color: 'var(--theme-primary)', fontWeight: 800, marginTop: 1 }}>
                   {formatCurrency(productsWorked.reduce((sum: number, item: any) => sum + item.earnings, 0))}

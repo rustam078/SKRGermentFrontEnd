@@ -7,8 +7,10 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import salesService from '../services/salesService';
 import InvoiceLayout from '../components/InvoiceLayout';
+import { useT } from '../../../contexts/LanguageContext';
 
 const InvoicePreview = () => {
+  const t = useT();
   const navigate = useNavigate();
   const { saleId } = useParams();
   const invoiceRef = useRef(null);
@@ -73,14 +75,14 @@ const InvoicePreview = () => {
     <Box sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate(`/sales/${saleId}`)}>
-          Back
+          {t('common.back', 'Back')}
         </Button>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button variant="outlined" onClick={() => window.print()}>
-            Print
+            {t('common.print', 'Print')}
           </Button>
           <Button variant="contained" onClick={handleDownloadPdf}>
-            Download PDF
+            {t('sales.downloadPdf', 'Download PDF')}
           </Button>
         </Box>
       </Box>

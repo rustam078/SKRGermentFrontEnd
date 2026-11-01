@@ -4,6 +4,7 @@ import { WalletOutlined, AppstoreOutlined } from '@ant-design/icons';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { IEmployeeSummary, ICurrentMonthProductSummary } from '../../types/employee-details.types';
 import ProductLabel from '../../components/common/ProductLabel';
+import { useT } from '../../contexts/LanguageContext';
 
 const inr = (v: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v || 0);
@@ -38,14 +39,15 @@ interface Props {
 }
 
 export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) => {
+  const t = useT();
   const worked = summary?.productsWorkedOn ?? 0;
   return (
     <Card
       style={cardStyle}
       title={
         <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center' }}>
-          Current Month
-          <HeadingInfo text="Always shows the current month — the page filter does not apply to this card." />
+          {t('employees.currentMonth.title', 'Current Month')}
+          <HeadingInfo text={t('employees.currentMonth.info', 'Always shows the current month — the page filter does not apply to this card.')} />
         </span>
       }
       styles={{ header: { minHeight: 40 }, body: { padding: 12, flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
@@ -56,14 +58,14 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
           icon={<WalletOutlined style={{ color: 'var(--theme-primary)', fontSize: 15 }} />}
           bg="color-mix(in srgb, var(--theme-primary) 12%, white)"
           color="var(--theme-primary)"
-          label="Earnings"
+          label={t('employees.earnings', 'Earnings')}
           value={inr(summary?.currentMonthEarnings ?? 0)}
         />
         <Stat
           icon={<AppstoreOutlined style={{ color: 'var(--theme-primary)', fontSize: 15 }} />}
           bg="color-mix(in srgb, var(--theme-primary) 12%, white)"
           color="var(--theme-primary)"
-          label="Products"
+          label={t('employees.products', 'Products')}
           value={worked}
         />
       </div>
@@ -71,7 +73,7 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
       <Divider style={{ margin: '10px 0 8px' }} />
 
       <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
-        Product Performance
+        {t('employees.currentMonth.productPerformance', 'Product Performance')}
       </div>
 
       {/* Fixed-height scroll region (hidden scrollbar) — old step-wise design */}
@@ -80,7 +82,7 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<span style={{ color: '#94A3B8', fontSize: '0.85rem' }}>No production this month</span>}
+              description={<span style={{ color: '#94A3B8', fontSize: '0.85rem' }}>{t('employees.currentMonth.noProduction', 'No production this month')}</span>}
             />
           </div>
         ) : (
@@ -94,11 +96,11 @@ export const CurrentMonthCard: React.FC<Props> = ({ summary, products = [] }) =>
               description: (
                 <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 3, paddingBottom: 10 }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>Quantity Produced:</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--theme-primary)', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} Pcs</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>{t('employees.quantityProduced', 'Quantity Produced')}:</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--theme-primary)', fontWeight: 600 }}>{item.quantity.toLocaleString('en-IN')} {t('employees.pcs', 'Pcs')}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>Earnings:</span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: 500 }}>{t('employees.earnings', 'Earnings')}:</span>
                     <span style={{ fontSize: '0.92rem', color: 'var(--theme-primary)', fontWeight: 800 }}>{inr(item.earnings)}</span>
                   </div>
                 </div>

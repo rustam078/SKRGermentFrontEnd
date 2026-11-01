@@ -59,6 +59,7 @@ import { productService } from '../../services/productService';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { formatMoney, getCurrencySymbol } from '../../utils/currency';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -107,7 +108,9 @@ const cardStyle = {
 // ─────────────────────────────────────────
 // STATUS BADGE (pill with dot)
 // ─────────────────────────────────────────
-const StatusBadge = ({ active }) => (
+const StatusBadge = ({ active }) => {
+  const t = useT();
+  return (
   <span
     style={{
       display: 'inline-flex',
@@ -130,14 +133,16 @@ const StatusBadge = ({ active }) => (
         backgroundColor: active ? '#16A34A' : '#DC2626',
       }}
     />
-    {active ? 'Active' : 'Inactive'}
+    {active ? t('investment.active', 'Active') : t('investment.inactive', 'Inactive')}
   </span>
-);
+  );
+};
 
 // ─────────────────────────────────────────
 // INVESTMENT TYPE BADGE
 // ─────────────────────────────────────────
 const TypeBadge = ({ type }) => {
+  const t = useT();
   const cfg = getTypeConfig(type);
   return (
     <span
@@ -153,7 +158,7 @@ const TypeBadge = ({ type }) => {
         letterSpacing: 0.3,
       }}
     >
-      {cfg.label}
+      {t(`investment.typeOption.${cfg.value}`, cfg.label)}
     </span>
   );
 };
@@ -223,6 +228,12 @@ const InvestmentPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { can } = usePermissions();
+  const t = useT();
+
+  // Localised labels for enum values used across selects, badges and tables.
+  const typeLabel = (v) => t(`investment.typeOption.${v}`, INVESTMENT_TYPES.find((x) => x.value === v)?.label || v);
+  const itemTypeLabel = (v) => t(`investment.itemTypeOption.${v}`, ITEM_TYPES.find((x) => x.value === v)?.label || v);
+  const unitLabel = (k) => t(`investment.unit.${k}`, UNIT_OPTIONS.find((x) => x.key === k)?.label || k);
 
   const isAddPage = location.pathname === '/investment/new'; // Add Investment opens as a full page
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -394,7 +405,7 @@ const InvestmentPage = () => {
   const addPaymentMutation = useMutation({
     mutationFn: ({ id, data }) => investmentService.addPayment(id, data),
     onSuccess: () => {
-      notification.success({ message: 'Payment Recorded', placement: 'topRight', duration: 3 });
+      notification.success({ message: t('investment.toast.paymentRecorded', 'Payment Recorded'), placement: 'topRight', duration: 3 });
       queryClient.invalidateQueries({ queryKey: ['investment', selectedInvestment?.id] });
       queryClient.invalidateQueries({ queryKey: ['investments'] });
       queryClient.invalidateQueries({ queryKey: ['vendorPayments'] });
@@ -409,7 +420,7 @@ const InvestmentPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Payment Failed',
+        message: t('investment.toast.paymentFailed', 'Payment Failed'),
         description: err.response?.data?.message || err.message,
         placement: 'topRight',
         duration: 5,
@@ -419,7 +430,7 @@ const InvestmentPage = () => {
 
   const handleAddPayment = () => {
     if (!payAmount || Number(payAmount) <= 0) {
-      notification.warning({ message: 'Enter a valid payment amount', placement: 'topRight' });
+      notification.warning({ message: t('investment.toast.enterValidPayment', 'Enter a valid payment amount'), placement: 'topRight' });
       return;
     }
     addPaymentMutation.mutate({
@@ -435,9 +446,9 @@ const InvestmentPage = () => {
 
   // Same colours as the Sales table chips (MUI success / info / warning).
   const PAYMENT_STATUS_META = {
-    PAID: { color: 'success', label: 'Paid', bg: '#10B981' },
-    PARTIALLY_PAID: { color: 'processing', label: 'Partial', bg: '#06B6D4' },
-    PENDING: { color: 'warning', label: 'Unpaid', bg: '#F59E0B' },
+    PAID: { color: 'success', label: t('investment.status.paid', 'Paid'), bg: '#10B981' },
+    PARTIALLY_PAID: { color: 'processing', label: t('investment.status.partial', 'Partial'), bg: '#06B6D4' },
+    PENDING: { color: 'warning', label: t('investment.status.unpaid', 'Unpaid'), bg: '#F59E0B' },
   };
 
   // ── Summary computations ───────────────
@@ -551,8 +562,8 @@ const InvestmentPage = () => {
     mutationFn: investmentService.createInvestment,
     onSuccess: (res, variables) => {
       notification.success({
-        message: 'Investment Saved',
-        description: res.message || 'Investment created successfully.',
+        message: t('investment.toast.investmentSaved', 'Investment Saved'),
+        description: res.message || t('investment.toast.investmentSavedDesc', 'Investment created successfully.'),
         placement: 'topRight',
         duration: 4,
       });
@@ -570,7 +581,7 @@ const InvestmentPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Save Failed',
+        message: t('investment.toast.saveFailed', 'Save Failed'),
         description: err.response?.data?.message || err.message,
         placement: 'topRight',
         duration: 5,
@@ -582,8 +593,8 @@ const InvestmentPage = () => {
     mutationFn: vendorService.createVendor,
     onSuccess: (res) => {
       notification.success({
-        message: 'Vendor Saved',
-        description: res.message || 'Vendor created successfully.',
+        message: t('investment.toast.vendorSaved', 'Vendor Saved'),
+        description: res.message || t('investment.toast.vendorSavedDesc', 'Vendor created successfully.'),
         placement: 'topRight',
         duration: 4,
       });
@@ -592,7 +603,7 @@ const InvestmentPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Save Failed',
+        message: t('investment.toast.saveFailed', 'Save Failed'),
         description: err.response?.data?.message || err.message,
         placement: 'topRight',
         duration: 5,
@@ -604,8 +615,8 @@ const InvestmentPage = () => {
     mutationFn: ({ id, data }) => vendorService.updateVendor(id, data),
     onSuccess: (res) => {
       notification.success({
-        message: 'Vendor Updated',
-        description: res.message || 'Vendor updated successfully.',
+        message: t('investment.toast.vendorUpdated', 'Vendor Updated'),
+        description: res.message || t('investment.toast.vendorUpdatedDesc', 'Vendor updated successfully.'),
         placement: 'topRight',
         duration: 4,
       });
@@ -614,7 +625,7 @@ const InvestmentPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Update Failed',
+        message: t('investment.toast.updateFailed', 'Update Failed'),
         description: err.response?.data?.message || err.message,
         placement: 'topRight',
         duration: 5,
@@ -626,8 +637,8 @@ const InvestmentPage = () => {
     mutationFn: ({ id, active }) => vendorService.toggleVendorStatus(id, active),
     onSuccess: (res) => {
       notification.success({
-        message: 'Status Updated',
-        description: res.message || 'Vendor status updated.',
+        message: t('investment.toast.statusUpdated', 'Status Updated'),
+        description: res.message || t('investment.toast.statusUpdatedDesc', 'Vendor status updated.'),
         placement: 'topRight',
         duration: 3,
       });
@@ -635,7 +646,7 @@ const InvestmentPage = () => {
     },
     onError: (err) => {
       notification.error({
-        message: 'Update Failed',
+        message: t('investment.toast.updateFailed', 'Update Failed'),
         description: err.response?.data?.message || err.message,
         placement: 'topRight',
         duration: 4,
@@ -679,8 +690,8 @@ const InvestmentPage = () => {
       await investmentService.downloadInvoicePdf(inv.id, inv.invoiceNumber);
     } catch (e) {
       notification.error({
-        message: 'Invoice download failed',
-        description: e.response?.data?.message || e.message || 'Could not generate the invoice PDF.',
+        message: t('investment.toast.invoiceDownloadFailed', 'Invoice download failed'),
+        description: e.response?.data?.message || e.message || t('investment.toast.invoiceDownloadFailedDesc', 'Could not generate the invoice PDF.'),
         placement: 'topRight',
       });
     } finally {
@@ -725,9 +736,9 @@ const InvestmentPage = () => {
 
   // Validate quick-add fields: name + a unique 10-digit phone. Returns an error or null.
   const quickVendorError = (name, mobile) => {
-    if (!name || !mobile) return 'Vendor name and phone are required.';
-    if (!/^\d{10}$/.test(mobile)) return 'Enter a valid 10-digit phone number.';
-    if (vendors.some((v) => (v.mobile || '').replace(/\D/g, '') === mobile)) return 'A vendor with this phone number already exists.';
+    if (!name || !mobile) return t('investment.quickVendorError.required', 'Vendor name and phone are required.');
+    if (!/^\d{10}$/.test(mobile)) return t('investment.quickVendorError.invalidPhone', 'Enter a valid 10-digit phone number.');
+    if (vendors.some((v) => (v.mobile || '').replace(/\D/g, '') === mobile)) return t('investment.quickVendorError.duplicate', 'A vendor with this phone number already exists.');
     return null;
   };
 
@@ -736,7 +747,7 @@ const InvestmentPage = () => {
     const name = qv.name.trim();
     const mobile = qv.mobile.trim();
     const err = quickVendorError(name, mobile);
-    if (err) { notification.error({ message: 'Check details', description: err, placement: 'topRight' }); return; }
+    if (err) { notification.error({ message: t('investment.toast.checkDetails', 'Check details'), description: err, placement: 'topRight' }); return; }
     try {
       setQvSaving(true);
       const res = await vendorService.createVendor({ name, mobile, active: true });
@@ -745,9 +756,9 @@ const InvestmentPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       if (newId) investmentForm.setFieldsValue({ vendorId: newId });
       setQuickVendorOpen(false);
-      notification.success({ message: 'Vendor added', description: `${name} added and selected.`, placement: 'topRight', duration: 3 });
+      notification.success({ message: t('investment.toast.vendorAdded', 'Vendor added'), description: `${name} ${t('investment.toast.addedAndSelected', 'added and selected.')}`, placement: 'topRight', duration: 3 });
     } catch (e) {
-      notification.error({ message: 'Failed', description: e.response?.data?.message || e.message, placement: 'topRight', duration: 5 });
+      notification.error({ message: t('investment.toast.failed', 'Failed'), description: e.response?.data?.message || e.message, placement: 'topRight', duration: 5 });
     } finally {
       setQvSaving(false);
     }
@@ -844,7 +855,7 @@ const InvestmentPage = () => {
       if (selectedType !== 'OVERHEAD') {
         const missingMrp = itemRows.some((r) => r.itemName && r.itemType === 'PRODUCT' && (r.mrp == null || r.mrp === ''));
         if (missingMrp) {
-          notification.error({ message: 'Selling price (MRP) is required for every product item.', placement: 'topRight' });
+          notification.error({ message: t('investment.toast.mrpRequired', 'Selling price (MRP) is required for every product item.'), placement: 'topRight' });
           return;
         }
       }
@@ -861,7 +872,7 @@ const InvestmentPage = () => {
       if (selectedType !== 'OVERHEAD') {
         const missingMrp = itemRows.some((r) => r.itemName && r.itemType === 'PRODUCT' && (r.mrp == null || r.mrp === ''));
         if (missingMrp) {
-          notification.error({ message: 'Selling price (MRP) is required for every product item.', placement: 'topRight' });
+          notification.error({ message: t('investment.toast.mrpRequired', 'Selling price (MRP) is required for every product item.'), placement: 'topRight' });
           return;
         }
       }
@@ -977,7 +988,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Invoice No',
+      title: t('investment.col.invoiceNo', 'Invoice No'),
       dataIndex: 'invoiceNumber',
       key: 'invoiceNumber',
       render: (val) => (
@@ -987,7 +998,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Vendor',
+      title: t('investment.col.vendor', 'Vendor'),
       dataIndex: 'vendorName',
       key: 'vendorName',
       render: (val, record) => (
@@ -1001,13 +1012,13 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Type',
+      title: t('investment.col.type', 'Type'),
       dataIndex: 'investmentType',
       key: 'investmentType',
       render: (val) => <TypeBadge type={val} />,
     },
     {
-      title: 'Purchase Date',
+      title: t('investment.col.purchaseDate', 'Purchase Date'),
       dataIndex: 'purchaseDate',
       key: 'purchaseDate',
       render: (val) => (
@@ -1018,7 +1029,7 @@ const InvestmentPage = () => {
       sorter: (a, b) => (a.purchaseDate || '').localeCompare(b.purchaseDate || ''),
     },
     {
-      title: 'Items',
+      title: t('investment.col.items', 'Items'),
       dataIndex: 'itemCount',
       key: 'itemCount',
       align: 'center',
@@ -1038,7 +1049,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Grand Total',
+      title: t('investment.col.grandTotal', 'Grand Total'),
       dataIndex: 'grandTotal',
       key: 'grandTotal',
       render: (val) => (
@@ -1050,7 +1061,7 @@ const InvestmentPage = () => {
     },
     {
       // Actual cash received in this invoice's own transaction (can clear previous dues too).
-      title: 'Amount Received',
+      title: t('investment.col.amountReceived', 'Amount Received'),
       dataIndex: 'amountReceived',
       key: 'amountReceived',
       render: (val) => (
@@ -1061,14 +1072,14 @@ const InvestmentPage = () => {
       sorter: (a, b) => (a.amountReceived || 0) - (b.amountReceived || 0),
     },
     {
-      title: 'Payment',
+      title: t('investment.col.payment', 'Payment'),
       key: 'paymentStatus',
       align: 'left',
       width: 200,
       filters: [
-        { text: 'Paid', value: 'PAID' },
-        { text: 'Partial', value: 'PARTIALLY_PAID' },
-        { text: 'Unpaid', value: 'PENDING' },
+        { text: t('investment.status.paid', 'Paid'), value: 'PAID' },
+        { text: t('investment.status.partial', 'Partial'), value: 'PARTIALLY_PAID' },
+        { text: t('investment.status.unpaid', 'Unpaid'), value: 'PENDING' },
       ],
       onFilter: (value, record) => (record.paymentStatus || 'PENDING') === value,
       render: (_, record) => {
@@ -1079,21 +1090,21 @@ const InvestmentPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 6, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
             <Tag style={{ background: meta.bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px', margin: 0, flexShrink: 0 }}>{meta.label}</Tag>
             {record.paymentStatus !== 'PAID' && due > 0 && (
-              <span style={{ color: '#B91C1C', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0 }}>Due {getCurrencySymbol()}{due.toLocaleString('en-IN')}</span>
+              <span style={{ color: '#B91C1C', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0 }}>{t('investment.duePrefix', 'Due')} {getCurrencySymbol()}{due.toLocaleString('en-IN')}</span>
             )}
           </div>
         );
       },
     },
     {
-      title: 'Action',
+      title: t('investment.col.action', 'Action'),
       key: 'actions',
       width: 100,
       align: 'center',
       render: (_, record) => (
         record.investmentType !== 'OVERHEAD' ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-            <Tooltip title="Download Invoice PDF" placement="top">
+            <Tooltip title={t('investment.tooltip.downloadInvoice', 'Download Invoice PDF')} placement="top">
               <Button
                 type="text"
                 size="small"
@@ -1102,8 +1113,8 @@ const InvestmentPage = () => {
                   e.stopPropagation();
                   investmentService.downloadInvoicePdf(record.id, record.invoiceNumber).catch((err) =>
                     notification.error({
-                      message: 'Invoice download failed',
-                      description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
+                      message: t('investment.toast.invoiceDownloadFailed', 'Invoice download failed'),
+                      description: err.response?.data?.message || err.message || t('investment.toast.invoiceDownloadFailedDesc', 'Could not generate the invoice PDF.'),
                       placement: 'topRight',
                     })
                   );
@@ -1111,7 +1122,7 @@ const InvestmentPage = () => {
                 style={{ color: 'var(--theme-primary)', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               />
             </Tooltip>
-            <Tooltip title="Print Invoice" placement="top">
+            <Tooltip title={t('investment.tooltip.printInvoice', 'Print Invoice')} placement="top">
               <Button
                 type="text"
                 size="small"
@@ -1120,8 +1131,8 @@ const InvestmentPage = () => {
                   e.stopPropagation();
                   investmentService.printInvoicePdf(record.id).catch((err) =>
                     notification.error({
-                      message: 'Invoice print failed',
-                      description: err.response?.data?.message || err.message || 'Could not generate the invoice PDF.',
+                      message: t('investment.toast.invoicePrintFailed', 'Invoice print failed'),
+                      description: err.response?.data?.message || err.message || t('investment.toast.invoiceDownloadFailedDesc', 'Could not generate the invoice PDF.'),
                       placement: 'topRight',
                     })
                   );
@@ -1146,14 +1157,14 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Vendor Name',
+      title: t('investment.vendorCol.name', 'Vendor Name'),
       dataIndex: 'name',
       key: 'name',
       render: (val) => <span style={{ fontWeight: 700, color: '#0F172A' }}>{val}</span>,
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: 'GST Number',
+      title: t('investment.vendorCol.gstNumber', 'GST Number'),
       dataIndex: 'gstNumber',
       key: 'gstNumber',
       render: (val) => (
@@ -1163,7 +1174,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Phone',
+      title: t('investment.vendorCol.phone', 'Phone'),
       dataIndex: 'mobile',
       key: 'mobile',
       render: (val) => (
@@ -1171,7 +1182,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Email',
+      title: t('investment.vendorCol.email', 'Email'),
       dataIndex: 'email',
       key: 'email',
       render: (val) =>
@@ -1184,28 +1195,28 @@ const InvestmentPage = () => {
             {val}
           </a>
         ) : (
-          <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>Not Provided</span>
+          <span style={{ color: '#94A3B8', fontStyle: 'italic', fontSize: '0.85rem' }}>{t('investment.vendorCol.notProvided', 'Not Provided')}</span>
         ),
     },
     {
-      title: 'Status',
+      title: t('common.status', 'Status'),
       dataIndex: 'active',
       key: 'active',
       render: (val) => <StatusBadge active={val} />,
       filters: [
-        { text: 'Active', value: true },
-        { text: 'Inactive', value: false },
+        { text: t('investment.active', 'Active'), value: true },
+        { text: t('investment.inactive', 'Inactive'), value: false },
       ],
       onFilter: (value, record) => record.active === value,
     },
     {
-      title: 'Actions',
+      title: t('common.actions', 'Actions'),
       key: 'actions',
       width: 130,
       render: (_, record) => (
         <Space size={6}>
           {can('investment', 'write') && (
-          <Tooltip title="Edit Vendor">
+          <Tooltip title={t('investment.tooltip.editVendor', 'Edit Vendor')}>
             <Button
               type="text"
               size="small"
@@ -1226,7 +1237,7 @@ const InvestmentPage = () => {
           </Tooltip>
           )}
           {can('investment', 'write') && (record.active ? (
-            <Tooltip title="Deactivate">
+            <Tooltip title={t('investment.tooltip.deactivate', 'Deactivate')}>
               <Button
                 type="text"
                 size="small"
@@ -1247,7 +1258,7 @@ const InvestmentPage = () => {
               />
             </Tooltip>
           ) : (
-            <Tooltip title="Activate">
+            <Tooltip title={t('investment.tooltip.activate', 'Activate')}>
               <Button
                 type="text"
                 size="small"
@@ -1276,14 +1287,14 @@ const InvestmentPage = () => {
   // ── Item rows columns (for Add Investment modal) ──
   const purchaseItemColumns = [
     {
-      title: 'S.No',
+      title: t('investment.itemCol.sno', 'S.No'),
       width: 48,
       render: (_, __, i) => (
         <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>{i + 1}</span>
       ),
     },
     {
-      title: 'Item Type',
+      title: t('investment.itemCol.itemType', 'Item Type'),
       width: 110,
       render: (_, record) => (
         <Select
@@ -1293,18 +1304,18 @@ const InvestmentPage = () => {
           size="small"
           variant="borderless"
         >
-          {ITEM_TYPES.map((t) => (
-            <Option key={t.value} value={t.value}>{t.label}</Option>
+          {ITEM_TYPES.map((it) => (
+            <Option key={it.value} value={it.value}>{itemTypeLabel(it.value)}</Option>
           ))}
         </Select>
       ),
     },
     {
-      title: 'Item Name',
+      title: t('investment.itemCol.itemName', 'Item Name'),
       width: 150,
       render: (_, record) => (
         <Input
-          placeholder="Item name"
+          placeholder={t('investment.itemCol.itemNamePlaceholder', 'Item name')}
           value={record.itemName}
           onChange={(e) => updateItemRow(record.id, 'itemName', e.target.value)}
           style={{ fontSize: '0.82rem' }}
@@ -1314,7 +1325,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Qty',
+      title: t('investment.itemCol.qty', 'Qty'),
       width: 80,
       render: (_, record) => (
         <InputNumber
@@ -1330,7 +1341,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: 'Unit',
+      title: t('investment.itemCol.unit', 'Unit'),
       width: 100,
       render: (_, record) => (
         <Select
@@ -1341,13 +1352,13 @@ const InvestmentPage = () => {
           variant="borderless"
         >
           {UNIT_OPTIONS.map((u) => (
-            <Option key={u.key} value={u.key}>{u.label}</Option>
+            <Option key={u.key} value={u.key}>{unitLabel(u.key)}</Option>
           ))}
         </Select>
       ),
     },
     {
-      title: `Rate (${getCurrencySymbol()})`,
+      title: `${t('investment.itemCol.rate', 'Rate')} (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
         <InputNumber
@@ -1365,8 +1376,8 @@ const InvestmentPage = () => {
     },
     {
       title: (
-        <Tooltip title="Selling price (MRP) for this stock — required for every product.">
-          <span>MRP ({getCurrencySymbol()}) <span style={{ color: '#DC2626' }}>*</span></span>
+        <Tooltip title={t('investment.itemCol.mrpTooltip', 'Selling price (MRP) for this stock — required for every product.')}>
+          <span>{t('investment.itemCol.mrp', 'MRP')} ({getCurrencySymbol()}) <span style={{ color: '#DC2626' }}>*</span></span>
         </Tooltip>
       ),
       width: 110,
@@ -1388,7 +1399,7 @@ const InvestmentPage = () => {
         ),
     },
     {
-      title: `Amount (${getCurrencySymbol()})`,
+      title: `${t('common.amount', 'Amount')} (${getCurrencySymbol()})`,
       width: 100,
       render: (_, record) => (
         <span style={{ fontWeight: 700, color: 'var(--theme-primary)', fontSize: '0.85rem' }}>
@@ -1414,18 +1425,18 @@ const InvestmentPage = () => {
 
   const overheadItemColumns = [
     {
-      title: 'S.No',
+      title: t('investment.itemCol.sno', 'S.No'),
       width: 48,
       render: (_, __, i) => (
         <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.78rem' }}>{i + 1}</span>
       ),
     },
     {
-      title: 'Expense Name',
+      title: t('investment.overheadCol.expenseName', 'Expense Name'),
       width: 150,
       render: (_, record) => (
         <Input
-          placeholder="Expense name"
+          placeholder={t('investment.overheadCol.expenseNamePlaceholder', 'Expense name')}
           value={record.expenseName}
           onChange={(e) => updateOverheadRow(record.id, 'expenseName', e.target.value)}
           style={{ fontSize: '0.82rem' }}
@@ -1435,7 +1446,7 @@ const InvestmentPage = () => {
       ),
     },
     {
-      title: `Amount (${getCurrencySymbol()})`,
+      title: `${t('common.amount', 'Amount')} (${getCurrencySymbol()})`,
       width: 150,
       render: (_, record) => (
         <InputNumber
@@ -1470,27 +1481,27 @@ const InvestmentPage = () => {
   // ── View Drawer Items Table ────────────
   const drawerItemColumns = [
     {
-      title: "Item",
+      title: t('investment.drawerCol.item', 'Item'),
       dataIndex: "itemName",
       key: "itemName",
       render: (v, r) => v || r.expenseName || "—",
     },
     {
-      title: "Qty",
+      title: t('investment.drawerCol.qty', 'Qty'),
       dataIndex: "quantity",
       key: "quantity",
       width: 70,
       render: (v) => v ?? "—",
     },
     {
-      title: "Unit",
+      title: t('investment.drawerCol.unit', 'Unit'),
       dataIndex: "unit",
       key: "unit",
       width: 70,
       render: (v) => v || "—",
     },
     {
-      title: "Rate",
+      title: t('investment.drawerCol.rate', 'Rate'),
       dataIndex: "rate",
       key: "rate",
       width: 90,
@@ -1498,7 +1509,7 @@ const InvestmentPage = () => {
         v != null ? `${getCurrencySymbol()}${Number(v).toLocaleString("en-IN")}` : "—",
     },
     {
-      title: "Amount",
+      title: t('common.amount', 'Amount'),
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 110,
@@ -1513,19 +1524,19 @@ const InvestmentPage = () => {
   // ── Vendor recent investments columns ──
   const recentInvColumns = [
     {
-      title: 'Reference',
+      title: t('investment.recentCol.reference', 'Reference'),
       dataIndex: 'referenceNumber',
       key: 'referenceNumber',
       render: (v) => <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{v || '—'}</span>,
     },
     {
-      title: 'Date',
+      title: t('common.date', 'Date'),
       dataIndex: 'purchaseDate',
       key: 'purchaseDate',
       render: (v) => (v ? dayjs(v).format('DD-MMM-YYYY') : '—'),
     },
     {
-      title: 'Amount',
+      title: t('common.amount', 'Amount'),
       dataIndex: 'grandTotal',
       key: 'grandTotal',
       render: (v) => (
@@ -1611,10 +1622,10 @@ const InvestmentPage = () => {
             }}
           >
             <div style={tabStyle('investments')} onClick={() => setActiveTab('investments')}>
-              Investments
+              {t('investment.tab.investments', 'Investments')}
             </div>
             <div style={tabStyle('vendors')} onClick={() => setActiveTab('vendors')}>
-              Vendors
+              {t('investment.tab.vendors', 'Vendors')}
             </div>
           </div>
 
@@ -1637,34 +1648,34 @@ const InvestmentPage = () => {
               >
                 <div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-                    Investment
-                    <HeadingInfo text="Manage raw material purchases, purchased products and business expenses." />
+                    {t('investment.title', 'Investment')}
+                    <HeadingInfo text={t('investment.headingInfo', 'Manage raw material purchases, purchased products and business expenses.')} />
                   </div>
                   {/* Compact inline summary (left of the filter) */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginTop: 6, color: '#334155', fontSize: '0.78rem', fontWeight: 600 }}>
                     <span>
-                      <span style={{ color: 'var(--theme-primary)' }}>Current Month:</span>
+                      <span style={{ color: 'var(--theme-primary)' }}>{t('investment.summary.currentMonth', 'Current Month:')}</span>
                       <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{currentMonthInvestment.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
-                      <span style={{ color: 'var(--theme-primary)' }}>Total:</span>
+                      <span style={{ color: 'var(--theme-primary)' }}>{t('investment.summary.total', 'Total:')}</span>
                       <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{totalInvestment.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
-                      <span style={{ color: 'var(--theme-primary)' }}>Purchase:</span>
+                      <span style={{ color: 'var(--theme-primary)' }}>{t('investment.summary.purchase', 'Purchase:')}</span>
                       <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{purchaseTotal.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span>
-                      <span style={{ color: 'var(--theme-primary)' }}>Overhead:</span>
+                      <span style={{ color: 'var(--theme-primary)' }}>{t('investment.summary.overhead', 'Overhead:')}</span>
                       <span style={{ marginLeft: 4, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{overheadTotal.toLocaleString('en-IN')}</span>
                     </span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
                     <span
                       onClick={() => setAppliedFilters((p) => ({ ...p, paymentStatus: p.paymentStatus === 'DUE' ? undefined : 'DUE' }))}
-                      title={appliedFilters.paymentStatus === 'DUE' ? 'Showing only records with a pending due — click to clear' : 'Click to show only records with a pending due'}
+                      title={appliedFilters.paymentStatus === 'DUE' ? t('investment.dueFilterOn', 'Showing only records with a pending due — click to clear') : t('investment.dueFilterOff', 'Click to show only records with a pending due')}
                       style={{
                         cursor: 'pointer',
                         fontWeight: appliedFilters.paymentStatus === 'DUE' ? 800 : 'inherit',
@@ -1674,7 +1685,7 @@ const InvestmentPage = () => {
                         border: appliedFilters.paymentStatus === 'DUE' ? '1px solid #B91C1C' : '1px solid transparent',
                       }}
                     >
-                      <span style={{ color: '#B91C1C' }}>Due:</span>
+                      <span style={{ color: '#B91C1C' }}>{t('investment.summary.due', 'Due:')}</span>
                       <span style={{ marginLeft: 4, color: '#DC2626' }}>{getCurrencySymbol()}{totalDue.toLocaleString('en-IN')}</span>
                       {appliedFilters.paymentStatus === 'DUE' ? <span style={{ marginLeft: 6, color: '#B91C1C' }}>✕</span> : null}
                     </span>
@@ -1688,7 +1699,7 @@ const InvestmentPage = () => {
                     onOpenChange={setFilterOpen}
                     content={
                       <div style={{ width: 260 }}>
-                        <span style={labelStyle}>Date From</span>
+                        <span style={labelStyle}>{t('investment.filter.dateFrom', 'Date From')}</span>
                         <DatePicker
                           value={investmentFilters.fromDate}
                           onChange={(d) => setInvestmentFilters((p) => ({ ...p, fromDate: d }))}
@@ -1696,7 +1707,7 @@ const InvestmentPage = () => {
                           style={{ ...inlineInputStyle, width: '100%', marginBottom: 12 }}
                           placeholder="dd-mm-yyyy"
                         />
-                        <span style={labelStyle}>Date To</span>
+                        <span style={labelStyle}>{t('investment.filter.dateTo', 'Date To')}</span>
                         <DatePicker
                           value={investmentFilters.toDate}
                           onChange={(d) => setInvestmentFilters((p) => ({ ...p, toDate: d }))}
@@ -1704,11 +1715,11 @@ const InvestmentPage = () => {
                           style={{ ...inlineInputStyle, width: '100%', marginBottom: 12 }}
                           placeholder="dd-mm-yyyy"
                         />
-                        <span style={labelStyle}>Vendor</span>
+                        <span style={labelStyle}>{t('investment.filter.vendor', 'Vendor')}</span>
                         <Select
                           value={investmentFilters.vendorId}
                           onChange={(v) => setInvestmentFilters((p) => ({ ...p, vendorId: v }))}
-                          placeholder="All Vendors"
+                          placeholder={t('investment.filter.allVendors', 'All Vendors')}
                           allowClear
                           style={{ width: '100%', marginBottom: 12 }}
                         >
@@ -1716,35 +1727,35 @@ const InvestmentPage = () => {
                             <Option key={v.id} value={v.id}>{v.name}</Option>
                           ))}
                         </Select>
-                        <span style={labelStyle}>Investment Type</span>
+                        <span style={labelStyle}>{t('investment.filter.investmentType', 'Investment Type')}</span>
                         <Select
                           value={investmentFilters.type}
                           onChange={(v) => setInvestmentFilters((p) => ({ ...p, type: v }))}
-                          placeholder="All Types"
+                          placeholder={t('investment.filter.allTypes', 'All Types')}
                           allowClear
                           style={{ width: '100%', marginBottom: 12 }}
                         >
-                          {INVESTMENT_TYPES.map((t) => (
-                            <Option key={t.value} value={t.value}>{t.label}</Option>
+                          {INVESTMENT_TYPES.map((ty) => (
+                            <Option key={ty.value} value={ty.value}>{typeLabel(ty.value)}</Option>
                           ))}
                         </Select>
-                        <span style={labelStyle}>Payment Status</span>
+                        <span style={labelStyle}>{t('investment.filter.paymentStatus', 'Payment Status')}</span>
                         <Select
                           value={investmentFilters.paymentStatus}
                           onChange={(v) => setInvestmentFilters((p) => ({ ...p, paymentStatus: v }))}
-                          placeholder="All Payments"
+                          placeholder={t('investment.filter.allPayments', 'All Payments')}
                           allowClear
                           style={{ width: '100%', marginBottom: 12 }}
                         >
-                          <Option value="PAID">Paid</Option>
-                          <Option value="PARTIALLY_PAID">Partial</Option>
-                          <Option value="PENDING">Unpaid</Option>
+                          <Option value="PAID">{t('investment.status.paid', 'Paid')}</Option>
+                          <Option value="PARTIALLY_PAID">{t('investment.status.partial', 'Partial')}</Option>
+                          <Option value="PENDING">{t('investment.status.unpaid', 'Unpaid')}</Option>
                         </Select>
-                        <span style={labelStyle}>Search</span>
+                        <span style={labelStyle}>{t('common.search', 'Search')}</span>
                         <Input
                           value={investmentFilters.search}
                           onChange={(e) => setInvestmentFilters((p) => ({ ...p, search: e.target.value }))}
-                          placeholder="Invoice number …"
+                          placeholder={t('investment.filter.searchPlaceholder', 'Invoice number …')}
                           prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
                           style={{ ...inlineInputStyle, width: '100%', marginBottom: 16 }}
                           allowClear
@@ -1752,10 +1763,10 @@ const InvestmentPage = () => {
                         />
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                           <Button onClick={handleResetFilters} icon={<ReloadOutlined />} style={{ borderRadius: 8 }}>
-                            Reset
+                            {t('common.reset', 'Reset')}
                           </Button>
                           <Button type="primary" onClick={handleApplyFilters} icon={<SearchOutlined />} style={{ borderRadius: 8 }}>
-                            Search
+                            {t('common.search', 'Search')}
                           </Button>
                         </div>
                       </div>
@@ -1763,7 +1774,7 @@ const InvestmentPage = () => {
                   >
                     <Badge count={activeFilterCount} size="small">
                       <Button icon={<FilterOutlined />} style={{ borderRadius: 8, fontWeight: 600, height: 38 }}>
-                        Filters
+                        {t('common.filters', 'Filters')}
                       </Button>
                     </Badge>
                   </Popover>
@@ -1780,7 +1791,7 @@ const InvestmentPage = () => {
                       boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
                     }}
                   >
-                    Add Investment
+                    {t('investment.addInvestment', 'Add Investment')}
                   </Button>
                   )}
                 </Space>
@@ -1811,7 +1822,7 @@ const InvestmentPage = () => {
                     showSizeChanger: true,
                     pageSizeOptions: ['10', '25', '50'],
                     showTotal: (total, range) =>
-                      `Showing ${range[0]} to ${range[1]} of ${total} entries`,
+                      `${t('investment.pagination.showing', 'Showing')} ${range[0]} ${t('investment.pagination.to', 'to')} ${range[1]} ${t('investment.pagination.of', 'of')} ${total} ${t('investment.pagination.entries', 'entries')}`,
                     style: { margin: '12px 20px' },
                   }}
                   locale={{
@@ -1821,10 +1832,10 @@ const InvestmentPage = () => {
                         description={
                           <div style={{ padding: '16px 0' }}>
                             <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
-                              No Investments Found
+                              {t('investment.empty.noInvestmentsTitle', 'No Investments Found')}
                             </div>
                             <div style={{ color: '#94A3B8', fontSize: '0.83rem' }}>
-                              Click &quot;Add Investment&quot; to record your first investment.
+                              {t('investment.empty.noInvestmentsDesc', 'Click "Add Investment" to record your first investment.')}
                             </div>
                           </div>
                         }
@@ -1857,20 +1868,20 @@ const InvestmentPage = () => {
               >
                 <div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-                    Vendor Management
-                    <HeadingInfo text="Manage suppliers and vendor information." />
+                    {t('investment.vendorMgmt', 'Vendor Management')}
+                    <HeadingInfo text={t('investment.vendorMgmtInfo', 'Manage suppliers and vendor information.')} />
                   </div>
                   <div style={{ marginTop: 4, fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span><span style={{ color: 'var(--theme-primary)' }}>Total:</span> {totalVendors}</span>
+                    <span><span style={{ color: 'var(--theme-primary)' }}>{t('investment.vendorSummary.total', 'Total:')}</span> {totalVendors}</span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
-                    <span><span style={{ color: 'var(--theme-primary)' }}>Active:</span> {activeVendors}</span>
+                    <span><span style={{ color: 'var(--theme-primary)' }}>{t('investment.vendorSummary.active', 'Active:')}</span> {activeVendors}</span>
                     <span style={{ color: '#CBD5E1' }}>|</span>
-                    <span><span style={{ color: '#DC2626' }}>Inactive:</span> {inactiveVendors}</span>
+                    <span><span style={{ color: '#DC2626' }}>{t('investment.vendorSummary.inactive', 'Inactive:')}</span> {inactiveVendors}</span>
                   </div>
                 </div>
                 <Space size={10} wrap>
                   <Input
-                    placeholder="Search by name, GST, phone, email…"
+                    placeholder={t('investment.vendorSearchPlaceholder', 'Search by name, GST, phone, email…')}
                     prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
                     value={vendorSearch}
                     onChange={(e) => setVendorSearch(e.target.value)}
@@ -1890,7 +1901,7 @@ const InvestmentPage = () => {
                       boxShadow: '0 2px 8px rgba(37,99,235,0.3)',
                     }}
                   >
-                    Add Vendor
+                    {t('investment.addVendor', 'Add Vendor')}
                   </Button>
                   )}
                 </Space>
@@ -1914,7 +1925,7 @@ const InvestmentPage = () => {
                     showSizeChanger: true,
                     pageSizeOptions: ['10', '25', '50'],
                     showTotal: (total, range) =>
-                      `Showing ${range[0]} to ${range[1]} of ${total} entries`,
+                      `${t('investment.pagination.showing', 'Showing')} ${range[0]} ${t('investment.pagination.to', 'to')} ${range[1]} ${t('investment.pagination.of', 'of')} ${total} ${t('investment.pagination.entries', 'entries')}`,
                     style: { margin: '12px 20px' },
                   }}
                   locale={{
@@ -1924,10 +1935,10 @@ const InvestmentPage = () => {
                         description={
                           <div style={{ padding: '16px 0' }}>
                             <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
-                              No Vendors Found
+                              {t('investment.empty.noVendorsTitle', 'No Vendors Found')}
                             </div>
                             <div style={{ color: '#94A3B8', fontSize: '0.83rem' }}>
-                              Click &quot;Add Vendor&quot; to register your first vendor.
+                              {t('investment.empty.noVendorsDesc', 'Click "Add Vendor" to register your first vendor.')}
                             </div>
                           </div>
                         }
@@ -1971,7 +1982,7 @@ const InvestmentPage = () => {
             >
               <FileTextOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.95rem' }} />
             </div>
-            Investment Details
+            {t('investment.drawer.title', 'Investment Details')}
           </span>
         }
         placement="right"
@@ -1987,7 +1998,7 @@ const InvestmentPage = () => {
               loading={downloadingInvoice}
               onClick={handleDownloadInvoice}
             >
-              Invoice PDF
+              {t('investment.drawer.invoicePdf', 'Invoice PDF')}
             </Button>
           ) : null
         }
@@ -2001,9 +2012,9 @@ const InvestmentPage = () => {
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginTop: 6 }} bodyStyle={{ padding: '12px 16px' }}>
               <Row gutter={[10, 8]}>
                 {[
-                  { label: 'Invoice Number', value: investmentDetail.invoiceNumber || '—' },
+                  { label: t('investment.drawer.invoiceNumber', 'Invoice Number'), value: investmentDetail.invoiceNumber || '—' },
                   {
-                    label: 'Vendor',
+                    label: t('investment.drawer.vendor', 'Vendor'),
                     value: investmentDetail.vendorId ? (
                       <a
                         onClick={() => navigate(`/vendors/${investmentDetail.vendorId}`)}
@@ -2014,13 +2025,13 @@ const InvestmentPage = () => {
                     ) : (investmentDetail.vendorName || '—'),
                   },
                   {
-                    label: 'Purchase Date',
+                    label: t('investment.drawer.purchaseDate', 'Purchase Date'),
                     value: investmentDetail.purchaseDate
                       ? dayjs(investmentDetail.purchaseDate).format('DD-MMM-YYYY')
                       : '—',
                   },
                   {
-                    label: 'Type',
+                    label: t('investment.drawer.type', 'Type'),
                     value: <TypeBadge type={investmentDetail.investmentType} />,
                   },
                 ].map(({ label, value }) => (
@@ -2036,7 +2047,7 @@ const InvestmentPage = () => {
                 {investmentDetail.remarks && (
                   <Col xs={24}>
                     <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                      Remarks
+                      {t('investment.drawer.remarks', 'Remarks')}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#475569' }}>
                       {investmentDetail.remarks}
@@ -2047,7 +2058,7 @@ const InvestmentPage = () => {
             </Card>
 
             <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Items</span>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>{t('investment.drawer.items', 'Items')}</span>
             </Divider>
 
             {/* Items Table */}
@@ -2058,20 +2069,20 @@ const InvestmentPage = () => {
                 pagination={false}
                 size="small"
                 style={{ borderRadius: 10, overflow: 'hidden' }}
-                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items" /> }}
+                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('investment.empty.noItems', 'No items')} /> }}
               />
             </Card>
 
             <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Summary</span>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>{t('investment.drawer.summary', 'Summary')}</span>
             </Divider>
 
             {/* Totals Card */}
             <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0' }} bodyStyle={{ padding: '12px 16px' }}>
               {[
-                { label: 'Subtotal', value: investmentDetail.subTotal, color: '#0F172A' },
-                { label: 'GST', value: investmentDetail.gstAmount, color: '#0F172A' },
-                { label: 'Discount', value: investmentDetail.discountAmount, color: '#DC2626', prefix: '− ' },
+                { label: t('investment.drawer.subtotal', 'Subtotal'), value: investmentDetail.subTotal, color: '#0F172A' },
+                { label: t('investment.drawer.gst', 'GST'), value: investmentDetail.gstAmount, color: '#0F172A' },
+                { label: t('investment.drawer.discount', 'Discount'), value: investmentDetail.discountAmount, color: '#DC2626', prefix: '− ' },
               ].map(({ label, value, color, prefix }) => (
                 <div
                   key={label}
@@ -2085,7 +2096,7 @@ const InvestmentPage = () => {
               ))}
               <Divider style={{ margin: '6px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>Grand Total</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>{t('investment.drawer.grandTotal', 'Grand Total')}</span>
                 <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--theme-primary)' }}>
                   {getCurrencySymbol()}{Math.round(Number(investmentDetail.grandTotal || 0)).toLocaleString('en-IN')}
                 </span>
@@ -2093,7 +2104,7 @@ const InvestmentPage = () => {
             </Card>
 
             <Divider style={{ margin: '0', borderColor: '#E2E8F0' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>Payments</span>
+              <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>{t('investment.drawer.payments', 'Payments')}</span>
             </Divider>
 
             {/* Payment summary + add form + history */}
@@ -2101,15 +2112,15 @@ const InvestmentPage = () => {
               {/* Summary row */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                 <div style={{ flex: '1 1 110px', background: 'color-mix(in srgb, var(--theme-primary) 12%, white)', border: '1px solid #BBF7D0', borderRadius: 8, padding: '6px 10px' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>Paid</div>
+                  <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 700 }}>{t('investment.drawer.paid', 'Paid')}</div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{Number(investmentDetail.amountPaid || 0).toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ flex: '1 1 110px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: 700 }}>Due</div>
+                  <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: 700 }}>{t('investment.drawer.due', 'Due')}</div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#DC2626' }}>{getCurrencySymbol()}{detailDue.toLocaleString('en-IN')}</div>
                 </div>
                 <div style={{ flex: '1 1 110px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '6px 10px' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700 }}>Status</div>
+                  <div style={{ fontSize: '0.7rem', color: '#475569', fontWeight: 700 }}>{t('common.status', 'Status')}</div>
                   <Tag style={{ marginTop: 2, background: (PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).bg, border: 'none', color: '#fff', fontWeight: 700, borderRadius: 16, fontSize: '0.82rem', padding: '2px 10px' }}>
                     {(PAYMENT_STATUS_META[investmentDetail.paymentStatus] || PAYMENT_STATUS_META.PENDING).label}
                   </Tag>
@@ -2125,23 +2136,23 @@ const InvestmentPage = () => {
                       onChange={(v) => setPayAmount(v == null ? null : Math.min(v, detailDue))}
                       min={0}
                       max={detailDue}
-                      placeholder="Amount"
+                      placeholder={t('common.amount', 'Amount')}
                       prefix={getCurrencySymbol()}
                       style={{ width: 130 }}
                     />
                     <Select value={payMode} onChange={setPayMode} style={{ width: 130 }}>
-                      <Option value="CASH">Cash</Option>
-                      <Option value="UPI">UPI</Option>
-                      <Option value="CREDIT_CARD">Credit Card</Option>
-                      <Option value="DEBIT_CARD">Debit Card</Option>
-                      <Option value="NET_BANKING">Net Banking</Option>
+                      <Option value="CASH">{t('investment.mode.cash', 'Cash')}</Option>
+                      <Option value="UPI">{t('investment.mode.upi', 'UPI')}</Option>
+                      <Option value="CREDIT_CARD">{t('investment.mode.creditCard', 'Credit Card')}</Option>
+                      <Option value="DEBIT_CARD">{t('investment.mode.debitCard', 'Debit Card')}</Option>
+                      <Option value="NET_BANKING">{t('investment.mode.netBanking', 'Net Banking')}</Option>
                     </Select>
                     <DatePicker
                       value={payDate || dayjs()}
                       onChange={setPayDate}
                       format="DD-MMM-YYYY"
                       allowClear={false}
-                      placeholder="Payment date"
+                      placeholder={t('investment.drawer.paymentDatePlaceholder', 'Payment date')}
                       style={{ width: 150 }}
                       disabledDate={(d) =>
                         d && (
@@ -2151,14 +2162,14 @@ const InvestmentPage = () => {
                       }
                     />
                     <Button type="primary" icon={<PlusOutlined />} loading={addPaymentMutation.isPending} onClick={handleAddPayment} style={{ borderRadius: 8 }}>
-                      Add
+                      {t('common.add', 'Add')}
                     </Button>
                   </div>
                   {payMode !== 'CASH' && (
                     <Input
                       value={payRef}
                       onChange={(e) => setPayRef(e.target.value)}
-                      placeholder="Reference / txn id (optional)"
+                      placeholder={t('investment.drawer.referencePlaceholder', 'Reference / txn id (optional)')}
                       maxLength={120}
                       style={{ marginTop: 8, maxWidth: 267 }}
                     />
@@ -2167,7 +2178,7 @@ const InvestmentPage = () => {
               )}
 
               {/* Payment history */}
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>Payment History</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748B', marginBottom: 8 }}>{t('investment.drawer.paymentHistory', 'Payment History')}</div>
               {(investmentDetail.payments && investmentDetail.payments.length > 0) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {investmentDetail.payments.map((p) => {
@@ -2181,7 +2192,7 @@ const InvestmentPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>{dayjs(p.paymentDate).format('DD-MMM-YYYY')}</span>
                           <Tag style={{ borderRadius: 6 }}>{p.mode}</Tag>
-                          {p.reference ? <span style={{ color: '#64748B', fontSize: '0.78rem' }}>Ref: {p.reference}</span> : null}
+                          {p.reference ? <span style={{ color: '#64748B', fontSize: '0.78rem' }}>{t('investment.drawer.ref', 'Ref:')} {p.reference}</span> : null}
                         </div>
                         <span style={{ fontWeight: 800, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{headline.toLocaleString('en-IN')}</span>
                       </div>
@@ -2190,7 +2201,7 @@ const InvestmentPage = () => {
                         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E2E8F0' }}>
                           {p.allocations.map((a, i) => (
                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '0.78rem', color: a.thisInvoice ? 'var(--theme-primary)' : '#475569', fontWeight: a.thisInvoice ? 700 : 500 }}>
-                              <span>{a.thisInvoice ? 'This invoice' : `${a.invoiceNumber || 'Invoice'} (previous due)`}</span>
+                              <span>{a.thisInvoice ? t('investment.drawer.thisInvoice', 'This invoice') : `${a.invoiceNumber || t('investment.invoice', 'Invoice')} ${t('investment.drawer.previousDueSuffix', '(previous due)')}`}</span>
                               <span>{getCurrencySymbol()}{Number(a.amount).toLocaleString('en-IN')}</span>
                             </div>
                           ))}
@@ -2199,7 +2210,7 @@ const InvestmentPage = () => {
                       {/* Cleared by a payment made on another invoice — reference only. */}
                       {clearedElsewhere && (
                         <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B', fontStyle: 'italic' }}>
-                          Cleared via payment on {dayjs(p.paymentDate).format('DD-MMM-YYYY')} · {p.clearedFromInvoice}
+                          {t('investment.drawer.clearedVia', 'Cleared via payment on')} {dayjs(p.paymentDate).format('DD-MMM-YYYY')} · {p.clearedFromInvoice}
                         </div>
                       )}
                     </div>
@@ -2207,12 +2218,12 @@ const InvestmentPage = () => {
                   })}
                 </div>
               ) : (
-                <div style={{ color: '#94A3B8', fontSize: '0.83rem', padding: '8px 0' }}>No payments recorded yet.</div>
+                <div style={{ color: '#94A3B8', fontSize: '0.83rem', padding: '8px 0' }}>{t('investment.empty.noPayments', 'No payments recorded yet.')}</div>
               )}
             </Card>
           </div>
         ) : (
-          <Empty description="No details available" />
+          <Empty description={t('investment.empty.noDetails', 'No details available')} />
         )}
       </Drawer>
         </>
@@ -2224,12 +2235,12 @@ const InvestmentPage = () => {
       {isAddPage && (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-          <Button onClick={handleCloseAddModal} icon={<ArrowLeftOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>Back</Button>
+          <Button onClick={handleCloseAddModal} icon={<ArrowLeftOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>{t('common.back', 'Back')}</Button>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <WalletOutlined style={{ color: 'var(--theme-primary)', fontSize: '1rem' }} />
             </div>
-            Add New Investment
+            {t('investment.addNewInvestment', 'Add New Investment')}
           </span>
         </div>
         <Form
@@ -2251,11 +2262,11 @@ const InvestmentPage = () => {
               <Col xs={24} sm={12} lg={8}>
                 <Form.Item
                   name="type"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Investment Type *</span>}
-                  rules={[{ required: true, message: 'Please select a type.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.form.investmentType', 'Investment Type')} *</span>}
+                  rules={[{ required: true, message: t('investment.form.typeRequired', 'Please select a type.') }]}
                 >
                   <Select
-                    placeholder="Select Type"
+                    placeholder={t('investment.form.selectType', 'Select Type')}
                     style={{ borderRadius: 8 }}
                     size="middle"
                     onChange={handleTypeChange}
@@ -2274,11 +2285,11 @@ const InvestmentPage = () => {
                 <Col xs={24} sm={12} lg={8}>
                   <Form.Item
                     name="vendorId"
-                    label={<span style={{ fontWeight: 700, color: '#374151' }}>Vendor *</span>}
-                    rules={[{ required: true, message: 'Please select a vendor.' }]}
+                    label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.form.vendor', 'Vendor')} *</span>}
+                    rules={[{ required: true, message: t('investment.form.vendorRequired', 'Please select a vendor.') }]}
                   >
                     <Select
-                      placeholder="Select or search vendor"
+                      placeholder={t('investment.form.selectVendor', 'Select or search vendor')}
                       style={{ borderRadius: 8 }}
                       size="middle"
                       showSearch
@@ -2297,7 +2308,7 @@ const InvestmentPage = () => {
                               onClick={openQuickVendor}
                               style={{ padding: 0, fontWeight: 600 }}
                             >
-                              Add {vendorSearchText ? `"${vendorSearchText}"` : 'new vendor'}
+                              {t('common.add', 'Add')} {vendorSearchText ? `"${vendorSearchText}"` : t('investment.form.newVendor', 'new vendor')}
                             </Button>
                           </div>
                         </>
@@ -2313,8 +2324,8 @@ const InvestmentPage = () => {
               <Col xs={24} sm={12} lg={8}>
                 <Form.Item
                   name="purchaseDate"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Purchase Date *</span>}
-                  rules={[{ required: true, message: 'Please select a date.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.form.purchaseDate', 'Purchase Date')} *</span>}
+                  rules={[{ required: true, message: t('investment.form.dateRequired', 'Please select a date.') }]}
                 >
                   <DatePicker
                     format="DD-MM-YYYY"
@@ -2326,9 +2337,9 @@ const InvestmentPage = () => {
               <Col xs={24} sm={12} lg={8}>
                 <Form.Item
                   name="invoiceNumber"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Invoice Number</span>}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.form.invoiceNumber', 'Invoice Number')}</span>}
                 >
-                  <Input placeholder="Auto Generated if left blank" style={{ borderRadius: 8 }} size="middle" />
+                  <Input placeholder={t('investment.form.invoiceAuto', 'Auto Generated if left blank')} style={{ borderRadius: 8 }} size="middle" />
                 </Form.Item>
               </Col>
               {/* GST / Discount / Other — only for PURCHASE */}
@@ -2337,7 +2348,7 @@ const InvestmentPage = () => {
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
                       label={<span style={{ fontWeight: 700, color: '#374151' }}>
-                        GST %
+                        {t('investment.form.gstPercent', 'GST %')}
                         <span style={{ fontWeight: 500, color: '#6B7280' }}> = {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </span>}
                     >
@@ -2356,7 +2367,7 @@ const InvestmentPage = () => {
                   <Col xs={24} sm={8} lg={8}>
                     <Form.Item
                       label={<span style={{ fontWeight: 700, color: '#374151' }}>
-                        Discount
+                        {t('investment.form.discount', 'Discount')}
                         {discountMode === 'PERCENT' && (
                           <span style={{ fontWeight: 500, color: '#6B7280' }}> = {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         )}
@@ -2393,27 +2404,27 @@ const InvestmentPage = () => {
           {selectedType === 'PURCHASE' && quickVendorOpen && (
             <Card style={{ borderRadius: 10, border: '1px solid var(--theme-primary)', marginBottom: 12 }} bodyStyle={{ padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>Add new vendor</span>
-                <Button type="text" size="small" onClick={() => setQuickVendorOpen(false)}>Cancel</Button>
+                <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>{t('investment.quickVendor.title', 'Add new vendor')}</span>
+                <Button type="text" size="small" onClick={() => setQuickVendorOpen(false)}>{t('common.cancel', 'Cancel')}</Button>
               </div>
               <Row gutter={[12, 8]}>
                 <Col xs={24} sm={12}>
-                  <div style={labelStyle}>Name *</div>
-                  <Input value={qv.name} onChange={(e) => setQv((p) => ({ ...p, name: e.target.value }))} placeholder="Vendor name" style={{ borderRadius: 8 }} />
+                  <div style={labelStyle}>{t('investment.quickVendor.name', 'Name')} *</div>
+                  <Input value={qv.name} onChange={(e) => setQv((p) => ({ ...p, name: e.target.value }))} placeholder={t('investment.quickVendor.namePlaceholder', 'Vendor name')} style={{ borderRadius: 8 }} />
                 </Col>
                 <Col xs={24} sm={12}>
-                  <div style={labelStyle}>Phone *</div>
+                  <div style={labelStyle}>{t('investment.quickVendor.phone', 'Phone')} *</div>
                   <Input
                     value={qv.mobile}
                     onChange={(e) => setQv((p) => ({ ...p, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
-                    placeholder="10-digit phone number"
+                    placeholder={t('investment.quickVendor.phonePlaceholder', '10-digit phone number')}
                     maxLength={10}
                     style={{ borderRadius: 8 }}
                   />
                 </Col>
               </Row>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-                <Button type="primary" loading={qvSaving} onClick={saveQuickVendor} style={{ borderRadius: 8, fontWeight: 700 }}>Add & select</Button>
+                <Button type="primary" loading={qvSaving} onClick={saveQuickVendor} style={{ borderRadius: 8, fontWeight: 700 }}>{t('investment.quickVendor.addSelect', 'Add & select')}</Button>
               </div>
             </Card>
           )}
@@ -2423,7 +2434,7 @@ const InvestmentPage = () => {
             <Card
               title={
                 <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}>
-                  {selectedType === 'OVERHEAD' ? 'Expense Items' : 'Purchase Items'}
+                  {selectedType === 'OVERHEAD' ? t('investment.expenseItems', 'Expense Items') : t('investment.purchaseItems', 'Purchase Items')}
                 </span>
               }
               style={{ borderRadius: 10, border: '1px solid #E2E8F0', marginBottom: 12 }}
@@ -2453,7 +2464,7 @@ const InvestmentPage = () => {
                     fontSize: '0.82rem',
                   }}
                 >
-                  Add {selectedType === 'OVERHEAD' ? 'Expense' : 'Item'}
+                  {t('common.add', 'Add')} {selectedType === 'OVERHEAD' ? t('investment.expense', 'Expense') : t('investment.item', 'Item')}
                 </Button>
               </div>
             </Card>
@@ -2471,24 +2482,24 @@ const InvestmentPage = () => {
             bodyStyle={{ padding: '14px 18px', background: 'color-mix(in srgb, var(--theme-primary) 10%, white)', borderRadius: 10 }}
           >
             <div style={billRow}>
-              <span style={billLabel}>Subtotal</span>
+              <span style={billLabel}>{t('investment.bill.subtotal', 'Subtotal')}</span>
               <span style={billValue}>{getCurrencySymbol()}{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
             {selectedType === 'PURCHASE' && (
               <>
                 <div style={billRow}>
-                  <span style={billLabel}>GST</span>
+                  <span style={billLabel}>{t('investment.bill.gst', 'GST')}</span>
                   <span style={billValue}>+ {getCurrencySymbol()}{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div style={billRow}>
-                  <span style={billLabel}>Discount</span>
+                  <span style={billLabel}>{t('investment.bill.discount', 'Discount')}</span>
                   <span style={billValue}>− {getCurrencySymbol()}{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
               </>
             )}
             <div style={billDivider} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.92rem' }}>Grand Total</span>
+              <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.92rem' }}>{t('investment.bill.grandTotal', 'Grand Total')}</span>
               <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontSize: '1.1rem', fontVariantNumeric: 'tabular-nums' }}>
                 {getCurrencySymbol()}{(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}
               </span>
@@ -2498,7 +2509,7 @@ const InvestmentPage = () => {
           {/* Payment — bill style, captured at creation (clears oldest vendor dues first) */}
           <Card style={{ borderRadius: 10, border: '1px solid #E2E8F0', position: 'relative', overflow: 'hidden' }} bodyStyle={{ padding: '14px 18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.95rem' }}>Payment</span>
+              <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.95rem' }}>{t('investment.bill.payment', 'Payment')}</span>
               {selectedType === 'PURCHASE' && vendorOverdue > 0 && (
                 <button
                   type="button"
@@ -2512,7 +2523,7 @@ const InvestmentPage = () => {
                   }}
                 >
                   <LeftOutlined style={{ fontSize: 10, transform: showDues ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease' }} />
-                  Previous dues ({vendorUnpaid.length})
+                  {t('investment.bill.previousDues', 'Previous dues')} ({vendorUnpaid.length})
                 </button>
               )}
             </div>
@@ -2533,12 +2544,12 @@ const InvestmentPage = () => {
               padding: '14px 16px', display: 'flex', flexDirection: 'column',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontWeight: 700, color: 'var(--theme-primary)', fontSize: '0.86rem' }}>Previous dues · oldest first</span>
+                <span style={{ fontWeight: 700, color: 'var(--theme-primary)', fontSize: '0.86rem' }}>{t('investment.bill.previousDuesOldest', 'Previous dues · oldest first')}</span>
                 <CloseOutlined onClick={() => setShowDues(false)} style={{ cursor: 'pointer', color: 'var(--theme-primary)', fontSize: 13 }} />
               </div>
               {payNow > 0 && (
                 <div style={{ fontSize: '0.7rem', color: '#64748B', marginBottom: 8 }}>
-                  <CheckCircleOutlined style={{ color: '#16A34A' }} /> cleared · <span style={{ color: '#D97706', fontWeight: 700 }}>●</span> partial · <span style={{ color: '#C0C0C0', fontWeight: 700 }}>●</span> pending
+                  <CheckCircleOutlined style={{ color: '#16A34A' }} /> {t('investment.bill.cleared', 'cleared')} · <span style={{ color: '#D97706', fontWeight: 700 }}>●</span> {t('investment.bill.partial', 'partial')} · <span style={{ color: '#C0C0C0', fontWeight: 700 }}>●</span> {t('investment.bill.pending', 'pending')}
                 </div>
               )}
               <div style={{ overflowY: 'auto' }}>
@@ -2552,7 +2563,7 @@ const InvestmentPage = () => {
                         {payNow > 0 && (cleared
                           ? <CheckCircleOutlined style={{ color: '#16A34A', fontSize: 13 }} />
                           : <span style={{ color: rowColor, fontSize: 11 }}>●</span>)}
-                        {inv.invoiceNumber || 'Invoice'}
+                        {inv.invoiceNumber || t('investment.invoice', 'Invoice')}
                         <span style={{ color: '#94A3B8', fontWeight: 500 }}>
                           {inv.purchaseDate ? dayjs(inv.purchaseDate).format('DD MMM YYYY') : ''}
                         </span>
@@ -2565,7 +2576,7 @@ const InvestmentPage = () => {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 10, fontWeight: 800 }}>
-                <span style={{ color: '#0F172A' }}>Total overdue</span>
+                <span style={{ color: '#0F172A' }}>{t('investment.bill.totalOverdue', 'Total overdue')}</span>
                 <span style={{ color: 'var(--theme-primary)', fontVariantNumeric: 'tabular-nums' }}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</span>
               </div>
             </div>
@@ -2573,16 +2584,16 @@ const InvestmentPage = () => {
             {selectedType === 'PURCHASE' && (
               <>
                 <div style={billRow}>
-                  <span style={billLabel}>This invoice</span>
+                  <span style={billLabel}>{t('investment.bill.thisInvoice', 'This invoice')}</span>
                   <span style={billValue}>{getCurrencySymbol()}{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={billRow}>
-                  <span style={billLabel}>Previous overdue</span>
+                  <span style={billLabel}>{t('investment.bill.previousOverdue', 'Previous overdue')}</span>
                   <span style={billValue}>{getCurrencySymbol()}{vendorOverdue.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={billDivider} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-                  <span style={{ color: '#0F172A', fontWeight: 700 }}>Total outstanding</span>
+                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{t('investment.bill.totalOutstanding', 'Total outstanding')}</span>
                   <span style={{ color: 'var(--theme-primary)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                     {getCurrencySymbol()}{Math.round(grandTotal + vendorOverdue).toLocaleString('en-IN')}
                   </span>
@@ -2598,17 +2609,17 @@ const InvestmentPage = () => {
                 min={0}
                 max={maxPayable}
                 prefix={getCurrencySymbol()}
-                placeholder="Amount paying now"
+                placeholder={t('investment.bill.amountPayingNow', 'Amount paying now')}
                 controls={false}
                 variant="borderless"
                 style={{ flex: 1, minWidth: 150 }}
               />
               <Select className="skr-bottomline" value={createPayMode} onChange={setCreatePayMode} style={{ width: 130 }} variant="borderless">
-                <Option value="CASH">Cash</Option>
-                <Option value="UPI">UPI</Option>
-                <Option value="CREDIT_CARD">Credit Card</Option>
-                <Option value="DEBIT_CARD">Debit Card</Option>
-                <Option value="NET_BANKING">Net Banking</Option>
+                <Option value="CASH">{t('investment.mode.cash', 'Cash')}</Option>
+                <Option value="UPI">{t('investment.mode.upi', 'UPI')}</Option>
+                <Option value="CREDIT_CARD">{t('investment.mode.creditCard', 'Credit Card')}</Option>
+                <Option value="DEBIT_CARD">{t('investment.mode.debitCard', 'Debit Card')}</Option>
+                <Option value="NET_BANKING">{t('investment.mode.netBanking', 'Net Banking')}</Option>
               </Select>
             </div>
 
@@ -2617,7 +2628,7 @@ const InvestmentPage = () => {
                 className="skr-bottomline"
                 value={createPayRef}
                 onChange={(e) => setCreatePayRef(e.target.value)}
-                placeholder="Payment reference / txn id (optional)"
+                placeholder={t('investment.bill.paymentRefPlaceholder', 'Payment reference / txn id (optional)')}
                 variant="borderless"
                 style={{ marginTop: 8 }}
                 maxLength={120}
@@ -2627,7 +2638,7 @@ const InvestmentPage = () => {
             {/* Action buttons live inside the payment card */}
             <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 8, marginTop: 16 }}>
               <Button onClick={handleCloseAddModal} style={{ borderRadius: 8, fontWeight: 600 }}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </Button>
               <Button
                 type="primary"
@@ -2636,7 +2647,7 @@ const InvestmentPage = () => {
                 disabled={!isFormValid}
                 style={{ borderRadius: 8, fontWeight: 700 }}
               >
-                Save Investment
+                {t('investment.saveInvestment', 'Save Investment')}
               </Button>
             </div>
           </Card>
@@ -2646,18 +2657,18 @@ const InvestmentPage = () => {
             onCancel={() => setInvestConfirmOpen(false)}
             onConfirm={handleSaveInvestment}
             loading={createInvestmentMutation.isPending}
-            title="Confirm Investment"
-            confirmText="Confirm & Save"
+            title={t('investment.confirm.title', 'Confirm Investment')}
+            confirmText={t('investment.confirm.confirmText', 'Confirm & Save')}
             rows={[
               // Payment mode only matters when something is actually being paid.
-              ...(payNow > 0 ? [{ label: 'Payment Mode', value: (createPayMode || '-').replace(/_/g, ' ') }] : []),
-              { label: 'Current Bill', value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}` },
+              ...(payNow > 0 ? [{ label: t('investment.confirm.paymentMode', 'Payment Mode'), value: (createPayMode || '-').replace(/_/g, ' ') }] : []),
+              { label: t('investment.confirm.currentBill', 'Current Bill'), value: `${getCurrencySymbol()}${(selectedType === 'OVERHEAD' ? Math.round(subtotal) : grandTotal).toLocaleString('en-IN')}` },
               // Previous dues + a combined Total row only matter when the vendor already owes.
               ...(selectedType === 'PURCHASE' && vendorOverdue > 0 ? [
-                { label: 'Previous Dues', value: `${getCurrencySymbol()}${Math.round(vendorOverdue).toLocaleString('en-IN')}` },
-                { label: 'Total', value: `${getCurrencySymbol()}${confirmTotalOutstanding.toLocaleString('en-IN')}`, strong: true },
+                { label: t('investment.confirm.previousDues', 'Previous Dues'), value: `${getCurrencySymbol()}${Math.round(vendorOverdue).toLocaleString('en-IN')}` },
+                { label: t('common.total', 'Total'), value: `${getCurrencySymbol()}${confirmTotalOutstanding.toLocaleString('en-IN')}`, strong: true },
               ] : []),
-              { label: 'Amount Paid', value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },
+              { label: t('investment.confirm.amountPaid', 'Amount Paid'), value: `${getCurrencySymbol()}${payNow.toLocaleString('en-IN')}`, strong: true },
             ]}
             dueAmount={confirmDueRemaining}
             dueText={`${getCurrencySymbol()}${confirmDueRemaining.toLocaleString('en-IN')}`}
@@ -2677,7 +2688,7 @@ const InvestmentPage = () => {
             <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <UserOutlined style={{ color: 'var(--theme-primary)', fontSize: '0.95rem' }} />
             </div>
-            {selectedVendor ? 'Edit Vendor' : 'Add New Vendor'}
+            {selectedVendor ? t('investment.vendorModal.editTitle', 'Edit Vendor') : t('investment.vendorModal.addTitle', 'Add New Vendor')}
           </span>
         }
         open={vendorModalVisible}
@@ -2702,51 +2713,51 @@ const InvestmentPage = () => {
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="name"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Vendor Name *</span>}
-                  rules={[{ required: true, message: 'Vendor name is required.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.vendorModal.name', 'Vendor Name')} *</span>}
+                  rules={[{ required: true, message: t('investment.vendorModal.nameRequired', 'Vendor name is required.') }]}
                 >
-                  <Input placeholder="Enter vendor name" style={{ borderRadius: 8 }} size="large" />
+                  <Input placeholder={t('investment.vendorModal.namePlaceholder', 'Enter vendor name')} style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="mobile"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Phone *</span>}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.vendorModal.phone', 'Phone')} *</span>}
                   validateTrigger="onBlur"
                   rules={[
-                    { required: true, message: 'Phone is required.' },
-                    { pattern: /^\d{10}$/, message: 'Enter a valid 10-digit number' },
+                    { required: true, message: t('investment.vendorModal.phoneRequired', 'Phone is required.') },
+                    { pattern: /^\d{10}$/, message: t('investment.vendorModal.phoneInvalid', 'Enter a valid 10-digit number') },
                   ]}
                 >
-                  <Input placeholder="Enter phone number" maxLength={10} style={{ borderRadius: 8 }} size="large" />
+                  <Input placeholder={t('investment.vendorModal.phonePlaceholder', 'Enter phone number')} maxLength={10} style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="gstNumber"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>GST Number</span>}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.vendorModal.gstNumber', 'GST Number')}</span>}
                 >
-                  <Input placeholder="Enter GST number" style={{ borderRadius: 8 }} size="large" />
+                  <Input placeholder={t('investment.vendorModal.gstPlaceholder', 'Enter GST number')} style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="email"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Email</span>}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.vendorModal.email', 'Email')}</span>}
                   validateTrigger="onBlur"
-                  rules={[{ type: 'email', message: 'Please enter a valid email.' }]}
+                  rules={[{ type: 'email', message: t('investment.vendorModal.emailInvalid', 'Please enter a valid email.') }]}
                 >
-                  <Input placeholder="Enter email address" style={{ borderRadius: 8 }} size="large" />
+                  <Input placeholder={t('investment.vendorModal.emailPlaceholder', 'Enter email address')} style={{ borderRadius: 8 }} size="large" />
                 </Form.Item>
               </Col>
               <Col xs={24}>
                 <Form.Item
                   name="address"
-                  label={<span style={{ fontWeight: 700, color: '#374151' }}>Address *</span>}
-                  rules={[{ required: true, message: 'Address is required.' }]}
+                  label={<span style={{ fontWeight: 700, color: '#374151' }}>{t('investment.vendorModal.address', 'Address')} *</span>}
+                  rules={[{ required: true, message: t('investment.vendorModal.addressRequired', 'Address is required.') }]}
                 >
                   <TextArea
-                    placeholder="Enter full address"
+                    placeholder={t('investment.vendorModal.addressPlaceholder', 'Enter full address')}
                     rows={3}
                     style={{ borderRadius: 8 }}
                   />
@@ -2757,7 +2768,7 @@ const InvestmentPage = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
             <Button onClick={handleCloseVendorModal} style={{ borderRadius: 8, fontWeight: 600, height: 40 }}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               type="primary"
@@ -2765,7 +2776,7 @@ const InvestmentPage = () => {
               onClick={handleSaveVendor}
               style={{ borderRadius: 8, fontWeight: 700, height: 40, paddingInline: 24 }}
             >
-              {selectedVendor ? 'Update Vendor' : 'Save Vendor'}
+              {selectedVendor ? t('investment.vendorModal.updateVendor', 'Update Vendor') : t('investment.vendorModal.saveVendor', 'Save Vendor')}
             </Button>
           </div>
         </Form>

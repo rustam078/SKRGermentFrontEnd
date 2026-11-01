@@ -3,6 +3,7 @@ import { Drawer, Form, Input, DatePicker, Select, Button, Space } from 'antd';
 import { UserOutlined, PlusOutlined, EditOutlined, MailOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { IEmployee } from '../../types/employee.types';
+import { useT } from '../../contexts/LanguageContext';
 
 interface EmployeeFormDrawerProps {
   visible: boolean;
@@ -20,6 +21,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
   loading,
 }) => {
   const [form] = Form.useForm();
+  const t = useT();
   const isEdit = !!employee;
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
           {isEdit ? <EditOutlined style={{ color: 'var(--theme-primary)' }} /> : <PlusOutlined style={{ color: 'var(--theme-primary)' }} />}
-          {isEdit ? 'Edit Employee' : 'Add Employee'}
+          {isEdit ? t('employees.form.editTitle', 'Edit Employee') : t('employees.form.addTitle', 'Add Employee')}
         </span>
       }
       placement="right"
@@ -82,7 +84,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '10px 16px', borderTop: '1px solid #E2E8F0', backgroundColor: '#ffffff' }}>
           <Space>
             <Button onClick={onClose} disabled={loading}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               type="primary"
@@ -90,7 +92,7 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
               onClick={() => form.submit()}
               style={{ backgroundColor: 'var(--theme-primary)', borderColor: 'var(--theme-primary)', fontWeight: 600 }}
             >
-              {isEdit ? 'Save Changes' : 'Save Employee'}
+              {isEdit ? t('employees.form.saveChanges', 'Save Changes') : t('employees.form.saveEmployee', 'Save Employee')}
             </Button>
           </Space>
         </div>
@@ -106,47 +108,47 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
       >
         <Form.Item
           name="fullName"
-          label={<span style={{ fontWeight: 600, color: '#475569' }}>Employee Name</span>}
-          rules={[{ required: true, message: 'Employee Name is required.' }]}
+          label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('employees.form.name', 'Employee Name')}</span>}
+          rules={[{ required: true, message: t('employees.form.nameRequired', 'Employee Name is required.') }]}
         >
-          <Input placeholder="Enter employee full name" size="large" prefix={<UserOutlined style={{ color: '#94A3B8' }} />} />
+          <Input placeholder={t('employees.form.namePlaceholder', 'Enter employee full name')} size="large" prefix={<UserOutlined style={{ color: '#94A3B8' }} />} />
         </Form.Item>
 
         <Form.Item
           name="email"
-          label={<span style={{ fontWeight: 600, color: '#475569' }}>Email</span>}
+          label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('employees.form.email', 'Email')}</span>}
           validateTrigger="onBlur"
           rules={[
-            { required: true, message: 'Email is required.' },
-            { type: 'email', message: 'Please enter a valid email format.' },
+            { required: true, message: t('employees.form.emailRequired', 'Email is required.') },
+            { type: 'email', message: t('employees.form.emailInvalid', 'Please enter a valid email format.') },
           ]}
         >
-          <Input placeholder="Enter employee email" type="email" size="large" prefix={<MailOutlined style={{ color: '#94A3B8' }} />} />
+          <Input placeholder={t('employees.form.emailPlaceholder', 'Enter employee email')} type="email" size="large" prefix={<MailOutlined style={{ color: '#94A3B8' }} />} />
         </Form.Item>
 
         <Form.Item
           name="mobileNumber"
-          label={<span style={{ fontWeight: 600, color: '#475569' }}>Mobile Number</span>}
+          label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('employees.form.mobile', 'Mobile Number')}</span>}
           validateTrigger="onBlur"
           rules={[
             {
               pattern: /^\d*$/,
-              message: 'Mobile number must contain numeric characters only.',
+              message: t('employees.form.mobileNumeric', 'Mobile number must contain numeric characters only.'),
             },
             {
               max: 15,
-              message: 'Mobile number cannot exceed 15 digits.',
+              message: t('employees.form.mobileMax', 'Mobile number cannot exceed 15 digits.'),
             },
           ]}
         >
-          <Input placeholder="Enter mobile number (optional)" size="large" />
+          <Input placeholder={t('employees.form.mobilePlaceholder', 'Enter mobile number (optional)')} size="large" />
         </Form.Item>
 
         {!isEdit && (
           <Form.Item
             name="joiningDate"
-            label={<span style={{ fontWeight: 600, color: '#475569' }}>Joining Date</span>}
-            rules={[{ required: true, message: 'Joining Date is required.' }]}
+            label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('employees.form.joiningDate', 'Joining Date')}</span>}
+            rules={[{ required: true, message: t('employees.form.joiningRequired', 'Joining Date is required.') }]}
           >
             <DatePicker style={{ width: '100%' }} size="large" format="YYYY-MM-DD" />
           </Form.Item>
@@ -154,20 +156,20 @@ export const EmployeeFormDrawer: React.FC<EmployeeFormDrawerProps> = ({
 
         <Form.Item
           name="address"
-          label={<span style={{ fontWeight: 600, color: '#475569' }}>Address</span>}
+          label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('employees.form.address', 'Address')}</span>}
         >
-          <Input.TextArea placeholder="Enter residential address (optional)" rows={4} size="large" />
+          <Input.TextArea placeholder={t('employees.form.addressPlaceholder', 'Enter residential address (optional)')} rows={4} size="large" />
         </Form.Item>
 
         {isEdit && (
           <Form.Item
             name="active"
-            label={<span style={{ fontWeight: 600, color: '#475569' }}>Status</span>}
+            label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('common.status', 'Status')}</span>}
             rules={[{ required: true }]}
           >
             <Select size="large">
-              <Select.Option value={true}>Active</Select.Option>
-              <Select.Option value={false}>Inactive</Select.Option>
+              <Select.Option value={true}>{t('employees.status.active', 'Active')}</Select.Option>
+              <Select.Option value={false}>{t('employees.status.inactive', 'Inactive')}</Select.Option>
             </Select>
           </Form.Item>
         )}

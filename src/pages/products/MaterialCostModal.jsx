@@ -10,6 +10,7 @@ import { RiseOutlined, FallOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import productService from '../../services/productService';
 import { getCurrencySymbol } from '../../utils/currency';
+import { useT } from '../../contexts/LanguageContext';
 
 const MaterialCostModal = ({
     open,
@@ -19,6 +20,7 @@ const MaterialCostModal = ({
     onSuccess,
 }) => {
 
+    const t = useT();
     const [form] = Form.useForm();
     const [cost, setCost] = useState(null);
     const [salePrice, setSalePrice] = useState(null);
@@ -51,13 +53,13 @@ const MaterialCostModal = ({
 
             if (editingMaterialCost?.id) {
                 await productService.updateMaterialCost(editingMaterialCost.id, payload);
-                message.success('Pricing updated successfully.');
+                message.success(t('products.material.updated', 'Pricing updated successfully.'));
             } else {
                 await productService.createMaterialCost(
                     productId,
                     payload
                 );
-                message.success('Pricing added successfully.');
+                message.success(t('products.material.added', 'Pricing added successfully.'));
             }
 
             onSuccess();
@@ -70,7 +72,7 @@ const MaterialCostModal = ({
 
             message.error(
                 error?.response?.data?.message ||
-                'Failed to save pricing.'
+                t('products.material.saveFailed', 'Failed to save pricing.')
             );
         }
     };
@@ -86,9 +88,9 @@ const MaterialCostModal = ({
     return (
         <Modal
             open={open}
-            title={editingMaterialCost ? 'Edit Pricing' : 'Add Pricing'}
-            okText="Save"
-            cancelText="Cancel"
+            title={editingMaterialCost ? t('products.material.editTitle', 'Edit Pricing') : t('products.material.addTitle', 'Add Pricing')}
+            okText={t('common.save', 'Save')}
+            cancelText={t('common.cancel', 'Cancel')}
             destroyOnClose
             onCancel={onClose}
             onOk={handleSubmit}
@@ -100,12 +102,12 @@ const MaterialCostModal = ({
             >
 
                 <Form.Item
-                    label="Cost (per piece)"
+                    label={t('products.material.costLabel', 'Cost (per piece)')}
                     name="cost"
                     rules={[
                         {
                             required: true,
-                            message: 'Please enter cost',
+                            message: t('products.material.costRequired', 'Please enter cost'),
                         },
                     ]}
                 >
@@ -114,18 +116,18 @@ const MaterialCostModal = ({
                         min={0}
                         precision={2}
                         addonBefore={getCurrencySymbol()}
-                        placeholder="e.g. 120 (making / purchase cost)"
+                        placeholder={t('products.material.costPlaceholder', 'e.g. 120 (making / purchase cost)')}
                         onChange={(v) => setCost(v)}
                     />
                 </Form.Item>
 
                 <Form.Item
-                    label="Sale Price (per piece)"
+                    label={t('products.material.saleLabel', 'Sale Price (per piece)')}
                     name="salePrice"
                     rules={[
                         {
                             required: true,
-                            message: 'Please enter sale price',
+                            message: t('products.material.saleRequired', 'Please enter sale price'),
                         },
                     ]}
                 >
@@ -134,7 +136,7 @@ const MaterialCostModal = ({
                         min={0}
                         precision={2}
                         addonBefore={getCurrencySymbol()}
-                        placeholder="e.g. 150 (selling price)"
+                        placeholder={t('products.material.salePlaceholder', 'e.g. 150 (selling price)')}
                         onChange={(v) => setSalePrice(v)}
                     />
                 </Form.Item>
@@ -154,7 +156,7 @@ const MaterialCostModal = ({
                     }}
                 >
                     <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
-                        Profit on each piece
+                        {t('products.material.profitEach', 'Profit on each piece')}
                     </span>
                     {hasBoth ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 800, color: positive ? '#16A34A' : '#B91C1C' }}>
@@ -165,17 +167,17 @@ const MaterialCostModal = ({
                             </span>
                         </span>
                     ) : (
-                        <span style={{ color: '#94A3B8', fontSize: '0.82rem' }}>Enter cost &amp; sale price</span>
+                        <span style={{ color: '#94A3B8', fontSize: '0.82rem' }}>{t('products.material.enterBoth', 'Enter cost & sale price')}</span>
                     )}
                 </div>
 
                 <Form.Item
-                    label="Effective From"
+                    label={t('products.material.effectiveFrom', 'Effective From')}
                     name="effectiveFrom"
                     rules={[
                         {
                             required: true,
-                            message: 'Please select date',
+                            message: t('products.material.dateRequired', 'Please select date'),
                         },
                     ]}
                 >

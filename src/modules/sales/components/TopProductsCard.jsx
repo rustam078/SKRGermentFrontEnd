@@ -7,10 +7,12 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
+import { useT } from '../../../contexts/LanguageContext';
 
 const chartColors = ['var(--theme-primary)', '#22C55E', 'var(--theme-primary)', '#F97316', 'var(--theme-primary)'];
 
 const TopProductsCard = ({ products, loading, error }) => {
+  const t = useT();
   const topProducts = Array.isArray(products) ? products.slice(0, 5) : [];
   const totalQuantity = topProducts.reduce((sum, item) => sum + (Number(item.totalQuantitySold ?? 0)), 0) || 1;
 
@@ -32,16 +34,16 @@ const TopProductsCard = ({ products, loading, error }) => {
 
   return (
     <Card sx={{ borderRadius: 2, minHeight: 360 }}>
-      <CardHeader title="Top Selling Products" />
+      <CardHeader title={t('sales.topSellingProducts', 'Top Selling Products')} />
       <CardContent>
         {loading ? (
           <Box sx={{ py: 6, textAlign: 'center' }}>
-            <Typography color="text.secondary">Loading top products...</Typography>
+            <Typography color="text.secondary">{t('sales.loadingTopProducts', 'Loading top products...')}</Typography>
           </Box>
         ) : error ? (
           <Typography color="error">{error}</Typography>
         ) : topProducts.length === 0 ? (
-          <Typography color="text.secondary">No top products found.</Typography>
+          <Typography color="text.secondary">{t('sales.noTopProducts', 'No top products found.')}</Typography>
         ) : (
           <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
             <Box

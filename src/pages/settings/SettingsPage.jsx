@@ -26,7 +26,10 @@ import MenuOrderSettings from './MenuOrderSettings';
 import ChartSettings from './ChartSettings';
 import UsersRolesSettings from './UsersRolesSettings';
 import ThemeSettings from './ThemeSettings';
+import LanguageSettings from './LanguageSettings';
+import TranslateRoundedIcon from '@mui/icons-material/TranslateRounded';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // Registry of settings sections — add future settings here and they get search + collapse for free.
 const BASE_SECTIONS = [
@@ -37,6 +40,14 @@ const BASE_SECTIONS = [
     keywords: 'theme colour color appearance primary brand button accent look ui palette customize',
     icon: <PaletteOutlinedIcon color="primary" />,
     render: () => <ThemeSettings />,
+  },
+  {
+    id: 'language',
+    title: 'Language',
+    subtitle: 'App interface language (English / Hindi)',
+    keywords: 'language hindi english bhasha translate internationalization i18n locale change',
+    icon: <TranslateRoundedIcon color="primary" />,
+    render: () => <LanguageSettings />,
   },
   {
     id: 'company-invoice',
@@ -84,6 +95,7 @@ const SettingsPage = () => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState({});
   const { isAdmin } = usePermissions();
+  const { t } = useLanguage();
 
   // Users & Roles is ADMIN-only; append it to the base registry only for admins.
   const sections = useMemo(() => {
@@ -114,7 +126,7 @@ const SettingsPage = () => {
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-        System Settings
+        {t('settings.pageTitle', 'System Settings')}
         <HeadingInfo text="Search and configure enterprise rules and preferences." />
       </Typography>
 
@@ -123,7 +135,7 @@ const SettingsPage = () => {
         size="small"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search settings…"
+        placeholder={t('settings.search', 'Search settings…')}
         sx={{ maxWidth: 420, mb: 3, bgcolor: '#fff' }}
         InputProps={{
           startAdornment: (
@@ -153,8 +165,8 @@ const SettingsPage = () => {
             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 1.5 } }}>
               {s.icon}
               <Box>
-                <Typography sx={{ fontWeight: 800 }}>{s.title}</Typography>
-                <Typography variant="caption" color="text.secondary">{s.subtitle}</Typography>
+                <Typography sx={{ fontWeight: 800 }}>{t('settings.section.' + s.id + '.title', s.title)}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('settings.section.' + s.id + '.subtitle', s.subtitle)}</Typography>
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>

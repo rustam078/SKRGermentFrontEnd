@@ -17,6 +17,7 @@ import {
 import dayjs from 'dayjs';
 import { dashboardService } from '../../../services/dashboardService';
 import HeadingInfo from '../../../components/common/HeadingInfo';
+import { useT } from '../../../contexts/LanguageContext';
 
 const inr = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(v) || 0);
 const num = (v) => new Intl.NumberFormat('en-IN').format(Number(v) || 0);
@@ -90,6 +91,7 @@ const Section = ({ title, icon, children, extra }) => (
 
 const SalesDashboard = () => {
   const navigate = useNavigate();
+  const t = useT();
   const [preset, setPreset] = useState('This Month');
   const [prodChart, setProdChart] = useState('radar'); // best-sellers default: spider/radar
   const [customRange, setCustomRange] = useState(null); // [dayjs, dayjs] overrides the preset
@@ -118,18 +120,18 @@ const SalesDashboard = () => {
   const recentSales = data?.recentSales || [];
 
   const kpis = data ? [
-    { icon: <DollarCircleOutlined />, color: '#2563EB', label: 'Sales Revenue', value: inr(data.salesRevenue), sub: `${num(data.salesCount)} orders` },
-    { icon: <ShoppingCartOutlined />, color: '#0EA5E9', label: 'Orders', value: num(data.salesCount), sub: preset.toLowerCase() },
-    { icon: <RiseOutlined />, color: '#10B981', label: 'Avg Order Value', value: inr(data.avgOrderValue), sub: 'per invoice' },
-    { icon: <PercentageOutlined />, color: '#F59E0B', label: 'Discount Given', value: inr(data.salesDiscount), sub: 'in period' },
+    { icon: <DollarCircleOutlined />, color: '#2563EB', label: t('sales.salesRevenue', 'Sales Revenue'), value: inr(data.salesRevenue), sub: `${num(data.salesCount)} ${t('sales.orders', 'orders')}` },
+    { icon: <ShoppingCartOutlined />, color: '#0EA5E9', label: t('sales.ordersLabel', 'Orders'), value: num(data.salesCount), sub: t(`sales.range.${preset}`, preset).toLowerCase() },
+    { icon: <RiseOutlined />, color: '#10B981', label: t('sales.avgOrderValue', 'Avg Order Value'), value: inr(data.avgOrderValue), sub: t('sales.perInvoice', 'per invoice') },
+    { icon: <PercentageOutlined />, color: '#F59E0B', label: t('sales.discountGiven', 'Discount Given'), value: inr(data.salesDiscount), sub: t('sales.inPeriod', 'in period') },
   ] : [];
 
   const recentColumns = [
-    { title: 'Invoice', dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
-    { title: 'Customer', dataIndex: 'customerName', key: 'customerName' },
-    { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#10B981' }}>{inr(v)}</span> },
-    { title: 'Status', dataIndex: 'paymentStatus', key: 'paymentStatus', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{v || '—'}</Tag> },
-    { title: 'Date', dataIndex: 'date', key: 'date', render: (v) => (v ? dayjs(v).format('DD MMM YYYY') : '—') },
+    { title: t('sales.invoice', 'Invoice'), dataIndex: 'invoiceNo', key: 'invoiceNo', render: (v) => <span style={{ fontWeight: 600, color: '#1E293B' }}>{v}</span> },
+    { title: t('sales.customer', 'Customer'), dataIndex: 'customerName', key: 'customerName' },
+    { title: t('common.amount', 'Amount'), dataIndex: 'amount', key: 'amount', align: 'right', render: (v) => <span style={{ fontWeight: 700, color: '#10B981' }}>{inr(v)}</span> },
+    { title: t('common.status', 'Status'), dataIndex: 'paymentStatus', key: 'paymentStatus', render: (v) => <Tag color={v === 'PAID' ? 'green' : v === 'PENDING' ? 'orange' : 'default'}>{v ? t(`sales.status.${v}`, v) : '—'}</Tag> },
+    { title: t('common.date', 'Date'), dataIndex: 'date', key: 'date', render: (v) => (v ? dayjs(v).format('DD MMM YYYY') : '—') },
   ];
 
   return (
@@ -139,8 +141,8 @@ const SalesDashboard = () => {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-              Sales Dashboard
-              <HeadingInfo text="Revenue, orders and product momentum" />
+              {t('sales.salesDashboard', 'Sales Dashboard')}
+              <HeadingInfo text={t('sales.dashboardInfo', 'Revenue, orders and product momentum')} />
             </h1>
             {data && (
               <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: 2 }}>
@@ -154,15 +156,15 @@ const SalesDashboard = () => {
               placement="bottomRight"
               content={(
                 <div style={{ width: 250 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 8, color: '#0F172A' }}>Date range</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8, color: '#0F172A' }}>{t('sales.dateRange', 'Date range')}</div>
                   <Radio.Group
                     value={hasCustom ? null : preset}
                     onChange={(e) => { setPreset(e.target.value); setCustomRange(null); }}
                     style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
                   >
-                    {Object.keys(RANGES).map((k) => <Radio key={k} value={k}>{k}</Radio>)}
+                    {Object.keys(RANGES).map((k) => <Radio key={k} value={k}>{t(`sales.range.${k}`, k)}</Radio>)}
                   </Radio.Group>
-                  <div style={{ fontWeight: 700, margin: '12px 0 6px', color: '#0F172A' }}>Custom range</div>
+                  <div style={{ fontWeight: 700, margin: '12px 0 6px', color: '#0F172A' }}>{t('sales.customRange', 'Custom range')}</div>
                   <DatePicker.RangePicker
                     value={customRange}
                     onChange={(v) => setCustomRange(v)}
@@ -173,12 +175,12 @@ const SalesDashboard = () => {
                 </div>
               )}
             >
-              <Button icon={<FilterOutlined />}>Filters · {hasCustom ? 'Custom' : preset}</Button>
+              <Button icon={<FilterOutlined />}>{t('common.filters', 'Filters')} · {hasCustom ? t('sales.custom', 'Custom') : t(`sales.range.${preset}`, preset)}</Button>
             </Popover>
           </div>
         </div>
 
-        {error && <Alert type="error" showIcon message="Failed to load sales dashboard" description={error.message} />}
+        {error && <Alert type="error" showIcon message={t('sales.failedLoadDashboard', 'Failed to load sales dashboard')} description={error.message} />}
 
         <Spin spinning={isLoading}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -186,12 +188,12 @@ const SalesDashboard = () => {
               {kpis.map((k) => (
                 <Col xs={12} md={6} key={k.label}><Kpi {...k} /></Col>
               ))}
-              {!data && !isLoading && <Col span={24}><Card style={cardStyle}><Empty description="No data" /></Card></Col>}
+              {!data && !isLoading && <Col span={24}><Card style={cardStyle}><Empty description={t('sales.noData', 'No data')} /></Card></Col>}
             </Row>
 
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={16}>
-                <Section title="Revenue Trend" icon={<LineChartOutlined style={{ color: '#2563EB' }} />}>
+                <Section title={t('sales.revenueTrend', 'Revenue Trend')} icon={<LineChartOutlined style={{ color: '#2563EB' }} />}>
                   <div style={{ height: 280 }}>
                     {revenueSeries.length ? (
                       <ResponsiveContainer width="100%" height="100%">
@@ -210,13 +212,13 @@ const SalesDashboard = () => {
                         </AreaChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No sales in this range" /></div>
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('sales.noSalesInRange', 'No sales in this range')} /></div>
                     )}
                   </div>
                 </Section>
               </Col>
               <Col xs={24} lg={8}>
-                <Section title="Payment Modes" icon={<DollarCircleOutlined style={{ color: '#10B981' }} />}>
+                <Section title={t('sales.paymentModes', 'Payment Modes')} icon={<DollarCircleOutlined style={{ color: '#10B981' }} />}>
                   <div style={{ height: 280 }}>
                     {paymentBreakdown.length ? (
                       <ResponsiveContainer width="100%" height="100%">
@@ -229,7 +231,7 @@ const SalesDashboard = () => {
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No payments" /></div>
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('sales.noPayments', 'No payments')} /></div>
                     )}
                   </div>
                 </Section>
@@ -239,7 +241,7 @@ const SalesDashboard = () => {
             <Row gutter={[16, 16]}>
               <Col xs={24} lg={11}>
                 <Section
-                  title="Top Products Sold (by qty)"
+                  title={t('sales.topProductsByQty', 'Top Products Sold (by qty)')}
                   icon={<ShoppingCartOutlined style={{ color: '#8B5CF6' }} />}
                   extra={(
                     <Segmented size="small" value={prodChart} onChange={setProdChart}
@@ -259,7 +261,7 @@ const SalesDashboard = () => {
                           </RadarChart>
                         ) : prodChart === 'treemap' ? (
                           <Treemap data={top10.filter((p) => p.quantity > 0).map((p) => ({ name: p.name, size: p.quantity, value: p.quantity }))} dataKey="size" stroke="#fff" isAnimationActive={false} content={<TreemapCell />}>
-                            <RTooltip formatter={(v) => `${num(v)} units sold`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
+                            <RTooltip formatter={(v) => `${num(v)} ${t('sales.unitsSold', 'units sold')}`} contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 12 }} />
                           </Treemap>
                         ) : (
                           <BarChart data={top10} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
@@ -272,7 +274,7 @@ const SalesDashboard = () => {
                         )}
                       </ResponsiveContainer>
                     ) : (
-                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description="No product sales" /></div>
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Empty description={t('sales.noProductSales', 'No product sales')} /></div>
                     )}
                   </div>
                 </Section>
@@ -281,7 +283,7 @@ const SalesDashboard = () => {
                 <Card
                   style={{ ...cardStyle, height: '100%' }}
                   styles={{ body: { padding: 0 } }}
-                  title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}><ShoppingCartOutlined style={{ color: '#0EA5E9' }} />Recent Sales</span>}
+                  title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#0F172A', fontSize: '0.9rem' }}><ShoppingCartOutlined style={{ color: '#0EA5E9' }} />{t('sales.recentSales', 'Recent Sales')}</span>}
                 >
                   <Table
                     dataSource={recentSales}
@@ -290,7 +292,7 @@ const SalesDashboard = () => {
                     size="small"
                     pagination={false}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: <Empty description="No recent sales" /> }}
+                    locale={{ emptyText: <Empty description={t('sales.noRecentSales', 'No recent sales')} /> }}
                   />
                 </Card>
               </Col>

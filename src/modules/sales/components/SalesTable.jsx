@@ -6,6 +6,7 @@ import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import dayjs from 'dayjs';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { modeLabel } from '../../../utils/payment';
+import { useT } from '../../../contexts/LanguageContext';
 
 const STATUS_COLOR = { PAID: 'success', DUE: 'warning', PENDING: 'warning', PARTIALLY_PAID: 'info', FAILED: 'error', REFUNDED: 'default' };
 
@@ -16,6 +17,9 @@ const fmtDate = (v) => {
 };
 
 const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChange, onRowsPerPageChange, onDownload, onPrint, onRowClick }) => {
+  const t = useT();
+  // Translate a payment status code to its label, falling back to the humanised code.
+  const statusLabel = (code) => (code ? t(`sales.status.${code}`, code.replace(/_/g, ' ')) : '-');
   // Server-side paging: `rows` is only the current page, so fill up to the page size by its length.
   const emptyRows = Math.max(0, rowsPerPage - rows.length);
 
@@ -27,7 +31,17 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
             <Table>
               <TableHead>
                 <TableRow>
-                  {['Invoice No', 'Date', 'Customer', 'Mobile', 'Grand Total', 'Received', 'Payment Mode', 'Payment Status', 'Actions'].map((label) => (
+                  {[
+                    t('sales.colInvoiceNo', 'Invoice No'),
+                    t('common.date', 'Date'),
+                    t('sales.customer', 'Customer'),
+                    t('sales.mobile', 'Mobile'),
+                    t('sales.grandTotal', 'Grand Total'),
+                    t('sales.received', 'Received'),
+                    t('sales.paymentMode', 'Payment Mode'),
+                    t('sales.paymentStatus', 'Payment Status'),
+                    t('common.actions', 'Actions'),
+                  ].map((label) => (
                     <TableCell key={label}>{label}</TableCell>
                   ))}
                 </TableRow>
@@ -51,9 +65,9 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
           <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
             <ReceiptLongOutlinedIcon sx={{ fontSize: 48, mb: 2, color: 'primary.main' }} />
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              No Sales Found
+              {t('sales.noSalesFound', 'No Sales Found')}
             </Typography>
-            <Typography>Try a different filter or refresh the list.</Typography>
+            <Typography>{t('sales.noSalesHint', 'Try a different filter or refresh the list.')}</Typography>
           </Box>
         ) : (
           <>
@@ -61,15 +75,15 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
               <Table>
                 <TableHead>
                   <TableRow>
-                        <TableCell>Invoice No</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Customer</TableCell>
-                    <TableCell>Mobile</TableCell>
-                    <TableCell>Grand Total</TableCell>
-                    <TableCell>Received</TableCell>
-                    <TableCell>Payment Mode</TableCell>
-                    <TableCell>Payment Status</TableCell>
-                    <TableCell align="center">Actions</TableCell>
+                    <TableCell>{t('sales.colInvoiceNo', 'Invoice No')}</TableCell>
+                    <TableCell>{t('common.date', 'Date')}</TableCell>
+                    <TableCell>{t('sales.customer', 'Customer')}</TableCell>
+                    <TableCell>{t('sales.mobile', 'Mobile')}</TableCell>
+                    <TableCell>{t('sales.grandTotal', 'Grand Total')}</TableCell>
+                    <TableCell>{t('sales.received', 'Received')}</TableCell>
+                    <TableCell>{t('sales.paymentMode', 'Payment Mode')}</TableCell>
+                    <TableCell>{t('sales.paymentStatus', 'Payment Status')}</TableCell>
+                    <TableCell align="center">{t('common.actions', 'Actions')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -87,22 +101,22 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
                         <TableCell>
                           {/* Due shown inline (not on hover) so it's visible at a glance. */}
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip size="small" label={(sale.paymentStatus || '-').replace(/_/g, ' ')} color={STATUS_COLOR[sale.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />
+                            <Chip size="small" label={statusLabel(sale.paymentStatus)} color={STATUS_COLOR[sale.paymentStatus] || 'default'} sx={{ fontWeight: 700 }} />
                             {Number(sale.amountDue) > 0 && (
                               <Typography variant="caption" sx={{ color: '#B91C1C', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                Due {getCurrencySymbol()}{Number(sale.amountDue).toLocaleString('en-IN')}
+                                {t('sales.dueWord', 'Due')} {getCurrencySymbol()}{Number(sale.amountDue).toLocaleString('en-IN')}
                               </Typography>
                             )}
                           </Stack>
                         </TableCell>
                         <TableCell align="center" onClick={(event) => event.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="center">
-                            <Tooltip title="Download invoice">
+                            <Tooltip title={t('sales.downloadInvoice', 'Download invoice')}>
                               <IconButton size="small" color="primary" onClick={() => onDownload(saleId)}>
                                 <FileDownloadOutlinedIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Print invoice">
+                            <Tooltip title={t('sales.printInvoice', 'Print invoice')}>
                               <IconButton size="small" color="primary" onClick={() => onPrint(saleId)}>
                                 <PrintOutlinedIcon fontSize="small" />
                               </IconButton>
@@ -132,7 +146,7 @@ const SalesTable = ({ rows, loading, error, page, rowsPerPage, count, onPageChan
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={onRowsPerPageChange}
           rowsPerPageOptions={[10, 20, 50, 100]}
-          labelRowsPerPage="Rows"
+          labelRowsPerPage={t('sales.rows', 'Rows')}
         />
       ) : null}
     </Card>

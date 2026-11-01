@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useThemeColor } from '../../contexts/ThemeColorContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { readableText, mutedText } from '../../utils/color';
 import {
   Collapse,
@@ -73,6 +74,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
   const [salesOpen, setSalesOpen] = useState(true);
   const { menuOrder, companyName } = useAppSettings();
   const { can } = usePermissions();
+  const { t } = useLanguage(); // static UI text translation (English default, Hindi via Settings)
   // Theme-driven sidebar colors (nav background + readable text/icons + active = primary).
   const { primary, nav } = useThemeColor();
   const txt = readableText(nav);
@@ -128,7 +130,7 @@ const Sidebar = ({ open, onToggleSidebar, variant = 'permanent' }) => {
         >
           <ListItemIcon>{item.icon}</ListItemIcon>
           <ListItemText
-            primary={item.text}
+            primary={t('nav.' + item.key, item.text)}
             sx={{
               opacity: open ? 1 : 0,
               display: open ? 'block' : 'none',

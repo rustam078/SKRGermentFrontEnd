@@ -9,33 +9,35 @@ import {
   Typography,
   Chip,
 } from '@mui/material';
+import { useT } from '../../../contexts/LanguageContext';
 
 const LowStockCard = ({ alerts, loading, error, onViewInventory }) => {
+  const t = useT();
   return (
     <Card sx={{ borderRadius: 2 }}>
-      <CardHeader title="Low Stock Alerts" />
+      <CardHeader title={t('sales.lowStockAlerts', 'Low Stock Alerts')} />
       <CardContent>
         {loading ? (
-          <Typography color="text.secondary">Loading alerts...</Typography>
+          <Typography color="text.secondary">{t('sales.loadingAlerts', 'Loading alerts...')}</Typography>
         ) : error ? (
           <Typography color="error">{error}</Typography>
         ) : alerts.length === 0 ? (
-          <Typography color="text.secondary">No low stock alerts at this time.</Typography>
+          <Typography color="text.secondary">{t('sales.noLowStock', 'No low stock alerts at this time.')}</Typography>
         ) : (
           <Stack spacing={2}>
             {alerts.slice(0, 4).map((alert) => (
               <Box key={alert.productId || alert.id || alert.productName} sx={{ p: 2, border: '1px solid #E2E8F0', borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {alert.productName || alert.product || 'Unnamed Product'}
+                    {alert.productName || alert.product || t('sales.unnamedProduct', 'Unnamed Product')}
                   </Typography>
-                  <Chip label="Low" size="small" sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
+                  <Chip label={t('sales.low', 'Low')} size="small" sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Current stock: {alert.currentStock != null ? alert.currentStock : alert.stock || '-'}
+                  {t('sales.currentStock', 'Current stock')}: {alert.currentStock != null ? alert.currentStock : alert.stock || '-'}
                 </Typography>
                 <Button size="small" variant="contained" onClick={onViewInventory}>
-                  View Inventory
+                  {t('sales.viewInventory', 'View Inventory')}
                 </Button>
               </Box>
             ))}

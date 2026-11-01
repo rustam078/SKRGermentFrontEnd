@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getCurrencySymbol } from '../../../utils/currency';
+import { useT } from '../../../contexts/LanguageContext';
 import {
   Box,
   Button,
@@ -20,6 +21,7 @@ import {
 } from '@mui/material';
 
 const RecentSalesTable = ({ rows, loading, error }) => {
+  const t = useT();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -36,7 +38,7 @@ const RecentSalesTable = ({ rows, loading, error }) => {
 
   return (
     <Card sx={{ borderRadius: 2, minHeight: 420, display: 'flex', flexDirection: 'column' }}>
-      <CardHeader title="Recent Sales" action={<Button size="small" variant="text" disabled>View All</Button>} />
+      <CardHeader title={t('sales.recentSales', 'Recent Sales')} action={<Button size="small" variant="text" disabled>{t('sales.viewAll', 'View All')}</Button>} />
       <CardContent sx={{ flexGrow: 1 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
@@ -45,20 +47,20 @@ const RecentSalesTable = ({ rows, loading, error }) => {
         ) : error ? (
           <Alert severity="error">{error}</Alert>
         ) : rows.length === 0 ? (
-          <Typography color="text.secondary">No recent sales available yet.</Typography>
+          <Typography color="text.secondary">{t('sales.noRecentSalesYet', 'No recent sales available yet.')}</Typography>
         ) : (
           <>
             <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Invoice No</TableCell>
-                    <TableCell>Customer</TableCell>
-                    <TableCell>Total Amount</TableCell>
-                    <TableCell>Payment Mode</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell align="right">Action</TableCell>
+                    <TableCell>{t('sales.colInvoiceNo', 'Invoice No')}</TableCell>
+                    <TableCell>{t('sales.customer', 'Customer')}</TableCell>
+                    <TableCell>{t('sales.totalAmount', 'Total Amount')}</TableCell>
+                    <TableCell>{t('sales.paymentMode', 'Payment Mode')}</TableCell>
+                    <TableCell>{t('common.date', 'Date')}</TableCell>
+                    <TableCell>{t('common.status', 'Status')}</TableCell>
+                    <TableCell align="right">{t('sales.action', 'Action')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -71,12 +73,12 @@ const RecentSalesTable = ({ rows, loading, error }) => {
                       <TableCell>{sale.saleDate || sale.date || '-'}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'inline-flex', px: 1.5, py: 0.5, borderRadius: 1, backgroundColor: sale.paymentStatus === 'PAID' ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : '#FEE2E2', color: sale.paymentStatus === 'PAID' ? '#166534' : '#991B1B' }}>
-                          {sale.paymentStatus || '-'}
+                          {sale.paymentStatus ? t(`sales.status.${sale.paymentStatus}`, sale.paymentStatus) : '-'}
                         </Box>
                       </TableCell>
                       <TableCell align="right">
                         <Button size="small" variant="outlined" disabled>
-                          View
+                          {t('common.view', 'View')}
                         </Button>
                       </TableCell>
                     </TableRow>

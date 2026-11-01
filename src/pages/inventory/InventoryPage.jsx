@@ -38,10 +38,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../services/axios';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useT } from '../../contexts/LanguageContext';
 
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const t = useT();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [inventoryData, setInventoryData] = useState({ content: [], totalElements: 0 });
@@ -73,7 +75,7 @@ const InventoryPage = () => {
 
       setInventoryData(response.data || { content: [], totalElements: 0 });
     } catch (err) {
-      setError(err.message || 'Unable to load inventory data.');
+      setError(err.message || t('inventory.loadError', 'Unable to load inventory data.'));
     } finally {
       setLoading(false);
     }
@@ -162,7 +164,7 @@ const InventoryPage = () => {
   const handleSaveThreshold = async () => {
     const parsedValue = Number(thresholdInput);
     if (!Number.isFinite(parsedValue) || parsedValue < 0 || parsedValue > 100000) {
-      setThresholdError('Threshold must be between 0 and 100000.');
+      setThresholdError(t('inventory.thresholdRange', 'Threshold must be between 0 and 100000.'));
       return;
     }
 
@@ -173,13 +175,13 @@ const InventoryPage = () => {
       await axiosInstance.put('/settings/LOW_STOCK_THRESHOLD', { threshold: parsedValue });
       setThreshold(parsedValue);
       setSettingsOpen(false);
-      showToast('Threshold Updated Successfully', 'success');
+      showToast(t('inventory.thresholdUpdated', 'Threshold Updated Successfully'), 'success');
       window.dispatchEvent(new Event('inventory-alerts-updated'));
       setTimeout(() => {
         window.dispatchEvent(new Event('inventory-alerts-updated'));
       }, 150);
     } catch (err) {
-      setThresholdError(err.message || 'Unable to save stock threshold.');
+      setThresholdError(err.message || t('inventory.saveThresholdError', 'Unable to save stock threshold.'));
     } finally {
       setSavingThreshold(false);
     }
@@ -194,15 +196,15 @@ const InventoryPage = () => {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-            Inventory Control
-            <HeadingInfo text="Track current stock, stock value, and product-level inventory health." />
+            {t('inventory.pageTitle', 'Inventory Control')}
+            <HeadingInfo text={t('inventory.pageInfo', 'Track current stock, stock value, and product-level inventory health.')} />
           </Typography>
         </Box>
 
         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {can('inventory', 'write') && (
             <Button variant="contained" onClick={() => navigate('/sales/new')}>
-              Sale
+              {t('inventory.sale', 'Sale')}
             </Button>
           )}
         </Stack>
@@ -211,12 +213,12 @@ const InventoryPage = () => {
       {/* Top summary — pipe-separated text, like other modules */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', mb: 2, color: '#334155', fontSize: '0.95rem', fontWeight: 600 }}>
         <span>
-          <span style={{ color: 'var(--theme-primary)' }}>Total Stock:</span>
-          <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{inventorySummary.stock.toLocaleString('en-IN', { maximumFractionDigits: 2 })} pcs</span>
+          <span style={{ color: 'var(--theme-primary)' }}>{t('inventory.totalStock', 'Total Stock:')}</span>
+          <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{inventorySummary.stock.toLocaleString('en-IN', { maximumFractionDigits: 2 })} {t('inventory.pcs', 'pcs')}</span>
         </span>
         <span style={{ color: '#CBD5E1' }}>|</span>
         <span>
-          <span style={{ color: 'var(--theme-primary)' }}>Total Buying Value:</span>
+          <span style={{ color: 'var(--theme-primary)' }}>{t('inventory.totalBuyingValue', 'Total Buying Value:')}</span>
           <span style={{ marginLeft: 6, color: 'var(--theme-primary)' }}>{getCurrencySymbol()}{inventorySummary.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </span>
       </Box>
@@ -224,10 +226,10 @@ const InventoryPage = () => {
       <Card>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Products</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>{t('inventory.products', 'Products')}</Typography>
             <TextField
               size="small"
-              placeholder="Search product…"
+              placeholder={t('inventory.searchProduct', 'Search product…')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
@@ -252,12 +254,12 @@ const InventoryPage = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Product</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Source</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Current Stock</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Stock Value</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Average Cost</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colProduct', 'Product')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colSource', 'Source')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colCurrentStock', 'Current Stock')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colStockValue', 'Stock Value')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colAverageCost', 'Average Cost')}</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>{t('inventory.colAction', 'Action')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -265,7 +267,7 @@ const InventoryPage = () => {
                       <TableRow>
                         <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
-                            {search ? 'No products match your search.' : 'No inventory found.'}
+                            {search ? t('inventory.noMatch', 'No products match your search.') : t('inventory.noInventory', 'No inventory found.')}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -283,7 +285,7 @@ const InventoryPage = () => {
                         </TableCell>
                         <TableCell>
                           {Number(item.currentStock ?? 0) <= Number(threshold ?? 0) ? (
-                            <Tooltip title="Below Threshold">
+                            <Tooltip title={t('inventory.belowThreshold', 'Below Threshold')}>
                               <Box component="span" sx={{ color: '#DC2626', fontWeight: 700 }}>
                                 🔴 {Number(item.currentStock ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                               </Box>
@@ -295,7 +297,7 @@ const InventoryPage = () => {
                         <TableCell>{getCurrencySymbol()}{item.stockValue?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
                         <TableCell>{getCurrencySymbol()}{item.averageCost?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
                         <TableCell>
-                          <Tooltip title="View batches">
+                          <Tooltip title={t('inventory.viewBatches', 'View batches')}>
                             <IconButton size="small" color="primary" onClick={() => handleView(item.productId)}>
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
@@ -331,10 +333,10 @@ const InventoryPage = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Low Stock Products
+                {t('inventory.lowStockProducts', 'Low Stock Products')}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Review products at or below the global threshold.
+                {t('inventory.lowStockSubtitle', 'Review products at or below the global threshold.')}
               </Typography>
             </Box>
             <Button
@@ -344,7 +346,7 @@ const InventoryPage = () => {
               onClick={() => setSettingsOpen(true)}
               sx={{ borderRadius: 999 }}
             >
-              Threshold
+              {t('inventory.threshold', 'Threshold')}
             </Button>
           </Box>
 
@@ -352,7 +354,7 @@ const InventoryPage = () => {
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <NotificationsNoneOutlinedIcon sx={{ fontSize: 44, color: 'text.secondary', mb: 1.5 }} />
               <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                No products are below the configured threshold.
+                {t('inventory.noLowStock', 'No products are below the configured threshold.')}
               </Typography>
             </Box>
           ) : (
@@ -361,10 +363,10 @@ const InventoryPage = () => {
                 <Table size="small" sx={{ tableLayout: 'fixed' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ width: '30%', fontWeight: 700, py: 0.5, px: 0.75 }}>Product</TableCell>
-                      <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>Stock</TableCell>
-                      <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>Threshold</TableCell>
-                      <TableCell sx={{ width: '30%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'center' }}>Status</TableCell>
+                      <TableCell sx={{ width: '30%', fontWeight: 700, py: 0.5, px: 0.75 }}>{t('inventory.colProduct', 'Product')}</TableCell>
+                      <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>{t('inventory.colStock', 'Stock')}</TableCell>
+                      <TableCell sx={{ width: '20%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'right' }}>{t('inventory.colThreshold', 'Threshold')}</TableCell>
+                      <TableCell sx={{ width: '30%', fontWeight: 700, py: 0.5, px: 0.75, textAlign: 'center' }}>{t('common.status', 'Status')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -380,7 +382,7 @@ const InventoryPage = () => {
                           <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{Number(item.threshold ?? threshold ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Typography>
                         </TableCell>
                         <TableCell sx={{ py: 0.5, px: 0.75, textAlign: 'center' }}>
-                          <Chip label="LOW STOCK" size="small" sx={{ fontSize: '0.75rem', px: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
+                          <Chip label={t('inventory.lowStockTag', 'LOW STOCK')} size="small" sx={{ fontSize: '0.75rem', px: 1, bgcolor: 'primary.main', color: '#fff', fontWeight: 700 }} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -394,12 +396,12 @@ const InventoryPage = () => {
       </Drawer>
 
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Stock Alert Settings</DialogTitle>
+        <DialogTitle>{t('inventory.stockAlertSettings', 'Stock Alert Settings')}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Global Low Stock Threshold"
+            label={t('inventory.globalThresholdLabel', 'Global Low Stock Threshold')}
             type="number"
             fullWidth
             value={thresholdInput}
@@ -408,14 +410,14 @@ const InventoryPage = () => {
               setThresholdError('');
             }}
             error={Boolean(thresholdError)}
-            helperText={thresholdError || 'Set the threshold for low stock alerts.'}
+            helperText={thresholdError || t('inventory.thresholdHelper', 'Set the threshold for low stock alerts.')}
             inputProps={{ min: 0, max: 100000 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsOpen(false)}>Cancel</Button>
+          <Button onClick={() => setSettingsOpen(false)}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="contained" onClick={handleSaveThreshold} disabled={savingThreshold}>
-            {savingThreshold ? 'Saving...' : 'Save'}
+            {savingThreshold ? t('inventory.saving', 'Saving...') : t('common.save', 'Save')}
           </Button>
         </DialogActions>
       </Dialog>
