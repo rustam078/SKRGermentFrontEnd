@@ -40,6 +40,7 @@ export default {
   'common.to': 'तक',
   'common.refresh': 'रिफ्रेश',
   'common.export': 'एक्सपोर्ट',
+  'common.saving': 'सहेजा जा रहा है…',
 
   // ── Settings ──
   'settings.title': 'सेटिंग्स',
@@ -62,6 +63,7 @@ export default {
   'settings.section.qr-label.title': 'QR लेबल सेटिंग्स',
   'settings.section.qr-label.subtitle': 'हर गारमेंट QR लेबल पर क्या प्रिंट हो',
   'settings.section.low-stock-threshold.title': 'लो स्टॉक थ्रेशोल्ड',
+  'settings.section.low-stock-threshold.subtitle': 'उत्पाद कब लो स्टॉक के रूप में चिह्नित हों',
   'settings.section.users-roles.title': 'यूज़र और रोल्स',
   'settings.section.users-roles.subtitle': 'स्टाफ अकाउंट और उनकी अनुमतियाँ प्रबंधित करें',
 };

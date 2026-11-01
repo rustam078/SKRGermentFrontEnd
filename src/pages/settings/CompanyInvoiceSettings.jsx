@@ -4,13 +4,14 @@ import {
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import settingsService from '../../services/settingsService';
+import { useT } from '../../contexts/LanguageContext';
 
-// Field metadata drives both rendering and the save loop.
+// Field metadata drives both rendering and the save loop. i18n via labelKey/phKey.
 const COMPANY_FIELDS = [
-  { key: 'COMPANY_NAME', label: 'Company Name', placeholder: 'e.g. SKR Garment' },
-  { key: 'COMPANY_GSTIN', label: 'Company GSTIN', placeholder: 'e.g. 10ABCDE1234F1Z5' },
-  { key: 'COMPANY_CONTACT', label: 'Contact (phone / email)', placeholder: 'e.g. +91 90000 12345' },
-  { key: 'COMPANY_ADDRESS', label: 'Address', placeholder: 'Street, City, State, PIN', multiline: true, rows: 2, full: true },
+  { key: 'COMPANY_NAME', labelKey: 'settings.company.name', label: 'Company Name', phKey: 'settings.company.namePlaceholder', placeholder: 'e.g. SKR Garment' },
+  { key: 'COMPANY_GSTIN', labelKey: 'settings.company.gstin', label: 'Company GSTIN', phKey: 'settings.company.gstinPlaceholder', placeholder: 'e.g. 10ABCDE1234F1Z5' },
+  { key: 'COMPANY_CONTACT', labelKey: 'settings.company.contact', label: 'Contact (phone / email)', phKey: 'settings.company.contactPlaceholder', placeholder: 'e.g. +91 90000 12345' },
+  { key: 'COMPANY_ADDRESS', labelKey: 'settings.company.address', label: 'Address', phKey: 'settings.company.addressPlaceholder', placeholder: 'Street, City, State, PIN', multiline: true, rows: 2, full: true },
 ];
 
 /**
@@ -20,6 +21,7 @@ const COMPANY_FIELDS = [
  */
 const CompanyInvoiceSettings = () => {
   const queryClient = useQueryClient();
+  const t = useT();
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -52,15 +54,15 @@ const CompanyInvoiceSettings = () => {
   const handleSave = async () => {
     const gst = Number(form.DEFAULT_GST_PERCENT);
     if (!Number.isFinite(gst) || gst < 0 || gst > 100) {
-      setError('GST % must be between 0 and 100.');
+      setError(t('settings.company.errGst', 'GST % must be between 0 and 100.'));
       return;
     }
     if (!String(form.CURRENCY_SYMBOL || '').trim()) {
-      setError('Currency symbol cannot be empty.');
+      setError(t('settings.company.errCurrency', 'Currency symbol cannot be empty.'));
       return;
     }
     if (!String(form.COMPANY_NAME || '').trim()) {
-      setError('Company name cannot be empty.');
+      setError(t('settings.company.errName', 'Company name cannot be empty.'));
       return;
     }
     setSaving(true);
@@ -73,7 +75,7 @@ const CompanyInvoiceSettings = () => {
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to save settings.');
+      setError(err.response?.data?.message || err.message || t('settings.company.errSave', 'Failed to save settings.'));
     } finally {
       setSaving(false);
     }
@@ -82,24 +84,24 @@ const CompanyInvoiceSettings = () => {
   if (isLoading) {
     return (
       <Stack direction="row" spacing={1} alignItems="center">
-        <CircularProgress size={18} /><Typography color="text.secondary">Loading settings…</Typography>
+        <CircularProgress size={18} /><Typography color="text.secondary">{t('settings.company.loading', 'Loading settings…')}</Typography>
       </Stack>
     );
   }
 
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>Company Profile</Typography>
+      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>{t('settings.company.profile', 'Company Profile')}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Shown on every invoice and document. Update once — it reflects everywhere.
+        {t('settings.company.profileHelp', 'Shown on every invoice and document. Update once — it reflects everywhere.')}
       </Typography>
       <Grid container spacing={2}>
         {COMPANY_FIELDS.map((f) => (
           <Grid item xs={12} sm={f.full ? 12 : 6} key={f.key}>
             <TextField
               fullWidth size="small"
-              label={f.label}
-              placeholder={f.placeholder}
+              label={t(f.labelKey, f.label)}
+              placeholder={t(f.phKey, f.placeholder)}
               value={form[f.key] ?? ''}
               onChange={set(f.key)}
               multiline={f.multiline}
@@ -111,9 +113,9 @@ const CompanyInvoiceSettings = () => {
 
       <Divider sx={{ my: 3 }} />
 
-      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>Invoice Defaults</Typography>
+      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>{t('settings.company.invoiceDefaults', 'Invoice Defaults')}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Applied to <strong>new</strong> invoices only. Existing invoices keep the values they were created with.
+        {t('settings.company.invoiceDefaultsHelp1', 'Applied to')} <strong>{t('settings.company.newWord', 'new')}</strong> {t('settings.company.invoiceDefaultsHelp2', 'invoices only. Existing invoices keep the values they were created with.')}
       </Typography>
       <Box sx={{ mb: 2 }}>
         <FormControlLabel
@@ -123,17 +125,17 @@ const CompanyInvoiceSettings = () => {
               onChange={(e) => { setForm((f) => ({ ...f, SALES_GST_ENABLED: e.target.checked ? 'true' : 'false' })); setSaved(false); }}
             />
           }
-          label={<Typography sx={{ fontWeight: 600 }}>Apply GST on sales</Typography>}
+          label={<Typography sx={{ fontWeight: 600 }}>{t('settings.company.applyGst', 'Apply GST on sales')}</Typography>}
         />
         <Typography variant="body2" color="text.secondary">
-          When ON, every new sale adds GST (at the % below) on top of the net amount. When OFF, sales are recorded without GST.
+          {t('settings.company.applyGstHelp', 'When ON, every new sale adds GST (at the % below) on top of the net amount. When OFF, sales are recorded without GST.')}
         </Typography>
       </Box>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth size="small" type="number"
-            label="Default GST %"
+            label={t('settings.company.defaultGst', 'Default GST %')}
             value={form.DEFAULT_GST_PERCENT ?? ''}
             onChange={set('DEFAULT_GST_PERCENT')}
             inputProps={{ min: 0, max: 100, step: 0.5 }}
@@ -143,20 +145,20 @@ const CompanyInvoiceSettings = () => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth size="small"
-            label="Currency Symbol"
+            label={t('settings.company.currencySymbol', 'Currency Symbol')}
             value={form.CURRENCY_SYMBOL ?? ''}
             onChange={set('CURRENCY_SYMBOL')}
             inputProps={{ maxLength: 4 }}
-            helperText="e.g. ₹, $, €, £"
+            helperText={t('settings.company.currencyHelper', 'e.g. ₹, $, €, £')}
           />
         </Grid>
       </Grid>
 
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 3 }}>
         <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save Changes'}
+          {saving ? t('common.saving', 'Saving…') : t('settings.company.saveChanges', 'Save Changes')}
         </Button>
-        {saved ? <Alert severity="success" sx={{ py: 0 }}>Settings saved. Refresh other tabs to see currency changes.</Alert> : null}
+        {saved ? <Alert severity="success" sx={{ py: 0 }}>{t('settings.company.saved', 'Settings saved. Refresh other tabs to see currency changes.')}</Alert> : null}
         {error ? <Alert severity="error" sx={{ py: 0 }}>{error}</Alert> : null}
       </Stack>
     </Box>

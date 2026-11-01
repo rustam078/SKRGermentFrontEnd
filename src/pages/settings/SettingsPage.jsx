@@ -127,7 +127,7 @@ const SettingsPage = () => {
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
         {t('settings.pageTitle', 'System Settings')}
-        <HeadingInfo text="Search and configure enterprise rules and preferences." />
+        <HeadingInfo text={t('settings.page.info', 'Search and configure enterprise rules and preferences.')} />
       </Typography>
 
       <TextField
@@ -177,7 +177,7 @@ const SettingsPage = () => {
 
         {filtered.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 5, color: 'text.disabled' }}>
-            <Typography>No settings match “{query}”.</Typography>
+            <Typography>{t('settings.page.noMatch', 'No settings match “{q}”.').replace('{q}', query)}</Typography>
           </Box>
         ) : null}
       </Stack>

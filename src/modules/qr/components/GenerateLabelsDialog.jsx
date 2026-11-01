@@ -23,6 +23,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import qrService, { DEFAULT_LABEL_CONFIG } from '../qrService';
 import { printLabels, LABEL_CSS, labelClass, labelInnerHtml, toQrDataUrl } from '../labelPrinting';
+import { useT } from '../../../contexts/LanguageContext';
 
 // Labels are generated & printed in bounded runs; must match the backend cap.
 const MAX_PER_RUN = 2000;
@@ -34,6 +35,7 @@ const STATUS_COLOR = { AVAILABLE: 'primary', SOLD: 'success', VOID: 'default' };
  * Props: open, onClose, batch { batchNumber, productName, quantityAvailable, quantityReceived }, onGenerated
  */
 const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
+  const t = useT();
   const [count, setCount] = useState('');
   const [rangeFrom, setRangeFrom] = useState('1');
   const [rangeTo, setRangeTo] = useState('');
@@ -104,8 +106,8 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
   // Server-side serial search (debounced) so we never load every label.
   useEffect(() => {
     if (!open || !batchNumber) return;
-    const t = setTimeout(() => loadUnits(0, search.trim() || undefined), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => loadUnits(0, search.trim() || undefined), 300);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
@@ -124,14 +126,14 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
       const res = await qrService.generateUnits(batchNumber, n);
       const newUnits = res?.data?.units || [];
       await buildPreview(newUnits);
-      setNotice(`Generated ${newUnits.length} label(s). Opening print…`);
+      setNotice(t('qr.generatedNotice', 'Generated {n} label(s). Opening print…').replace('{n}', String(newUnits.length)));
       await printLabels(newUnits, { batchNumber, config: cfg });
       await refreshSummary();
       await loadUnits(page, search.trim() || undefined);
       setCount('');
       if (onGenerated) onGenerated();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to generate labels.');
+      setError(err.response?.data?.message || err.message || t('qr.errGenerate', 'Failed to generate labels.'));
     } finally {
       setBusy(false);
     }
@@ -142,45 +144,45 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
     try {
       await printLabels(previewUnitsRef.current, { batchNumber, config: cfg });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to print.');
+      setError(err.response?.data?.message || err.message || t('qr.errPrint', 'Failed to print.'));
     }
   };
 
   // Print/reprint an exact serial-range chunk, then auto-advance to the next same-size chunk.
   const handlePrintRange = async () => {
     const f = Math.max(1, Number(rangeFrom || 1));
-    const t = Number(rangeTo || Math.min(f + 999, totalLabelled));
+    const to = Number(rangeTo || Math.min(f + 999, totalLabelled));
     if (totalLabelled === 0) {
-      setError('No labels generated yet.');
+      setError(t('qr.noLabelsYet', 'No labels generated yet.'));
       return;
     }
-    if (!t || t < f) {
-      setError("'To' must be greater than or equal to 'From'.");
+    if (!to || to < f) {
+      setError(t('qr.errToFrom', "'To' must be greater than or equal to 'From'."));
       return;
     }
-    if (t - f + 1 > MAX_PER_RUN) {
-      setError(`You can print at most ${MAX_PER_RUN} labels at a time.`);
+    if (to - f + 1 > MAX_PER_RUN) {
+      setError(t('qr.errMaxPrint', 'You can print at most {n} labels at a time.').replace('{n}', String(MAX_PER_RUN)));
       return;
     }
     setBusy(true);
     setError('');
     setNotice('');
     try {
-      const res = await qrService.getUnitsRange(batchNumber, f, t);
+      const res = await qrService.getUnitsRange(batchNumber, f, to);
       const list = res?.data || [];
       if (list.length === 0) {
-        setError('No labels in that range.');
+        setError(t('qr.errNoRange', 'No labels in that range.'));
         return;
       }
       await printLabels(list, { batchNumber, config: cfg });
-      setNotice(`Printing labels ${f}–${t}…`);
-      const nextFrom = t + 1; // queue the next chunk of the same size
+      setNotice(t('qr.printingRange', 'Printing labels {f}–{t}…').replace('{f}', String(f)).replace('{t}', String(to)));
+      const nextFrom = to + 1; // queue the next chunk of the same size
       if (nextFrom <= totalLabelled) {
         setRangeFrom(String(nextFrom));
-        setRangeTo(String(Math.min(nextFrom + (t - f), totalLabelled)));
+        setRangeTo(String(Math.min(nextFrom + (to - f), totalLabelled)));
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to print labels.');
+      setError(err.response?.data?.message || err.message || t('qr.errPrintLabels', 'Failed to print labels.'));
     } finally {
       setBusy(false);
     }
@@ -191,7 +193,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
     try {
       await printLabels([unit], { batchNumber, config: cfg });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to print label.');
+      setError(err.response?.data?.message || err.message || t('qr.errPrintLabel', 'Failed to print label.'));
     }
   };
 
@@ -215,7 +217,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
         >
           <Stack direction="row" spacing={1} alignItems="center">
             <QrCode2Icon color="primary" />
-            <Typography sx={{ fontWeight: 800 }}>QR Labels — {batchNumber}</Typography>
+            <Typography sx={{ fontWeight: 800 }}>{t('qr.title', 'QR Labels —')} {batchNumber}</Typography>
           </Stack>
           <IconButton onClick={onClose} disabled={busy} size="small">
             <CloseIcon fontSize="small" />
@@ -228,21 +230,21 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
             <Box>
               <Typography sx={{ fontWeight: 700 }}>{batch?.productName}</Typography>
               <Typography variant="body2" color="text.secondary">
-                Batch pieces: {received} · Available stock: {stock}
+                {t('qr.batchPieces', 'Batch pieces: {r} · Available stock: {s}').replace('{r}', String(received)).replace('{s}', String(stock))}
               </Typography>
             </Box>
 
             {loadingSummary ? (
               <Stack direction="row" spacing={1} alignItems="center">
                 <CircularProgress size={16} />
-                <Typography variant="body2" color="text.secondary">Checking existing labels…</Typography>
+                <Typography variant="body2" color="text.secondary">{t('qr.checking', 'Checking existing labels…')}</Typography>
               </Stack>
             ) : (
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <Chip size="small" label={`${availableLabels} labelled`} color={availableLabels ? 'primary' : 'default'} variant="outlined" />
-                {soldCount > 0 && <Chip size="small" label={`${soldCount} sold`} color="success" variant="outlined" />}
-                {voidCount > 0 && <Chip size="small" label={`${voidCount} void`} variant="outlined" />}
-                <Chip size="small" label={`${remaining} not labelled`} variant="outlined" />
+                <Chip size="small" label={t('qr.labelled', '{n} labelled').replace('{n}', String(availableLabels))} color={availableLabels ? 'primary' : 'default'} variant="outlined" />
+                {soldCount > 0 && <Chip size="small" label={t('qr.sold', '{n} sold').replace('{n}', String(soldCount))} color="success" variant="outlined" />}
+                {voidCount > 0 && <Chip size="small" label={t('qr.void', '{n} void').replace('{n}', String(voidCount))} variant="outlined" />}
+                <Chip size="small" label={t('qr.notLabelled', '{n} not labelled').replace('{n}', String(remaining))} variant="outlined" />
               </Stack>
             )}
 
@@ -251,7 +253,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
 
             {fullyLabelled ? (
               <Alert severity="success" icon={<CheckCircleIcon fontSize="inherit" />}>
-                All {stock} available piece(s) are labelled. Nothing more to generate.
+                {t('qr.allLabelled', 'All {n} available piece(s) are labelled. Nothing more to generate.').replace('{n}', String(stock))}
               </Alert>
             ) : (
               <>
@@ -259,17 +261,17 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
                 {/* Generate a run: count + generate icon right after it */}
                 <Stack direction="row" spacing={1} alignItems="center">
                   <TextField
-                    label="Generate new labels"
+                    label={t('qr.generateNew', 'Generate new labels')}
                     type="number"
                     size="small"
                     value={count}
                     onChange={(e) => setCount(e.target.value)}
-                    placeholder={`Max ${MAX_PER_RUN} at a time`}
+                    placeholder={t('qr.maxAtATime', 'Max {n} at a time').replace('{n}', String(MAX_PER_RUN))}
                     inputProps={{ min: 1, max: runLimit || undefined }}
                     fullWidth
                     disabled={busy}
                   />
-                  <Tooltip title="Generate & print this run">
+                  <Tooltip title={t('qr.generatePrintRun', 'Generate & print this run')}>
                     <span>
                       <IconButton
                         color="primary"
@@ -289,11 +291,11 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
             {totalLabelled > 0 && (
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  Print a chunk — labels 1 to {totalLabelled} exist (max {MAX_PER_RUN} per print)
+                  {t('qr.printChunk', 'Print a chunk — labels 1 to {n} exist (max {m} per print)').replace('{n}', String(totalLabelled)).replace('{m}', String(MAX_PER_RUN))}
                 </Typography>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
                   <TextField
-                    label="From #"
+                    label={t('qr.fromHash', 'From #')}
                     type="number"
                     size="small"
                     value={rangeFrom}
@@ -303,7 +305,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
                     sx={{ width: 110 }}
                   />
                   <TextField
-                    label="To #"
+                    label={t('qr.toHash', 'To #')}
                     type="number"
                     size="small"
                     value={rangeTo}
@@ -313,7 +315,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
                     disabled={busy}
                     sx={{ width: 110 }}
                   />
-                  <Tooltip title="Print this chunk">
+                  <Tooltip title={t('qr.printThisChunk', 'Print this chunk')}>
                     <span>
                       <IconButton
                         color="primary"
@@ -333,8 +335,8 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
             {previewHtml && (
               <Box>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="text.secondary">Print preview (last run)</Typography>
-                  <Button size="small" startIcon={<PrintIcon />} onClick={reprintPreview}>Print again</Button>
+                  <Typography variant="caption" color="text.secondary">{t('qr.printPreview', 'Print preview (last run)')}</Typography>
+                  <Button size="small" startIcon={<PrintIcon />} onClick={reprintPreview}>{t('qr.printAgain', 'Print again')}</Button>
                 </Stack>
                 <style>{LABEL_CSS}</style>
                 <Box
@@ -356,7 +358,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
             )}
 
             <Divider>
-              <Typography variant="caption" color="text.secondary">All labels{totalElements ? ` (${totalElements})` : ''}</Typography>
+              <Typography variant="caption" color="text.secondary">{t('qr.allLabels', 'All labels')}{totalElements ? ` (${totalElements})` : ''}</Typography>
             </Divider>
 
             <TextField
@@ -364,7 +366,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
               fullWidth
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search serial (e.g. 007)…"
+              placeholder={t('qr.searchSerial', 'Search serial (e.g. 007)…')}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment>
@@ -377,7 +379,7 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
                 <Stack alignItems="center" sx={{ py: 3 }}><CircularProgress size={20} /></Stack>
               ) : units.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-                  {search ? 'No matching serial.' : 'No labels generated yet.'}
+                  {search ? t('qr.noMatchingSerial', 'No matching serial.') : t('qr.noLabelsYet', 'No labels generated yet.')}
                 </Typography>
               ) : (
                 units.map((u) => (
@@ -390,9 +392,9 @@ const GenerateLabelsDialog = ({ open, onClose, batch, onGenerated }) => {
                   >
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{u.serial}</Typography>
-                      <Chip size="small" label={u.status} color={STATUS_COLOR[u.status] || 'default'} variant="outlined" />
+                      <Chip size="small" label={t('qr.status.' + u.status, u.status)} color={STATUS_COLOR[u.status] || 'default'} variant="outlined" />
                     </Stack>
-                    <Tooltip title="Reprint this label">
+                    <Tooltip title={t('qr.reprintLabel', 'Reprint this label')}>
                       <IconButton size="small" onClick={() => printOne(u)} disabled={busy}>
                         <PrintIcon fontSize="small" />
                       </IconButton>

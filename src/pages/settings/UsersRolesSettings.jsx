@@ -38,6 +38,7 @@ import { message } from 'antd';
 import userService from '../../services/userService';
 import settingsService from '../../services/settingsService';
 import { useAppSettings } from '../../contexts/AppSettingsContext';
+import { useT } from '../../contexts/LanguageContext';
 import { MODULES, ROLE_ADMIN, ROLE_STAFF } from '../../hooks/usePermissions';
 
 const ROLE_OPTIONS = [
@@ -66,6 +67,7 @@ const buildMatrix = (staffPerms) =>
 
 const UsersRolesSettings = () => {
   const queryClient = useQueryClient();
+  const t = useT();
   const { rolePermissions, staffDashboardBoards } = useAppSettings();
 
   // ---- Users table ----
@@ -100,43 +102,43 @@ const UsersRolesSettings = () => {
   const createMutation = useMutation({
     mutationFn: (payload) => userService.create(payload),
     onSuccess: () => {
-      message.success('User created.');
+      message.success(t('settings.users.toast.created', 'User created.'));
       setAddOpen(false);
       setAddForm(EMPTY_ADD);
       invalidateUsers();
     },
-    onError: (err) => message.error(err.response?.data?.message || err.message || 'Failed to create user.'),
+    onError: (err) => message.error(err.response?.data?.message || err.message || t('settings.users.toast.createFail', 'Failed to create user.')),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...rest }) => userService.update(id, rest),
     onSuccess: () => {
-      message.success('User updated.');
+      message.success(t('settings.users.toast.updated', 'User updated.'));
       setEditOpen(false);
       setEditForm(null);
       invalidateUsers();
     },
-    onError: (err) => message.error(err.response?.data?.message || err.message || 'Failed to update user.'),
+    onError: (err) => message.error(err.response?.data?.message || err.message || t('settings.users.toast.updateFail', 'Failed to update user.')),
   });
 
   const resetPwMutation = useMutation({
     mutationFn: ({ id, newPassword }) => userService.resetPassword(id, newPassword),
     onSuccess: () => {
-      message.success('Password reset.');
+      message.success(t('settings.users.toast.pwReset', 'Password reset.'));
       setPwOpen(false);
       setPwUser(null);
       setPwValue('');
     },
-    onError: (err) => message.error(err.response?.data?.message || err.message || 'Failed to reset password.'),
+    onError: (err) => message.error(err.response?.data?.message || err.message || t('settings.users.toast.pwResetFail', 'Failed to reset password.')),
   });
 
   const toggleMutation = useMutation({
     mutationFn: (id) => userService.toggleStatus(id),
     onSuccess: () => {
-      message.success('Status updated.');
+      message.success(t('settings.users.toast.statusUpdated', 'Status updated.'));
       invalidateUsers();
     },
-    onError: (err) => message.error(err.response?.data?.message || err.message || 'Failed to change status.'),
+    onError: (err) => message.error(err.response?.data?.message || err.message || t('settings.users.toast.statusFail', 'Failed to change status.')),
   });
 
   const openEdit = (u) => {
@@ -206,10 +208,10 @@ const UsersRolesSettings = () => {
     setSavingPerms(true);
     try {
       await settingsService.update('ROLE_PERMISSIONS', JSON.stringify({ STAFF: matrix }));
-      message.success('Permissions saved.');
+      message.success(t('settings.users.toast.permsSaved', 'Permissions saved.'));
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } catch (err) {
-      message.error(err.response?.data?.message || err.message || 'Failed to save permissions.');
+      message.error(err.response?.data?.message || err.message || t('settings.users.toast.permsFail', 'Failed to save permissions.'));
     } finally {
       setSavingPerms(false);
     }
@@ -234,10 +236,10 @@ const UsersRolesSettings = () => {
       // Persist in the BOARDS order for a stable, predictable dropdown.
       const ordered = DASHBOARD_BOARDS.filter((b) => boards.has(b.value)).map((b) => b.value);
       await settingsService.update('STAFF_DASHBOARD_BOARDS', JSON.stringify(ordered));
-      message.success('Dashboard boards saved.');
+      message.success(t('settings.users.toast.boardsSaved', 'Dashboard boards saved.'));
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } catch (err) {
-      message.error(err.response?.data?.message || err.message || 'Failed to save boards.');
+      message.error(err.response?.data?.message || err.message || t('settings.users.toast.boardsFail', 'Failed to save boards.'));
     } finally {
       setSavingBoards(false);
     }
@@ -246,23 +248,23 @@ const UsersRolesSettings = () => {
   const roleChip = (role) => (
     <Chip
       size="small"
-      label={role === ROLE_ADMIN ? 'Admin' : 'Staff'}
+      label={role === ROLE_ADMIN ? t('settings.users.role.ADMIN', 'Admin') : t('settings.users.role.STAFF', 'Staff')}
       color={role === ROLE_ADMIN ? 'primary' : 'default'}
       variant={role === ROLE_ADMIN ? 'filled' : 'outlined'}
     />
   );
 
   const statusChip = (active) => (
-    <Chip size="small" label={active ? 'Active' : 'Inactive'} color={active ? 'success' : 'default'} variant={active ? 'filled' : 'outlined'} />
+    <Chip size="small" label={active ? t('settings.users.active', 'Active') : t('settings.users.inactive', 'Inactive')} color={active ? 'success' : 'default'} variant={active ? 'filled' : 'outlined'} />
   );
 
   return (
     <Box>
       {/* ---- Users ---- */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Users</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{t('settings.users.users', 'Users')}</Typography>
         <Button variant="contained" size="small" startIcon={<AddRoundedIcon />} onClick={() => { setAddForm(EMPTY_ADD); setAddOpen(true); }}>
-          Add User
+          {t('settings.users.addUser', 'Add User')}
         </Button>
       </Stack>
 
@@ -270,11 +272,11 @@ const UsersRolesSettings = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Username</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Full name</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('settings.users.colUsername', 'Username')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('settings.users.colFullName', 'Full name')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('settings.users.colRole', 'Role')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('common.status', 'Status')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="right">{t('common.actions', 'Actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -286,7 +288,7 @@ const UsersRolesSettings = () => {
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.disabled' }}>No users yet.</TableCell>
+                <TableCell colSpan={5} align="center" sx={{ py: 3, color: 'text.disabled' }}>{t('settings.users.noUsers', 'No users yet.')}</TableCell>
               </TableRow>
             ) : (
               users.map((u) => (
@@ -296,13 +298,13 @@ const UsersRolesSettings = () => {
                   <TableCell>{roleChip(u.role)}</TableCell>
                   <TableCell>{statusChip(u.active)}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('common.edit', 'Edit')}>
                       <IconButton size="small" onClick={() => openEdit(u)}><EditRoundedIcon fontSize="small" /></IconButton>
                     </Tooltip>
-                    <Tooltip title="Reset password">
+                    <Tooltip title={t('settings.users.resetPassword', 'Reset password')}>
                       <IconButton size="small" onClick={() => openReset(u)}><LockResetRoundedIcon fontSize="small" /></IconButton>
                     </Tooltip>
-                    <Tooltip title={u.active ? 'Deactivate' : 'Activate'}>
+                    <Tooltip title={u.active ? t('settings.users.deactivate', 'Deactivate') : t('settings.users.activate', 'Activate')}>
                       <span>
                         <IconButton
                           size="small"
@@ -323,19 +325,19 @@ const UsersRolesSettings = () => {
       </TableContainer>
 
       {/* ---- STAFF permission matrix ---- */}
-      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Staff Permissions</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{t('settings.users.staffPerms', 'Staff Permissions')}</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-        ADMIN always has full access. These control STAFF.
+        {t('settings.users.staffPermsHelp', 'ADMIN always has full access. These control STAFF.')}
       </Typography>
 
       <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, maxWidth: 520 }}>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Module</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">View</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Write</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Delete</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t('settings.users.module', 'Module')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">{t('settings.users.view', 'View')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">{t('settings.users.write', 'Write')}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">{t('settings.users.delete', 'Delete')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -343,7 +345,7 @@ const UsersRolesSettings = () => {
               const row = matrix[m] || { view: false, write: false, delete: false };
               return (
                 <TableRow key={m} hover>
-                  <TableCell sx={{ textTransform: 'capitalize' }}>{m}</TableCell>
+                  <TableCell sx={{ textTransform: 'capitalize' }}>{t('nav.' + m, m)}</TableCell>
                   <TableCell align="center">
                     <Checkbox size="small" checked={row.view} onChange={(e) => setPerm(m, 'view', e.target.checked)} />
                   </TableCell>
@@ -361,13 +363,13 @@ const UsersRolesSettings = () => {
       </TableContainer>
 
       <Button variant="contained" onClick={savePermissions} disabled={savingPerms}>
-        {savingPerms ? 'Saving…' : 'Save Permissions'}
+        {savingPerms ? t('common.saving', 'Saving…') : t('settings.users.savePerms', 'Save Permissions')}
       </Button>
 
       {/* ---- STAFF dashboard boards ---- */}
-      <Typography variant="subtitle1" sx={{ fontWeight: 800, mt: 4 }}>Staff Dashboard Boards</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 800, mt: 4 }}>{t('settings.users.staffBoards', 'Staff Dashboard Boards')}</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-        Which dashboard boards STAFF can open (ADMIN sees all). Staff also need "Dashboard" view permission above.
+        {t('settings.users.staffBoardsHelp', 'Which dashboard boards STAFF can open (ADMIN sees all). Staff also need "Dashboard" view permission above.')}
       </Typography>
       <Stack direction="row" flexWrap="wrap" sx={{ mb: 1.5 }}>
         {DASHBOARD_BOARDS.map((b) => (
@@ -375,127 +377,127 @@ const UsersRolesSettings = () => {
             key={b.value}
             sx={{ width: 160 }}
             control={<Checkbox size="small" checked={boards.has(b.value)} onChange={(e) => toggleBoard(b.value, e.target.checked)} />}
-            label={b.label}
+            label={t('dashboard.board.' + b.value, b.label)}
           />
         ))}
       </Stack>
       <Button variant="contained" onClick={saveBoards} disabled={savingBoards}>
-        {savingBoards ? 'Saving…' : 'Save Boards'}
+        {savingBoards ? t('common.saving', 'Saving…') : t('settings.users.saveBoards', 'Save Boards')}
       </Button>
 
       {/* ---- Add dialog ---- */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Add User</DialogTitle>
+        <DialogTitle>{t('settings.users.addUser', 'Add User')}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Username"
+              label={t('settings.users.colUsername', 'Username')}
               size="small"
               required
               value={addForm.username}
               onChange={(e) => setAddForm((f) => ({ ...f, username: e.target.value }))}
             />
             <TextField
-              label="Full name"
+              label={t('settings.users.colFullName', 'Full name')}
               size="small"
               required
               value={addForm.fullName}
               onChange={(e) => setAddForm((f) => ({ ...f, fullName: e.target.value }))}
             />
             <TextField
-              label="Password"
+              label={t('settings.users.password', 'Password')}
               type={showAddPw ? 'text' : 'password'}
               size="small"
               required
               value={addForm.password}
               onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))}
-              helperText="Minimum 4 characters"
+              helperText={t('settings.users.min4', 'Minimum 4 characters')}
               error={addForm.password.length > 0 && addForm.password.length < 4}
               InputProps={{ endAdornment: eyeAdornment(showAddPw, () => setShowAddPw((s) => !s)) }}
             />
             <TextField
-              label="Role"
+              label={t('settings.users.colRole', 'Role')}
               select
               size="small"
               value={addForm.role}
               onChange={(e) => setAddForm((f) => ({ ...f, role: e.target.value }))}
             >
-              {ROLE_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+              {ROLE_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{t('settings.users.role.' + o.value, o.label)}</MenuItem>)}
             </TextField>
             <FormControlLabel
               control={<Switch checked={addForm.active} onChange={(e) => setAddForm((f) => ({ ...f, active: e.target.checked }))} />}
-              label="Active"
+              label={t('settings.users.activeLabel', 'Active')}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddOpen(false)}>Cancel</Button>
+          <Button onClick={() => setAddOpen(false)}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="contained" onClick={submitAdd} disabled={!canSubmitAdd || createMutation.isPending}>
-            {createMutation.isPending ? 'Saving…' : 'Create'}
+            {createMutation.isPending ? t('common.saving', 'Saving…') : t('settings.users.create', 'Create')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ---- Edit dialog ---- */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Edit User</DialogTitle>
+        <DialogTitle>{t('settings.users.editUser', 'Edit User')}</DialogTitle>
         <DialogContent>
           {editForm ? (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField label="Username" size="small" value={editForm.username} InputProps={{ readOnly: true }} disabled />
+              <TextField label={t('settings.users.colUsername', 'Username')} size="small" value={editForm.username} InputProps={{ readOnly: true }} disabled />
               <TextField
-                label="Full name"
+                label={t('settings.users.colFullName', 'Full name')}
                 size="small"
                 required
                 value={editForm.fullName}
                 onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
               />
               <TextField
-                label="Role"
+                label={t('settings.users.colRole', 'Role')}
                 select
                 size="small"
                 value={editForm.role}
                 onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
               >
-                {ROLE_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                {ROLE_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{t('settings.users.role.' + o.value, o.label)}</MenuItem>)}
               </TextField>
               <FormControlLabel
                 control={<Switch checked={editForm.active} onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.checked }))} />}
-                label="Active"
+                label={t('settings.users.activeLabel', 'Active')}
               />
             </Stack>
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={() => setEditOpen(false)}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="contained" onClick={submitEdit} disabled={!canSubmitEdit || updateMutation.isPending}>
-            {updateMutation.isPending ? 'Saving…' : 'Save'}
+            {updateMutation.isPending ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ---- Reset password dialog ---- */}
       <Dialog open={pwOpen} onClose={() => setPwOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Reset Password{pwUser ? ` — ${pwUser.username}` : ''}</DialogTitle>
+        <DialogTitle>{t('settings.users.resetPasswordTitle', 'Reset Password')}{pwUser ? ` — ${pwUser.username}` : ''}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="New password"
+              label={t('settings.users.newPassword', 'New password')}
               type={showResetPw ? 'text' : 'password'}
               size="small"
               required
               value={pwValue}
               onChange={(e) => setPwValue(e.target.value)}
-              helperText="Minimum 4 characters"
+              helperText={t('settings.users.min4', 'Minimum 4 characters')}
               error={pwValue.length > 0 && pwValue.length < 4}
               InputProps={{ endAdornment: eyeAdornment(showResetPw, () => setShowResetPw((s) => !s)) }}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPwOpen(false)}>Cancel</Button>
+          <Button onClick={() => setPwOpen(false)}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="contained" onClick={submitPw} disabled={!canSubmitPw || resetPwMutation.isPending}>
-            {resetPwMutation.isPending ? 'Saving…' : 'Reset'}
+            {resetPwMutation.isPending ? t('common.saving', 'Saving…') : t('settings.users.reset', 'Reset')}
           </Button>
         </DialogActions>
       </Dialog>

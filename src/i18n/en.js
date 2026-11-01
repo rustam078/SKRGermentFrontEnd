@@ -41,6 +41,7 @@ export default {
   'common.to': 'To',
   'common.refresh': 'Refresh',
   'common.export': 'Export',
+  'common.saving': 'Saving…',
 
   // ── Settings ──
   'settings.title': 'Settings',
@@ -63,6 +64,7 @@ export default {
   'settings.section.qr-label.title': 'QR Label Settings',
   'settings.section.qr-label.subtitle': 'What prints on each garment QR label',
   'settings.section.low-stock-threshold.title': 'Low Stock Threshold',
+  'settings.section.low-stock-threshold.subtitle': 'When products are flagged as low stock',
   'settings.section.users-roles.title': 'Users & Roles',
   'settings.section.users-roles.subtitle': 'Manage staff accounts and their permissions',
 };

@@ -5,6 +5,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import settingsService from '../../services/settingsService';
 import { MENU_LABELS, orderMenu } from '../../components/layout/Sidebar';
+import { useT } from '../../contexts/LanguageContext';
 
 /**
  * Reorder the left sidebar. Saves MENU_ORDER (JSON array of keys). The sidebar reads
@@ -12,6 +13,7 @@ import { MENU_LABELS, orderMenu } from '../../components/layout/Sidebar';
  */
 const MenuOrderSettings = () => {
   const queryClient = useQueryClient();
+  const t = useT();
   const [items, setItems] = useState([]); // [{ key, text }]
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,7 +60,7 @@ const MenuOrderSettings = () => {
       queryClient.setQueryData(['appSettings'], (old) => ({ ...(old || {}), MENU_ORDER: order }));
       queryClient.invalidateQueries({ queryKey: ['appSettings'] });
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to save menu order.');
+      setError(err.response?.data?.message || err.message || t('settings.menu.errSave', 'Failed to save menu order.'));
     } finally {
       setSaving(false);
     }
@@ -67,7 +69,7 @@ const MenuOrderSettings = () => {
   if (isLoading) {
     return (
       <Stack direction="row" spacing={1} alignItems="center">
-        <CircularProgress size={18} /><Typography color="text.secondary">Loading menu order…</Typography>
+        <CircularProgress size={18} /><Typography color="text.secondary">{t('settings.menu.loading', 'Loading menu order…')}</Typography>
       </Stack>
     );
   }
@@ -75,7 +77,7 @@ const MenuOrderSettings = () => {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Use the arrows to set the order of items in the left menu (top = first). Save to apply.
+        {t('settings.menu.help', 'Use the arrows to set the order of items in the left menu (top = first). Save to apply.')}
       </Typography>
       <Stack spacing={1} sx={{ maxWidth: 380 }}>
         {items.map((item, i) => (
@@ -87,7 +89,7 @@ const MenuOrderSettings = () => {
             sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, px: 1.5, py: 0.75 }}
           >
             <Typography sx={{ fontWeight: 600 }}>
-              <span style={{ color: '#94A3B8', marginRight: 8 }}>{i + 1}.</span>{item.text}
+              <span style={{ color: '#94A3B8', marginRight: 8 }}>{i + 1}.</span>{t('nav.' + item.key, item.text)}
             </Typography>
             <Box>
               <IconButton size="small" onClick={() => move(i, -1)} disabled={i === 0}>
@@ -102,9 +104,9 @@ const MenuOrderSettings = () => {
       </Stack>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
         <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving…' : 'Save Order'}
+          {saving ? t('common.saving', 'Saving…') : t('settings.menu.saveOrder', 'Save Order')}
         </Button>
-        {saved ? <Alert severity="success" sx={{ py: 0 }}>Menu order updated.</Alert> : null}
+        {saved ? <Alert severity="success" sx={{ py: 0 }}>{t('settings.menu.saved', 'Menu order updated.')}</Alert> : null}
         {error ? <Alert severity="error" sx={{ py: 0 }}>{error}</Alert> : null}
       </Stack>
     </Box>

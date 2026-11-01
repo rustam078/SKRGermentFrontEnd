@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import { getCurrencySymbol } from '../../utils/currency';
+import { sourceLabel } from '../../utils/sourceLabel';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MaterialCostModal from './MaterialCostModal';
@@ -1050,7 +1051,7 @@ const ProductDetailsPage = () => {
                           fontFamily: 'monospace',
                         }}
                       >
-                        {product.source || '—'}
+                        {product.source ? sourceLabel(t, product.source) : '—'}
                       </div>
                     </div>
                   </div>

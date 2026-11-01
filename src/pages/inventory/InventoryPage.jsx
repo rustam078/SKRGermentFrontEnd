@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import HeadingInfo from '../../components/common/HeadingInfo';
 import ProductLabel from '../../components/common/ProductLabel';
 import { getCurrencySymbol } from '../../utils/currency';
+import { sourceLabel } from '../../utils/sourceLabel';
 import {
   Alert,
   Box,
@@ -277,7 +278,7 @@ const InventoryPage = () => {
                         <TableCell><ProductLabel productId={item.productId} iconName={item.iconName} name={item.productName} hasImage={item.hasImage} size={28} round borderColor="var(--theme-primary)" /></TableCell>
                         <TableCell>
                           <Chip
-                            label={item.source}
+                            label={sourceLabel(t, item.source)}
                             size="small"
                             color={item.source === 'PURCHASED' ? 'info' : item.source === 'BOTH' ? 'secondary' : 'success'}
                             variant="outlined"

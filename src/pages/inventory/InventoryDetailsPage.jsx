@@ -46,6 +46,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import axiosInstance from '../../services/axios';
 import { getCurrencySymbol } from '../../utils/currency';
+import { sourceLabel } from '../../utils/sourceLabel';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useT } from '../../contexts/LanguageContext';
 
@@ -322,7 +323,7 @@ const InventoryDetailsPage = () => {
               </Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
                   <Chip
-                    label={details.source}
+                    label={sourceLabel(t, details.source)}
                     color={
                       details.source === "PURCHASED"
                         ? "info"
@@ -410,7 +411,7 @@ const InventoryDetailsPage = () => {
                         return (
                           <TableRow key={batch.batchId} hover>
                             <TableCell>{batch.batchNumber}</TableCell>
-                            <TableCell>{batch.source}</TableCell>
+                            <TableCell>{sourceLabel(t, batch.source)}</TableCell>
                             <TableCell>
                               {formatDate(batch.receivedDate)}
                             </TableCell>
