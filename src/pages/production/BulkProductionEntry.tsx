@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -40,6 +40,10 @@ const pickPieceCode = (codes: any[]): any => {
 const fmtMoney = (v: number) =>
   `${getCurrencySymbol()}${Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
+// Draft persistence: keep the in-progress bulk entry across reload / back, clear on submit.
+const DRAFT_KEY = 'skr_bulk_production_draft';
+const loadDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } };
+
 // Avatar initials: first letter of first + last name (e.g. "Rustam Ali" → "RA").
 const initials = (name = '') => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -52,9 +56,18 @@ const BulkProductionEntry: React.FC = () => {
   const queryClient = useQueryClient();
   const t = useT();
 
-  const [productionDate, setProductionDate] = useState(dayjs());
-  const [employees, setEmployees] = useState<EmpBlock[]>([]);
-  const [activeKey, setActiveKey] = useState<string | undefined>();
+  // Restore any saved draft once (and bump the key counter past restored keys).
+  const draft0 = useMemo(() => {
+    const d = loadDraft();
+    if (d?.employees?.length) {
+      const maxK = Math.max(0, ...d.employees.flatMap((e: any) => [e.key, ...(e.products || []).map((p: any) => p.key)]));
+      if (seq <= maxK) seq = maxK + 1;
+    }
+    return d;
+  }, []);
+  const [productionDate, setProductionDate] = useState(draft0?.date ? dayjs(draft0.date) : dayjs());
+  const [employees, setEmployees] = useState<EmpBlock[]>(draft0?.employees || []);
+  const [activeKey, setActiveKey] = useState<string | undefined>(draft0?.employees?.[0] ? String(draft0.employees[0].key) : undefined);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [empSearch, setEmpSearch] = useState('');
@@ -63,6 +76,23 @@ const BulkProductionEntry: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false); // summary confirmation before saving
   // Piece codes cached per product (shared across employees) + per-product loading flag.
   const [pcByProduct, setPcByProduct] = useState<Record<string, any[]>>({});
+
+  // Auto-save the draft on any change; remove it when the form is emptied.
+  useEffect(() => {
+    try {
+      if (employees.length) localStorage.setItem(DRAFT_KEY, JSON.stringify({ date: productionDate.format('YYYY-MM-DD'), employees }));
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch { /* storage unavailable */ }
+  }, [employees, productionDate]);
+
+  // On restore, fetch piece codes for already-selected products so the Code labels render.
+  useEffect(() => {
+    const ids = [...new Set((draft0?.employees || []).flatMap((e: any) => (e.products || []).map((p: any) => p.productId)).filter(Boolean))] as string[];
+    ids.forEach(async (id) => {
+      try { const codes = (await productService.getActivePieceCodes(id))?.data || []; setPcByProduct((prev) => ({ ...prev, [id]: codes })); } catch { /* ignore */ }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: employeesData } = useQuery({ queryKey: ['employees'], queryFn: employeeService.getEmployees });
   const { data: productsData } = useQuery({ queryKey: ['products'], queryFn: productService.getProducts });
@@ -175,6 +205,7 @@ const BulkProductionEntry: React.FC = () => {
       .forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
 
     if (failed.length === 0) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ } // submitted → clear draft
       notification.success({ message: t('production.success', 'Success'), description: t('production.bulk.savedAll', 'All production entries saved.'), placement: 'topRight' });
       navigate('/production');
     } else {
