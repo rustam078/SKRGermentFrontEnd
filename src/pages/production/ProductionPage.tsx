@@ -62,27 +62,8 @@ const ProductionPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { can } = usePermissions();
   const t = useT();
-  const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
 
-
-  // Responsive Drawer width tracking
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const getDrawerWidth = () => {
-    if (windowWidth > 992) return 780;
-    if (windowWidth > 768) return '72%';
-    return '100%';
-  };
-
-  // Drawer visibility state
-  const [drawerVisible, setDrawerVisible] = useState(false);
   // Filter popover visibility
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -116,10 +97,6 @@ const ProductionPage: React.FC = () => {
     employeeId?: string;
     productId?: string;
   }>({});
-
-  // Per-row piece code options (map: rowIndex → IPieceCode[])
-  const [pieceCodesByRow, setPieceCodesByRow] = useState<Record<number, any[]>>({});
-  const [pieceCodesLoadingByRow, setPieceCodesLoadingByRow] = useState<Record<number, boolean>>({});
 
   // Query 1: Fetch Employees list
   const { data: employeesData } = useQuery({
@@ -156,39 +133,7 @@ const ProductionPage: React.FC = () => {
   const quickFilter = Form.useWatch('quickFilter', filterForm) || 'Custom Range';
   const isCustom = quickFilter === 'Custom Range';
 
-  // Watch form items for live summary
-  const formItems = Form.useWatch('items', form) || [];
-
   // ── Mutations ────────────────────────────────────────────
-
-  const createMutation = useMutation({
-    mutationFn: productionService.createProduction,
-    onSuccess: (res) => {
-      notification.success({
-        message: t('production.success', 'Success'),
-        description: res.message || t('production.createdSuccess', 'Production entry created successfully'),
-        placement: 'topRight',
-      });
-      queryClient.invalidateQueries({ queryKey: ['productionRecent'] });
-      queryClient.invalidateQueries({ queryKey: ['productionStats'] });
-      queryClient.invalidateQueries({ queryKey: ['employeeDetails'] });
-      queryClient.invalidateQueries({ queryKey: ['employeeCalendar'] });
-      // Also refresh the cross-page views a production entry feeds into.
-      queryClient.invalidateQueries({ queryKey: ['productionHistory'] });
-      queryClient.invalidateQueries({ queryKey: ['production'] });
-      setDrawerVisible(false);
-      form.resetFields();
-      setPieceCodesByRow({});
-    },
-    onError: (error: any) => {
-      const errorMsg = error.response?.data?.message || error.message || t('production.createFailed', 'Failed to create entry');
-      notification.error({
-        message: t('production.errorSaving', 'Error Saving Production'),
-        description: errorMsg,
-        placement: 'topRight',
-      });
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: productionService.deleteProduction,
@@ -225,67 +170,6 @@ const ProductionPage: React.FC = () => {
     }).format(value);
   };
 
-  // ── Piece Code loading when product is selected ─────────
-
-  const loadPieceCodesForRow = useCallback(async (productId: string, rowIndex: number) => {
-    if (!productId) {
-      setPieceCodesByRow((prev) => ({ ...prev, [rowIndex]: [] }));
-      return;
-    }
-    setPieceCodesLoadingByRow((prev) => ({ ...prev, [rowIndex]: true }));
-    try {
-      const res = await productService.getActivePieceCodes(productId);
-      const codes = res?.data || [];
-      setPieceCodesByRow((prev) => ({ ...prev, [rowIndex]: codes }));
-    } catch (e) {
-      console.error('Error fetching piece codes for row', rowIndex, e);
-      setPieceCodesByRow((prev) => ({ ...prev, [rowIndex]: [] }));
-    } finally {
-      setPieceCodesLoadingByRow((prev) => ({ ...prev, [rowIndex]: false }));
-    }
-  }, []);
-
-  // When product changes for a row:
-  const handleProductChange = async (productId: string, rowIndex: number) => {
-    // Clear piece code and rate for this row
-    form.setFieldValue(['items', rowIndex, 'pieceCodeId'], undefined);
-    form.setFieldValue(['items', rowIndex, 'rate'], 0);
-    form.setFieldValue(['items', rowIndex, 'amount'], 0);
-    // Load piece codes
-    await loadPieceCodesForRow(productId, rowIndex);
-  };
-
-  // When piece code changes for a row:
-  const handlePieceCodeChange = (pieceCodeId: string, rowIndex: number) => {
-    const codes = pieceCodesByRow[rowIndex] || [];
-    const selected = codes.find((pc: any) => pc.id === pieceCodeId);
-    const rate = selected?.rate || 0;
-    form.setFieldValue(['items', rowIndex, 'rate'], rate);
-    const qty = Number(form.getFieldValue(['items', rowIndex, 'quantity']) || 0);
-    form.setFieldValue(['items', rowIndex, 'amount'], qty * rate);
-  };
-
-  // ── Form value change handler ───────────────────────────
-
-  const handleFormValuesChange = (changedValues: any, allValues: any) => {
-    if (changedValues.items) {
-      const changedIndex = changedValues.items.findIndex(
-        (item: any) => item && item.quantity !== undefined
-      );
-      if (changedIndex > -1) {
-        const item = allValues.items[changedIndex];
-        if (item) {
-          const qty = Number(item.quantity || 0);
-          const rate = Number(item.rate || 0);
-          const amt = qty * rate;
-          if (item.amount !== amt) {
-            form.setFieldValue(['items', changedIndex, 'amount'], amt);
-          }
-        }
-      }
-    }
-  };
-
   // ── Delete production entry ─────────────────────────────
 
   const handleDeleteRow = (record: IProductionEntry) => {
@@ -300,67 +184,6 @@ const ProductionPage: React.FC = () => {
         await deleteMutation.mutateAsync(record.id);
       },
     });
-  };
-
-  // ── Save handler ────────────────────────────────────────
-
-  const handleSaveEntry = (values: any) => {
-    const items = values.items || [];
-
-    // Validate each row has piece code selected
-    const missingPieceCode = items.some((item: any) => item && item.productId && !item.pieceCodeId);
-    if (missingPieceCode) {
-      notification.error({
-        message: t('production.validationError', 'Validation Error'),
-        description: t('production.selectPieceCode', 'Please select a Piece Code for each product row.'),
-        placement: 'topRight',
-      });
-      return;
-    }
-
-    // Front-end duplicate piece code check
-    const pieceCodeIds = items.map((item: any) => item.pieceCodeId).filter(Boolean);
-    const uniquePieceCodeIds = new Set(pieceCodeIds);
-    if (uniquePieceCodeIds.size !== pieceCodeIds.length) {
-      notification.error({
-        message: t('production.validationError', 'Validation Error'),
-        description: t('production.duplicatePieceCode', 'Duplicate piece codes are not allowed in the same production entry.'),
-        placement: 'topRight',
-      });
-      return;
-    }
-
-    const payload = {
-      employeeId: values.employeeId,
-      productionDate: values.productionDate.format('YYYY-MM-DD'),
-      items: items.map((item: any) => ({
-        productId: item.productId,
-        pieceCodeId: item.pieceCodeId,
-        quantity: Number(item.quantity || 0),
-        rate: Number(item.rate || 0),
-        amount: Number(item.quantity || 0) * Number(item.rate || 0),
-      })),
-    };
-
-    createMutation.mutate(payload);
-  };
-
-  // ── Drawer open/close ───────────────────────────────────
-
-  const handleOpenDrawer = () => {
-    form.resetFields();
-    setPieceCodesByRow({});
-    form.setFieldsValue({
-      productionDate: dayjs(),
-      items: [{ productId: undefined, pieceCodeId: undefined, quantity: undefined, rate: 0, amount: 0 }],
-    });
-    setDrawerVisible(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setDrawerVisible(false);
-    form.resetFields();
-    setPieceCodesByRow({});
   };
 
   // ── Filter handlers ─────────────────────────────────────
@@ -426,18 +249,6 @@ const ProductionPage: React.FC = () => {
       filterForm.setFieldsValue({ fromDate: null, toDate: null });
     }
   };
-
-  // ── Live summary stats ──────────────────────────────────
-
-  const liveTotalPieceCodes = formItems.filter((item: any) => item && item.pieceCodeId).length;
-  const liveTotalQuantity = formItems.reduce(
-    (sum: number, item: any) => sum + (Number(item?.quantity) || 0),
-    0
-  );
-  const liveTotalAmount = formItems.reduce(
-    (sum: number, item: any) => sum + (Number(item?.amount) || 0),
-    0
-  );
 
   // ── Table summary stats ─────────────────────────────────
 
@@ -719,7 +530,7 @@ const ProductionPage: React.FC = () => {
                 type="primary"
                 icon={<PlusOutlined />}
                 size="large"
-                onClick={handleOpenDrawer}
+                onClick={() => navigate('/production/new')}
                 style={{ borderRadius: 6, fontWeight: 600, height: 44 }}
               >
                 {t('production.createEntry', 'Create Production Entry')}
@@ -790,265 +601,6 @@ const ProductionPage: React.FC = () => {
           onClose={() => setReportOpen(false)}
           onDownload={(format, from, to) => productionService.downloadProductionReport(format, from, to)}
         />
-
-        {/* ── Right-Side Production Form Drawer ── */}
-        <Drawer
-          title={
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A' }}>
-              {t('production.createEntry', 'Create Production Entry')}
-            </span>
-          }
-          placement="right"
-          width={getDrawerWidth()}
-          onClose={handleCloseDrawer}
-          open={drawerVisible}
-          bodyStyle={{ backgroundColor: '#F8FAFC', padding: 24 }}
-          footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '10px 16px' }}>
-              <Button onClick={handleCloseDrawer} style={{ borderRadius: 6, fontWeight: 500 }}>
-                {t('common.cancel', 'Cancel')}
-              </Button>
-              <Button
-                type="primary"
-                onClick={() => form.submit()}
-                icon={<CheckCircleOutlined />}
-                loading={createMutation.isPending}
-                style={{ borderRadius: 6, fontWeight: 700 }}
-              >
-                {t('production.saveEntry', 'Save Production Entry')}
-              </Button>
-            </div>
-          }
-        >
-          <Form
-            form={form}
-            onFinish={handleSaveEntry}
-            onValuesChange={handleFormValuesChange}
-            layout="vertical"
-            initialValues={{
-              productionDate: dayjs(),
-              items: [{ productId: undefined, pieceCodeId: undefined, quantity: undefined, rate: 0, amount: 0 }],
-            }}
-            requiredMark={false}
-          >
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="productionDate"
-                  label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.productionDate', 'Production Date')}</span>}
-                  rules={[{ required: true, message: t('production.productionDateRequired', 'Production Date is required') }]}
-                >
-                  <DatePicker style={{ width: '100%', borderRadius: 6 }} format="DD-MMM-YYYY" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="employeeId"
-                  label={<span style={{ fontWeight: 600, color: '#475569' }}>{t('production.employee', 'Employee')}</span>}
-                  rules={[{ required: true, message: t('production.employeeRequired', 'Employee is required') }]}
-                >
-                  <Select placeholder={t('production.selectWorker', 'Select worker')} showSearch optionFilterProp="children">
-                    {employees
-                      .filter((emp: any) => emp.active)
-                      .map((emp: any) => (
-                        <Select.Option key={emp.id} value={emp.id}>
-                          {emp.fullName} ({emp.employeeCode})
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Divider style={{ margin: '12px 0 16px' }} />
-
-            {/* Section Header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <span style={{ fontWeight: 800, color: '#1E293B', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BarcodeOutlined style={{ color: 'var(--theme-primary)' }} />
-                {t('production.productionItems', 'Production Items')}
-              </span>
-              <Tooltip title={t('production.cannotEditTooltip', 'Production entries cannot be edited after saving. To fix a mistake, delete the entry and create a new one.')}>
-                <span style={{ fontSize: '0.78rem', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
-                  <InfoCircleOutlined /> {t('production.cannotEdit', "Can't edit after saving")}
-                </span>
-              </Tooltip>
-            </div>
-
-            <Form.List name="items">
-              {(fields, { add, remove }) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                  {fields.map(({ key, name, ...restField }, idx) => {
-                    const rowPieceCodes = pieceCodesByRow[idx] || [];
-                    const isLoadingPC = pieceCodesLoadingByRow[idx] || false;
-
-                    return (
-                      <div
-                        key={key}
-                        style={{
-                          border: '1px solid #E2E8F0',
-                          borderRadius: 8,
-                          padding: 3,
-                          backgroundColor: '#FFFFFF',
-                        }}
-                      >
-                        <Row gutter={[8, 2]} align="top">
-                          {/* Index */}
-                          <Col xs={0} sm={1} style={{ display: 'flex', alignItems: 'center', minHeight: 32 }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94A3B8' }}>{idx + 1}</span>
-                          </Col>
-
-                          {/* Product */}
-                          <Col xs={24} sm={8}>
-                            <Form.Item {...restField} name={[name, 'productId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
-                              <Select
-                                placeholder={t('production.product', 'Product')}
-                                size="middle"
-                                variant="borderless"
-                                onChange={(val) => handleProductChange(val, idx)}
-                                showSearch
-                                optionFilterProp="children"
-                                listHeight={190}
-                                style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
-                              >
-                                {products
-                                  .filter((p: any) => p.active && p.source != 'PURCHASED')
-                                  .map((p: any) => (
-                                    <Select.Option key={p.id} value={p.id}>
-                                      <ProductLabel productId={p.id} iconName={p.iconName} name={p.name} hasImage={p.hasImage} size={18} />
-                                    </Select.Option>
-                                  ))}
-                              </Select>
-                            </Form.Item>
-                          </Col>
-
-                          {/* Piece Code */}
-                          <Col xs={14} sm={6}>
-                            <Form.Item {...restField} name={[name, 'pieceCodeId']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
-                              <Select
-                                placeholder={isLoadingPC ? '...' : t('production.code', 'Code')}
-                                loading={isLoadingPC}
-                                disabled={rowPieceCodes.length === 0 && !isLoadingPC}
-                                onChange={(val) => handlePieceCodeChange(val, idx)}
-                                showSearch
-                                optionFilterProp="label"
-                                size="middle"
-                                variant="borderless"
-                                style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }}
-                                notFoundContent={isLoadingPC ? t('production.loading', 'Loading...') : t('production.noCodes', 'No codes')}
-                              >
-                                {rowPieceCodes.map((pc: any) => (
-                                  <Select.Option key={pc.id} value={pc.id} label={`${pc.code} ${getCurrencySymbol()}${pc.rate}`}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{pc.code}</span>
-                                      <span style={{ color: 'var(--theme-primary)', fontWeight: 700, fontSize: '0.8rem' }}>{getCurrencySymbol()}{Number(pc.rate).toLocaleString('en-IN')}</span>
-                                    </div>
-                                  </Select.Option>
-                                ))}
-                              </Select>
-                            </Form.Item>
-                          </Col>
-
-                          {/* Quantity */}
-                          <Col xs={10} sm={3}>
-                            <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: '' }]} style={{ margin: 0 }}>
-                              <InputNumber min={1} placeholder={t('production.qty', 'Qty')} size="middle" variant="borderless" style={{ width: '100%', borderBottom: '1px solid #CBD5E1', borderRadius: 0 }} />
-                            </Form.Item>
-                          </Col>
-
-                          {/* Amount (auto = qty × rate), live */}
-                          <Col xs={20} sm={3} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', minHeight: 32 }}>
-                            <Form.Item noStyle shouldUpdate>
-                              {() => {
-                                const q = Number(form.getFieldValue(['items', idx, 'quantity']) || 0);
-                                const r = Number(form.getFieldValue(['items', idx, 'rate']) || 0);
-                                return (
-                                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1E293B', whiteSpace: 'nowrap', lineHeight: 1.1 }}>
-                                    {formatCurrency(q * r)}
-                                  </span>
-                                );
-                              }}
-                            </Form.Item>
-                            {/* keep rate registered for submit */}
-                            <Form.Item {...restField} name={[name, 'rate']} noStyle>
-                              <InputNumber style={{ display: 'none' }} />
-                            </Form.Item>
-                          </Col>
-
-                          {/* Delete */}
-                          <Col xs={4} sm={3} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: 32 }}>
-                            {fields.length > 1 && (
-                              <Button
-                                type="text"
-                                danger
-                                size="small"
-                                icon={<DeleteOutlined />}
-                                onClick={() => {
-                                  remove(name);
-                                  setPieceCodesByRow((prev) => {
-                                    const updated: Record<number, any[]> = {};
-                                    Object.keys(prev).forEach((k) => {
-                                      const ki = Number(k);
-                                      if (ki < idx) updated[ki] = prev[ki];
-                                      else if (ki > idx) updated[ki - 1] = prev[ki];
-                                    });
-                                    return updated;
-                                  });
-                                }}
-                              />
-                            )}
-                          </Col>
-                        </Row>
-                      </div>
-                    );
-                  })}
-
-                  <Button
-                    type="dashed"
-                    onClick={() => {
-                      add({ productId: undefined, pieceCodeId: undefined, quantity: undefined, rate: 0, amount: 0 });
-                    }}
-                    icon={<PlusOutlined />}
-                    style={{ width: '100%', borderRadius: 8, fontWeight: 500, height: 34 }}
-                  >
-                    {t('production.addRow', 'Add Product Row')}
-                  </Button>
-                </div>
-              )}
-            </Form.List>
-
-            {/* Live Summary Panel — monochrome, matches the sale form */}
-            <div style={{ marginTop: 12 }}>
-              {/* Total Amount hero — light theme tint (consistent with sale & investment) */}
-              <div style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, white)', border: '1px solid color-mix(in srgb, var(--theme-primary) 25%, white)', padding: '16px 20px' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  {t('production.totalAmount', 'Total Amount')}
-                </div>
-                <div style={{ color: 'var(--theme-primary)', fontWeight: 800, fontSize: '1.9rem', lineHeight: 1.2, marginTop: 4 }}>
-                  {formatCurrency(liveTotalAmount)}
-                </div>
-              </div>
-              {/* Detail rows */}
-              <div style={{ border: '1px solid #E2E8F0', borderTop: 'none', padding: '12px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>{t('production.pieceCodes', 'Piece Codes')}</span>
-                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalPieceCodes}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#64748B', fontSize: '0.9rem' }}>{t('production.totalQuantity', 'Total Quantity')}</span>
-                  <span style={{ color: '#0F172A', fontWeight: 700 }}>{liveTotalQuantity} {t('production.pcs', 'Pcs')}</span>
-                </div>
-              </div>
-            </div>
-          </Form>
-        </Drawer>
 
         {/* ── View Items Modal (all products in a production entry) ── */}
         <Modal

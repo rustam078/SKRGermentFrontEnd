@@ -10,6 +10,7 @@ import MainLayout from '../layouts/MainLayout';
 import LoginPage from '../pages/auth/LoginPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
 import ProductionPage from '../pages/production/ProductionPage';
+import BulkProductionEntry from '../pages/production/BulkProductionEntry';
 import ProductionHistoryPage from '../pages/production/ProductionHistoryPage';
 import InventoryPage from '../pages/inventory/InventoryPage';
 import InventoryDetailsPage from '../pages/inventory/InventoryDetailsPage';
@@ -42,6 +43,7 @@ const AppRoutes = () => {
           {/* Main Modules */}
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/production" element={<ProductionPage />} />
+          <Route path="/production/new" element={<BulkProductionEntry />} />
           <Route path="/production-history" element={<ProductionHistoryPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/inventory/:productId" element={<InventoryDetailsPage />} />
