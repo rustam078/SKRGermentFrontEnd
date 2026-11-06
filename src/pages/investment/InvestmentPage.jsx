@@ -13,6 +13,7 @@ import {
   Space,
   Drawer,
   Form,
+  AutoComplete,
   Input,
   InputNumber,
   Select,
@@ -1313,16 +1314,25 @@ const InvestmentPage = () => {
     {
       title: t('investment.itemCol.itemName', 'Item Name'),
       width: 150,
-      render: (_, record) => (
-        <Input
-          placeholder={t('investment.itemCol.itemNamePlaceholder', 'Item name')}
-          value={record.itemName}
-          onChange={(e) => updateItemRow(record.id, 'itemName', e.target.value)}
-          style={{ fontSize: '0.82rem' }}
-          size="small"
-          variant="borderless"
-        />
-      ),
+      render: (_, record) => {
+        // Suggest matching product names ONLY for PRODUCT rows, and only while typing.
+        const q = (record.itemName || '').trim().toLowerCase();
+        const opts = (record.itemType === 'PRODUCT' && q)
+          ? products.filter((p) => { const n = (p.name || '').toLowerCase(); return n.includes(q) && n !== q; }).map((p) => ({ value: p.name }))
+          : [];
+        return (
+          <AutoComplete
+            className="inv-item-auto"
+            placeholder={t('investment.itemCol.itemNamePlaceholder', 'Item name')}
+            value={record.itemName}
+            onChange={(val) => updateItemRow(record.id, 'itemName', val)}
+            options={opts}
+            style={{ width: '100%', fontSize: '0.82rem' }}
+            size="small"
+            variant="borderless"
+          />
+        );
+      },
     },
     {
       title: t('investment.itemCol.qty', 'Qty'),

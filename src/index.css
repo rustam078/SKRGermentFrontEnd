@@ -139,3 +139,19 @@ body,
   outline: none !important;
 }
 
+/* AntD v6 fix: for Select/AutoComplete the border + focus ring live on the ROOT
+   .ant-select element (the inner node is now .ant-select-content, not
+   .ant-select-selector — which is why older .ant-select-selector rules never
+   removed the full border on focus). Borderless selects: never show a box border;
+   on focus show ONLY a bottom line. Outlined (default) selects are untouched. */
+.ant-select-borderless {
+  border: none !important;
+  box-shadow: none !important;
+}
+.ant-select-borderless.ant-select-focused {
+  border-bottom: 1px solid var(--theme-primary) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
