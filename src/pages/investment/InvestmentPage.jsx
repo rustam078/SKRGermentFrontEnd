@@ -578,6 +578,8 @@ const InvestmentPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] });
       queryClient.invalidateQueries({ queryKey: ['vendorForInvestment'] });
       queryClient.invalidateQueries({ queryKey: ['vendorPayments'] });
+      // New purchase items may have created products — refresh the name suggestions.
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       handleCloseAddModal();
     },
     onError: (err) => {
