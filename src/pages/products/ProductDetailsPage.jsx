@@ -100,44 +100,44 @@ const Sparkline = ({ color = 'var(--theme-primary)' }) => (
 const PieceCodePreview = ({ code, rate, description }) => {
   const t = useT();
   return (
-  <div
-    style={{
-      background: 'linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 12%, white) 0%, #DBEAFE 100%)',
-      border: '1.5px solid #93C5FD',
-      borderRadius: 12,
-      padding: '10px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}
-  >
     <div
       style={{
-        position: 'absolute', top: -20, right: -20,
-        width: 80, height: 80, borderRadius: '50%',
-        backgroundColor: 'rgba(37,99,235,0.07)',
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 12%, white) 0%, #DBEAFE 100%)',
+        border: '1.5px solid #93C5FD',
+        borderRadius: 12,
+        padding: '10px',
+        position: 'relative',
+        overflow: 'hidden',
       }}
-    />
-    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--theme-primary)', textTransform: 'uppercase', letterSpacing: 1 }}>
-      {t('products.preview.live', 'Live Preview')}
-    </div>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-      <div>
-        <div style={{ fontWeight: 600, fontSize: '1.25rem', color: '#0F172A', fontFamily: 'monospace', letterSpacing: 1 }}>
-          {code || <span style={{ color: '#94A3B8', fontStyle: 'italic', fontFamily: 'inherit', fontWeight: 400 }}>CODE-000</span>}
+    >
+      <div
+        style={{
+          position: 'absolute', top: -20, right: -20,
+          width: 80, height: 80, borderRadius: '50%',
+          backgroundColor: 'rgba(37,99,235,0.07)',
+        }}
+      />
+      <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--theme-primary)', textTransform: 'uppercase', letterSpacing: 1 }}>
+        {t('products.preview.live', 'Live Preview')}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '1.25rem', color: '#0F172A', fontFamily: 'monospace', letterSpacing: 1 }}>
+            {code || <span style={{ color: '#94A3B8', fontStyle: 'italic', fontFamily: 'inherit', fontWeight: 400 }}>CODE-000</span>}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#64748B', marginBottom: 2 }}>{t('products.preview.fixedRate', 'Fixed Rate')}</div>
+          <div style={{ fontWeight: 600, fontSize: '1.5rem', color: 'var(--theme-primary)' }}>
+            {rate ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : <span style={{ color: '#94A3B8', fontSize: '1rem' }}>{getCurrencySymbol()} —</span>}
+          </div>
         </div>
       </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 400, color: '#64748B', marginBottom: 2 }}>{t('products.preview.fixedRate', 'Fixed Rate')}</div>
-        <div style={{ fontWeight: 600, fontSize: '1.5rem', color: 'var(--theme-primary)' }}>
-          {rate ? `${getCurrencySymbol()}${Number(rate).toLocaleString('en-IN')}` : <span style={{ color: '#94A3B8', fontSize: '1rem' }}>{getCurrencySymbol()} —</span>}
-        </div>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', color: 'var(--theme-primary)', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--theme-primary)', display: 'inline-block' }} />
+        {t('products.active', 'Active')}
       </div>
     </div>
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)', color: 'var(--theme-primary)', padding: '3px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--theme-primary)', display: 'inline-block' }} />
-      {t('products.active', 'Active')}
-    </div>
-  </div>
   );
 };
 
@@ -687,43 +687,43 @@ const ProductDetailsPage = () => {
         ) : (
           <Space size={6}>
             {can('products', 'write') && (
-            <Tooltip title={record.active ? t('products.deactivate', 'Deactivate') : t('products.activate', 'Activate')} placement="top">
-              <Popconfirm
-                title={record.active ? t('products.pc.confirmDeactivate', 'Deactivate this piece code? Once inactive, it will not show in the table.') : t('products.pc.confirmActivate', 'Activate this piece code?')}
-                onConfirm={() => handleTogglePieceCodeStatus(record)}
-                okText={record.active ? t('products.deactivate', 'Deactivate') : t('products.activate', 'Activate')}
-                okButtonProps={{ danger: record.active }}
-                cancelText={t('common.cancel', 'Cancel')}
-                placement="topRight"
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={record.active ? <StopOutlined /> : <CheckCircleOutlined />}
-                  loading={updateStatusMutation.isLoading && togglingPieceCodeId === record.id}
-                  style={{
-                    color: record.active ? 'var(--theme-primary)' : 'var(--theme-primary)',
-                    backgroundColor: record.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : 'color-mix(in srgb, var(--theme-primary) 12%, white)',
-                    border: '1px solid',
-                    borderColor: record.active ? '#FDE68A' : '#6EE7B7',
-                    borderRadius: 6,
-                    width: 28,
-                    height: 28,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                />
-              </Popconfirm>
-            </Tooltip>
+              <Tooltip title={record.active ? t('products.deactivate', 'Deactivate') : t('products.activate', 'Activate')} placement="top">
+                <Popconfirm
+                  title={record.active ? t('products.pc.confirmDeactivate', 'Deactivate this piece code? Once inactive, it will not show in the table.') : t('products.pc.confirmActivate', 'Activate this piece code?')}
+                  onConfirm={() => handleTogglePieceCodeStatus(record)}
+                  okText={record.active ? t('products.deactivate', 'Deactivate') : t('products.activate', 'Activate')}
+                  okButtonProps={{ danger: record.active }}
+                  cancelText={t('common.cancel', 'Cancel')}
+                  placement="topRight"
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={record.active ? <StopOutlined /> : <CheckCircleOutlined />}
+                    loading={updateStatusMutation.isLoading && togglingPieceCodeId === record.id}
+                    style={{
+                      color: record.active ? 'var(--theme-primary)' : 'var(--theme-primary)',
+                      backgroundColor: record.active ? 'color-mix(in srgb, var(--theme-primary) 12%, white)' : 'color-mix(in srgb, var(--theme-primary) 12%, white)',
+                      border: '1px solid',
+                      borderColor: record.active ? '#FDE68A' : '#6EE7B7',
+                      borderRadius: 6,
+                      width: 28,
+                      height: 28,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  />
+                </Popconfirm>
+              </Tooltip>
             )}
             {can('products', 'delete') && (
-            <Tooltip title={t('common.delete', 'Delete')} placement="top">
-              <Popconfirm title={t('products.pc.confirmDelete', 'Delete this piece code?')} description={t('products.pc.deleteIrreversible', 'This action cannot be undone.')} onConfirm={() => deletePieceCode(record.id)} okText={t('common.delete', 'Delete')} okButtonProps={{ danger: true }} cancelText={t('common.cancel', 'Cancel')} placement="topRight">
-                <Button type="text" size="small" icon={<DeleteOutlined />} loading={deletePieceCodeMutation.isLoading && deletingPieceCodeId === record.id}
-                  style={{ color: '#EF4444', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-              </Popconfirm>
-            </Tooltip>
+              <Tooltip title={t('common.delete', 'Delete')} placement="top">
+                <Popconfirm title={t('products.pc.confirmDelete', 'Delete this piece code?')} description={t('products.pc.deleteIrreversible', 'This action cannot be undone.')} onConfirm={() => deletePieceCode(record.id)} okText={t('common.delete', 'Delete')} okButtonProps={{ danger: true }} cancelText={t('common.cancel', 'Cancel')} placement="topRight">
+                  <Button type="text" size="small" icon={<DeleteOutlined />} loading={deletePieceCodeMutation.isLoading && deletingPieceCodeId === record.id}
+                    style={{ color: '#EF4444', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+                </Popconfirm>
+              </Tooltip>
             )}
           </Space>
         )
@@ -817,25 +817,25 @@ const ProductDetailsPage = () => {
       render: (_, record) => (
         <Space>
           {can('products', 'write') && (
-          <Tooltip title={t('common.edit', 'Edit')}>
-            <Button
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => editMaterialCost(record)}
-            />
-          </Tooltip>
+            <Tooltip title={t('common.edit', 'Edit')}>
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => editMaterialCost(record)}
+              />
+            </Tooltip>
           )}
           {can('products', 'delete') && (
-          <Popconfirm
-            title={t('products.pricing.confirmDelete', 'Delete this pricing row?')}
-            onConfirm={() => deleteMaterialCost(record.id)}
-          >
-            <Button
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-            />
-          </Popconfirm>
+            <Popconfirm
+              title={t('products.pricing.confirmDelete', 'Delete this pricing row?')}
+              onConfirm={() => deleteMaterialCost(record.id)}
+            >
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
           )}
         </Space>
       ),
@@ -1182,19 +1182,19 @@ const ProductDetailsPage = () => {
               }
               extra={
                 can('products', 'write') ? (
-                <Space>
-                  <Tooltip title={isPurchasedProduct ? t('products.pcMgmt.addTooltipPurchased', 'Piece codes do not apply to purchased products') : t('products.pcMgmt.addTooltipMade', 'Add a new piece code')}>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleOpenDrawer}
-                      disabled={isPurchasedProduct}
-                      style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
-                    >
-                      {t('products.addPieceCode', 'Add Piece Code')}
-                    </Button>
-                  </Tooltip>
-                </Space>
+                  <Space>
+                    <Tooltip title={isPurchasedProduct ? t('products.pcMgmt.addTooltipPurchased', 'Piece codes do not apply to purchased products') : t('products.pcMgmt.addTooltipMade', 'Add a new piece code')}>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleOpenDrawer}
+                        disabled={isPurchasedProduct}
+                        style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
+                      >
+                        {t('products.addPieceCode', 'Add Piece Code')}
+                      </Button>
+                    </Tooltip>
+                  </Space>
                 ) : null
               }
               style={{ ...cardStyle, height: '100%' }}
@@ -1242,19 +1242,19 @@ const ProductDetailsPage = () => {
               }
               extra={
                 can('products', 'write') ? (
-                <Space>
-                  <Tooltip title={product.source === 'PURCHASED' ? t('products.pricing.addTooltipPurchased', 'Pricing applies to manufactured products. Enable manufacturing to add pricing.') : ''}>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      disabled={product.source === 'PURCHASED'}
-                      onClick={() => setMaterialCostModalOpen(true)}
-                      style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
-                    >
-                      {t('products.pricing.add', 'Add Pricing')}
-                    </Button>
-                  </Tooltip>
-                </Space>
+                  <Space>
+                    <Tooltip title={product.source === 'PURCHASED' ? t('products.pricing.addTooltipPurchased', 'Pricing applies to manufactured products. Enable manufacturing to add pricing.') : ''}>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        disabled={product.source === 'PURCHASED'}
+                        onClick={() => setMaterialCostModalOpen(true)}
+                        style={{ borderRadius: 6, fontWeight: 600, height: 34, paddingInline: 18, marginRight: 2 }}
+                      >
+                        {t('products.pricing.add', 'Add Pricing')}
+                      </Button>
+                    </Tooltip>
+                  </Space>
                 ) : null
               }
               style={{ ...cardStyle, height: '100%' }}
@@ -1496,20 +1496,20 @@ const ProductDetailsPage = () => {
                 render: (s) => s != null ? `${getCurrencySymbol()}${Number(s).toLocaleString('en-IN')}` : '-',
               },
               // Adjust qty + QR, only for in-stock batches when the user can edit inventory.
-              ...(batchStatus === 'ACTIVE' && can('inventory', 'write') ? [{
+              ...(can('inventory', 'write') ? [{
                 title: t('common.actions', 'Actions'),
                 key: 'actions',
                 align: 'center',
-                render: (_, r) => (Number(r.quantityAvailable) || 0) > 0 ? (
+                render: (_, r) => (
                   <Space size={2}>
                     <Tooltip title={t('products.receipts.adjustTooltip', 'Adjust stock (increase / decrease)')}>
                       <Button type="text" size="small" icon={<SlidersOutlined />} onClick={() => openAdjust(r)} style={{ color: 'var(--theme-primary)' }} />
                     </Tooltip>
                     <Tooltip title={t('products.receipts.qrTooltip', 'Generate QR labels')}>
-                      <Button type="text" size="small" icon={<QrcodeOutlined />} onClick={() => setQrBatch({ batchNumber: r.batchNumber, productName: product.name, quantityAvailable: r.quantityAvailable, quantityReceived: r.totalQuantity })} style={{ color: 'var(--theme-primary)' }} />
+                      <Button type="text" size="small" icon={<QrcodeOutlined />} disabled={batchStatus !== 'ACTIVE'} onClick={() => setQrBatch({ batchNumber: r.batchNumber, productName: product.name, quantityAvailable: r.quantityAvailable, quantityReceived: r.totalQuantity })} style={{ color: 'var(--theme-primary)' }} />
                     </Tooltip>
                   </Space>
-                ) : <span style={{ color: '#CBD5E1' }}>—</span>,
+                ),
               }] : []),
             ]}
             dataSource={filteredReceipts}

@@ -448,7 +448,6 @@ const InventoryDetailsPage = () => {
                               />
                             </TableCell>
                             <TableCell align="center">
-                              {availableQ > 0 ? (
                                 <Stack direction="row" spacing={1} justifyContent="center">
                                   {can('inventory', 'write') && (
                                   <Tooltip title={t('inventory.adjustTooltip', 'Adjust stock (increase / decrease)')}>
@@ -470,6 +469,7 @@ const InventoryDetailsPage = () => {
                                       variant="outlined"
                                       color="secondary"
                                       startIcon={<QrCode2Icon fontSize="small" />}
+                                      disabled={availableQ <= 0}
                                       onClick={() => setQrBatch({
                                         batchNumber: batch.batchNumber,
                                         productName: details.productName,
@@ -483,9 +483,6 @@ const InventoryDetailsPage = () => {
                                   </Tooltip>
                                   )}
                                 </Stack>
-                              ) : (
-                                <Typography variant="body2" color="text.secondary">—</Typography>
-                              )}
                             </TableCell>
                           </TableRow>
                         );
